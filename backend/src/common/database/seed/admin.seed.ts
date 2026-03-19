@@ -1,0 +1,65 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import * as bcrypt from 'bcrypt';
+import { Users } from '../../../users/entities/user.entity';
+import { Role } from '../../../role/entities/role.entity';
+
+@Injectable()
+export class AdminSeedService {
+  private readonly logger = new Logger(AdminSeedService.name);
+
+  constructor(
+    @InjectRepository(Users)
+    private readonly usersRepository: Repository<Users>,
+    @InjectRepository(Role)
+    private readonly roleRepository: Repository<Role>,
+  ) {}
+
+  async seed(): Promise<void> {
+    try {
+      // Vérification et création du rôle Admin
+      let adminRole = await this.roleRepository.findOne({ where: { libelle: 'Admin' } });
+      
+      if (!adminRole) {
+        this.logger.log('Création du rôle Admin initial...');
+        adminRole = this.roleRepository.create({ libelle: 'Admin' });
+        adminRole = await this.roleRepository.save(adminRole);
+      }
+
+      // Cherche un compte lié au rôle Admin
+      const adminExists = await this.usersRepository.findOne({
+        where: {
+          role: { id: adminRole.id } // TypeORM va faire la jointure tout seul avec l'ID du rôle !
+        }
+      });
+
+      if (adminExists) {
+        this.logger.log('Un compte Administrateur existe déjà en base. Annulation du Seed.');
+        return;
+      }
+
+      // Création d'admin si aucun n'a été trouvé
+      this.logger.log('Création de l\'utilisateur admin initial...');
+
+      const adminEmail = 'admin@journal.fr';
+      const hashedPassword = await bcrypt.hash('admin123', 10);
+
+      const adminUser = this.usersRepository.create({
+        lastname: 'Admin',
+        firstname: 'Super',
+        email: adminEmail,
+        password: hashedPassword,
+        role: adminRole, 
+        is_phone_verified: true,
+      });
+
+      await this.usersRepository.save(adminUser);
+      this.logger.log(`Utilisateur Admin créé avec succès : ${adminEmail}`);
+      
+    } catch (error) {
+      this.logger.error(`Erreur lors du seed : ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+}
