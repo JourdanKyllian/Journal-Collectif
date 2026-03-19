@@ -12,6 +12,7 @@ import { DeclarationObjetModule } from './declaration-objet/declaration-objet.mo
 import { ImageArticleModule } from './image-article/image-article.module';
 import { VueStatistiqueModule } from './vue-statistique/vue-statistique.module';
 import { CategoryModule } from './category/category.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -24,9 +25,10 @@ import { CategoryModule } from './category/category.module';
       database: 'journal',
       autoLoadEntities: true,
       synchronize: true,
+      logging: false,
     }),
     
-    // On déclare les modules pour que le SeedService puisse y accéder
+    // Déclarations modules pour que SeedService puisse y accéder
     TypeOrmModule.forFeature([Users, Role]), 
     
     JwtModule.register({
@@ -41,12 +43,13 @@ import { CategoryModule } from './category/category.module';
     DeclarationObjetModule,
     ImageArticleModule,
     VueStatistiqueModule,
-    CategoryModule
+    CategoryModule,
+    AuthModule
   ],
   providers: [AdminSeedService],
 })
 
-// On utilise OnModuleInit pour lancer le Seed automatiquement au démarrage du serveur
+// OnModuleInit lance le Seed automatiquement au démarrage du serveur
 export class AppModule implements OnModuleInit {
   constructor(private readonly seedService: AdminSeedService) {}
 
