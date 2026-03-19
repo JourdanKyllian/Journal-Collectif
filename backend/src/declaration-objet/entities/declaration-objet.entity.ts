@@ -1,8 +1,15 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, DeleteDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn
+} from 'typeorm';
 import { Users } from '../../users/entities/user.entity';
+import { CustomBaseEntity } from 'src/common/base/base.entity';
 
 @Entity('declaration_objet')
-export class DeclarationObjet {
+export class DeclarationObjet extends CustomBaseEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -21,17 +28,7 @@ export class DeclarationObjet {
   @Column({ type: 'varchar', length: 255, nullable: true })
   image_url: string;
 
-  @Column({ type: 'boolean', default: false })
-  is_delete: boolean;
-
-  @CreateDateColumn()
-  created_at: Date;
-
-  @UpdateDateColumn()
-  updated_at: Date;
-
-  @DeleteDateColumn()
-  deleted_at: Date;
+  // --- RELATIONS ---
 
   @ManyToOne(() => Users, (user) => user.declarations)
   @JoinColumn({ name: 'user_id' })

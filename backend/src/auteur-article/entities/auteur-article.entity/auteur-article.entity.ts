@@ -1,10 +1,16 @@
-import { Entity, Column, CreateDateColumn, ManyToOne, JoinColumn, PrimaryColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+  PrimaryColumn
+} from 'typeorm';
 import { Users } from '../../../users/entities/user.entity';
 import { Article } from '../../../article/entities/article.entity';
 
 @Entity('auteur_article')
 export class AuteurArticle {
-  // On définit les deux colonnes comme PrimaryColumn
   @PrimaryColumn({ name: 'user_id' })
   userId: number;
 
@@ -17,12 +23,12 @@ export class AuteurArticle {
   @CreateDateColumn()
   created_at: Date;
 
-  // Relation vers l'Utilisateur
+  // --- RELATIONS ---
+
   @ManyToOne(() => Users, (user) => user.auteursArticles, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: Users;
 
-  // Relation vers l'Article
   @ManyToOne(() => Article, (article) => article.auteursArticles, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'article_id' })
   article: Article;

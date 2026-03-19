@@ -1,5 +1,13 @@
 export class FavorisCategorieEntity {}
-import { Entity, Column, CreateDateColumn, ManyToOne, JoinColumn, PrimaryColumn, OneToMany } from 'typeorm';
+import {
+  Entity,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+  PrimaryColumn,
+  OneToMany
+} from 'typeorm';
 import { Users } from '../../../users/entities/user.entity';
 import { Category } from '../../../category/entities/category.entity';
 
@@ -16,6 +24,8 @@ export class FavorisCategorie {
 
   @CreateDateColumn()
   created_at: Date;
+
+  // --- RELATIONS ---
 
   @ManyToOne(() => Users, (user) => user.favorisCategories, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })

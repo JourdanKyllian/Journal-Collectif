@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn
+} from 'typeorm';
 import { Article } from '../../article/entities/article.entity';
 
 @Entity('image_article')
@@ -14,6 +21,8 @@ export class ImageArticle {
 
   @CreateDateColumn()
   created_at: Date;
+
+  // --- RELATIONS ---
 
   @ManyToOne(() => Article, (article) => article.images, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'article_id' })

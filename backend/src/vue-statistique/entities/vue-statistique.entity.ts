@@ -1,4 +1,11 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn
+} from 'typeorm';
 import { Article } from '../../article/entities/article.entity';
 import { Users } from '../../users/entities/user.entity';
 
@@ -12,6 +19,8 @@ export class VueStatistique {
 
   @CreateDateColumn()
   occured_at: Date;
+
+  // --- RELATIONS ---
 
   @ManyToOne(() => Article, (article) => article.vues, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'article_id' })
