@@ -1,6 +1,5 @@
 import { 
     Entity,
-    PrimaryGeneratedColumn,
     Column,
     ManyToOne,
     JoinColumn,
@@ -14,9 +13,6 @@ import { CustomBaseEntity } from 'src/common/base/base.entity';
 
 @Entity('article')
 export class Article extends CustomBaseEntity {
-  @PrimaryGeneratedColumn()
-  id: number;
-
   @Column({ type: 'varchar', length: 255 })
   titre: string;
 

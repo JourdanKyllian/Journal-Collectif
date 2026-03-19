@@ -1,6 +1,5 @@
 import {
   Entity,
-  PrimaryGeneratedColumn,
   Column,
   ManyToOne,
   JoinColumn
@@ -10,9 +9,6 @@ import { CustomBaseEntity } from 'src/common/base/base.entity';
 
 @Entity('declaration_objet')
 export class DeclarationObjet extends CustomBaseEntity {
-  @PrimaryGeneratedColumn()
-  id: number;
-
   @Column({ type: 'varchar', length: 50 })
   type_declaration: string;
 

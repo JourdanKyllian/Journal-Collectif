@@ -2,6 +2,7 @@ import { Module, OnModuleInit } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { AdminSeedService } from './common/database/seed/admin.seed';
+import { dataSourceOptions } from './common/database/data-source';
 
 import { Users } from './users/entities/user.entity';
 import { Role } from './role/entities/role.entity';
@@ -17,24 +18,17 @@ import { AuthModule } from './auth/auth.module';
 @Module({
   imports: [
     TypeOrmModule.forRoot({
-      type: 'mysql',
-      host: 'localhost',
-      port: 3306,
-      username: 'root',
-      password: '',
-      database: 'journal',
-      autoLoadEntities: true,
-      synchronize: true,
-      logging: false,
+      ...dataSourceOptions,
+      autoLoadEntities: true
     }),
     
     // Déclarations modules pour que SeedService puisse y accéder
     TypeOrmModule.forFeature([Users, Role]), 
     
     JwtModule.register({
-      global: true, // Rend JWT accessible partout sans réimport
+      global: true, // Rend JWT accessible partout
       secret: 'TA_CLEF_SECRETE_ICI', // À mettre en .env en prod
-      signOptions: { expiresIn: '1h' }, // J'ai mis 1h, 5m c'est trop court pour développer sans devenir fou !
+      signOptions: { expiresIn: '1h' }, // 5m c'est trop court pour développer
     }),
     
     UsersModule,
