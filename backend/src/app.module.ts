@@ -1,4 +1,4 @@
-import { Module, OnModuleInit } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule, OnModuleInit } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { AdminSeedService } from './common/database/seed/admin.seed';
@@ -14,6 +14,7 @@ import { ImageArticleModule } from './image-article/image-article.module';
 import { VueStatistiqueModule } from './vue-statistique/vue-statistique.module';
 import { CategoryModule } from './category/category.module';
 import { AuthModule } from './auth/auth.module';
+import { LoggerMiddleware } from './common/middleware/logger.middleware';
 
 @Module({
   imports: [
@@ -44,8 +45,15 @@ import { AuthModule } from './auth/auth.module';
 })
 
 // OnModuleInit lance le Seed automatiquement au démarrage du serveur
-export class AppModule implements OnModuleInit {
+// NestModule applique un Middleware sur toutes les routes pour loguer
+export class AppModule implements OnModuleInit, NestModule {
   constructor(private readonly seedService: AdminSeedService) {}
+
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(LoggerMiddleware)
+      .forRoutes('*'); // On l'applique à TOUTES les routes
+  }
 
   async onModuleInit() {
     await this.seedService.seed();
