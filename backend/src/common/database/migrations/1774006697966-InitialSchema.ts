@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class ModifBaseEntity1773933225013 implements MigrationInterface {
-    name = 'ModifBaseEntity1773933225013'
+export class InitialSchema1774006697966 implements MigrationInterface {
+    name = 'InitialSchema1774006697966'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TABLE \`role\` (\`id\` int NOT NULL AUTO_INCREMENT, \`libelle\` varchar(50) NOT NULL, PRIMARY KEY (\`id\`)) ENGINE=InnoDB`);

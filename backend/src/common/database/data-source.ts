@@ -1,7 +1,4 @@
-import {
-  DataSource,
-  DataSourceOptions
-} from 'typeorm';
+import { DataSource, DataSourceOptions } from 'typeorm';
 
 export const dataSourceOptions: DataSourceOptions = {
   type: 'mysql',
@@ -11,10 +8,14 @@ export const dataSourceOptions: DataSourceOptions = {
   password: '',
   database: 'journal',
   entities: [__dirname + '/../../**/*.entity{.ts,.js}'], 
-  migrations: ['src/common/database/migrations/*.ts'],
+  migrations: [],
   synchronize: false, 
   logging: false,
 };
 
-const dataSource = new DataSource(dataSourceOptions);
+const dataSource = new DataSource({
+  ...dataSourceOptions,
+  migrations: ['src/common/database/migrations/*.ts'],
+});
+
 export default dataSource;
