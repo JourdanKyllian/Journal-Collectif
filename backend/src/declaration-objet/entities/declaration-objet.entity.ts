@@ -15,14 +15,14 @@ export class DeclarationObjet extends CustomBaseEntity {
   @Column({ type: 'varchar', length: 255 })
   name_object: string;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: 'text', nullable: false })
   description: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  lieu_presume: string;
+  lieu_presume: string | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  image_url: string;
+  image_url: string | null;
 
   // --- RELATIONS ---
 

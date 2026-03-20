@@ -13,7 +13,7 @@ export class Category extends CustomBaseEntity {
   libelle: string;
 
   @Column({ type: 'text', nullable: true })
-  description: string;
+  description: string | null;
 
   // --- RELATIONS ---
   

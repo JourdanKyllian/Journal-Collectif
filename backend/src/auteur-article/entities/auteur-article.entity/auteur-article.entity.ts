@@ -18,7 +18,7 @@ export class AuteurArticle {
   articleId: number;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
-  role_contribution: string;
+  role_contribution: string | null;
 
   @CreateDateColumn()
   created_at: Date;

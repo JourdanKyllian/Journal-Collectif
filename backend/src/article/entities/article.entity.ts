@@ -20,16 +20,16 @@ export class Article extends CustomBaseEntity {
   contenu: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  image_couverture: string;
+  image_couverture: string | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  source_link: string;
+  source_link: string | null;
 
   @Column({ type: 'varchar', length: 50, default: 'brouillon' })
   statut: string;
 
   @Column({ type: 'datetime', nullable: true })
-  published_at: Date;
+  published_at: Date | null;
 
   // --- RELATIONS ---
 

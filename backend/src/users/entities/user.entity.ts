@@ -14,11 +14,11 @@ import { CustomBaseEntity } from 'src/common/base/base.entity';
 
 @Entity('users')
 export class Users extends CustomBaseEntity{
-  @Column({ type: 'varchar', length: 100 })
-  lastname: string;
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  lastname: string | null;
 
-  @Column({ type: 'varchar', length: 100 })
-  firstname: string;
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  firstname: string | null;
 
   @Column({ type: 'varchar', length: 255, unique: true })
   email: string;
@@ -27,16 +27,16 @@ export class Users extends CustomBaseEntity{
   password: string;
 
   @Column({ type: 'varchar', length: 20, nullable: true })
-  tel: string;
+  tel: string | null;
 
   @Column({ type: 'boolean', default: false })
   is_phone_verified: boolean;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  token_auth: string;
+  token_auth: string | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  token_notification: string;
+  token_notification: string | null;
 
   // --- RELATIONS ---
 

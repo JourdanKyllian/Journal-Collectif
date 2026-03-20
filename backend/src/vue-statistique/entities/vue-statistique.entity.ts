@@ -15,7 +15,7 @@ export class VueStatistique {
   id: number;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  session_anonyme: string;
+  session_anonyme: string | null;
 
   @CreateDateColumn()
   occured_at: Date;
