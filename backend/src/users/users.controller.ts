@@ -11,8 +11,15 @@ export class UsersController {
 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('Admin')
-  @Post()
+  @Post('create')
   async create(@Body() createUserDto: CreateUserDto) {
     return this.usersService.create(createUserDto);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Admin')
+  @Get('all')
+  async findAll() {
+    return this.usersService.findAll();
   }
 }

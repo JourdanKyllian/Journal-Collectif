@@ -40,4 +40,14 @@ export class UsersService {
     
     return savedUser;
   }
+
+  async findAll() {
+    const users = await this.usersRepository.find({
+      relations: ['role'],
+    });
+    return users.map(user => {
+      const { password, ...userWithoutPassword } = user;
+      return userWithoutPassword;
+    });
+  }
 }

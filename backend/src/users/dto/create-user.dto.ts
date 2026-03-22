@@ -32,6 +32,10 @@ export class CreateUserDto {
   @MinLength(14)
   password: string;
 
+  // ===========================
+  // Champs facultatifs à la création
+  // ===========================
+
   /**
    * Le numéro de téléphone (Facultatif)
    * @example 0601020304

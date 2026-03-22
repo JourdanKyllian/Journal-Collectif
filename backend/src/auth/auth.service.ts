@@ -24,11 +24,32 @@ export class AuthService {
     const isMatch = await bcrypt.compare(pass, user.password);
     if (!isMatch) throw new UnauthorizedException('Identifiants invalides');
 
-    const payload = { sub: user.id, email: user.email, role: user.role?.libelle };
-    return { access_token: await this.jwtService.signAsync(payload) };
+    const roleName = user.role?.libelle;
+    const payload = { sub: user.id, email: user.email, role: roleName };
+
+    // Définit les durées en fonction du rôle
+    const isUserAdmin = roleName === 'Admin';
+    const accessTokenExpiresIn = isUserAdmin ? '15m' : '1h';
+    const refreshTokenExpiresIn = isUserAdmin ? '8h' : '7d';
+
+    // Génère les deux tokens
+    const accessToken = await this.jwtService.signAsync(payload, { expiresIn: accessTokenExpiresIn });
+    const refreshToken = await this.jwtService.signAsync(payload, { expiresIn: refreshTokenExpiresIn });
+
+    // Hashe le Refresh Token avant de sauvegarder en BDD 
+    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+    
+    await this.usersRepository.update(user.id, {
+      token_auth: hashedRefreshToken
+    });
+
+    // Renvoie les deux tokens au front
+    return { 
+      access_token: accessToken,
+      refresh_token: refreshToken
+    };
   }
 
-  // NOUVELLE MÉTHODE : L'inscription publique
   async register(registerDto: RegisterDto) {
     const userExists = await this.usersRepository.findOne({ where: { email: registerDto.email } });
     if (userExists) throw new ConflictException('Cet email est déjà utilisé');
@@ -53,5 +74,66 @@ export class AuthService {
     const { password, ...userWithoutPassword } = savedUser; // On ne renvoie pas le mot de passe
     
     return savedUser;
+  }
+
+  async refreshToken(refreshToken: string) {
+    try {
+      // 1. On vérifie si le token est mathématiquement valide et non expiré
+      const payload = await this.jwtService.verifyAsync(refreshToken);
+
+      // 2. On cherche l'utilisateur et son token haché en BDD
+      const user = await this.usersRepository.findOne({ 
+        where: { id: payload.sub }, 
+        relations: ['role'] 
+      });
+      
+      // Si pas d'utilisateur, ou s'il s'est déconnecté (token_auth null)
+      if (!user || !user.token_auth) {
+        throw new UnauthorizedException('Accès refusé');
+      }
+
+      // 3. On compare le token reçu avec le hash en base de données
+      const isMatch = await bcrypt.compare(refreshToken, user.token_auth);
+      if (!isMatch) {
+        throw new UnauthorizedException('Accès refusé');
+      }
+
+      // 4. TOUT EST BON ! On génère les NOUVEAUX tokens (Rotation)
+      const roleName = user.role?.libelle;
+      const newPayload = { sub: user.id, email: user.email, role: roleName };
+
+      const isUserAdmin = roleName === 'Admin';
+      const accessTokenExpiresIn = isUserAdmin ? '15m' : '1h';
+      const refreshTokenExpiresIn = isUserAdmin ? '8h' : '7d';
+
+      const newAccessToken = await this.jwtService.signAsync(newPayload, { expiresIn: accessTokenExpiresIn });
+      const newRefreshToken = await this.jwtService.signAsync(newPayload, { expiresIn: refreshTokenExpiresIn });
+
+      // 5. On écrase l'ancien Refresh Token en BDD par le nouveau
+      const hashedRefreshToken = await bcrypt.hash(newRefreshToken, 10);
+      await this.usersRepository.update(user.id, { token_auth: hashedRefreshToken });
+
+      // 6. On renvoie le nouveau trousseau de clés au frontend
+      return { 
+        access_token: newAccessToken,
+        refresh_token: newRefreshToken
+      };
+
+    } catch (error) {
+      // Si jwtService.verifyAsync échoue (token expiré ou corrompu)
+      throw new UnauthorizedException('Refresh token invalide ou expiré. Veuillez vous reconnecter.');
+    }
+  }
+
+  async logout(userId: number) {
+    // Vide la case token_auth dans la BDD
+    await this.usersRepository.update(userId, {
+      token_auth: null
+    });
+
+    return { 
+      message: 'Déconnexion réussie.',
+      instruction: 'Le frontend doit maintenant supprimer les tokens de son stockage local.'
+    };
   }
 }

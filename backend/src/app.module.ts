@@ -1,4 +1,4 @@
-import { MiddlewareConsumer, Module, NestModule, OnModuleInit } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common'; // <-- OnModuleInit a disparu
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { AdminSeedService } from './common/database/seed/admin.seed';
@@ -15,6 +15,7 @@ import { VueStatistiqueModule } from './vue-statistique/vue-statistique.module';
 import { CategoryModule } from './category/category.module';
 import { AuthModule } from './auth/auth.module';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
+import { TableSeedService } from './common/database/seed/table.seed';
 
 @Module({
   imports: [
@@ -23,13 +24,12 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
       autoLoadEntities: true
     }),
     
-    // Déclarations modules pour que SeedService puisse y accéder
     TypeOrmModule.forFeature([Users, Role]), 
     
     JwtModule.register({
-      global: true, // Rend JWT accessible partout
-      secret: 'TA_CLEF_SECRETE_ICI', // À mettre en .env en prod
-      signOptions: { expiresIn: '1h' }, // 5m c'est trop court pour développer
+      global: true, 
+      secret: 'TA_CLEF_SECRETE_ICI', 
+      signOptions: { expiresIn: '1h' }, 
     }),
     
     UsersModule,
@@ -41,21 +41,18 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
     CategoryModule,
     AuthModule
   ],
-  providers: [AdminSeedService],
+  // Ajout de TableSeedService ici pour que ton fichier src/seed.ts puisse s'en servir !
+  providers: [AdminSeedService, TableSeedService],
 })
 
-// OnModuleInit lance le Seed automatiquement au démarrage du serveur
-// NestModule applique un Middleware sur toutes les routes pour loguer
-export class AppModule implements OnModuleInit, NestModule {
-  constructor(private readonly seedService: AdminSeedService) {}
-
+// On garde uniquement NestModule pour ton Middleware de logs
+export class AppModule implements NestModule {
+  
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(LoggerMiddleware)
-      .forRoutes('*'); // On l'applique à TOUTES les routes
+      .forRoutes('*'); 
   }
 
-  async onModuleInit() {
-    await this.seedService.seed();
-  }
+  // Toute la partie onModuleInit a été supprimée ! 🧹
 }
