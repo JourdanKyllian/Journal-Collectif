@@ -1,6 +1,5 @@
 import { 
     Entity,
-    PrimaryGeneratedColumn,
     Column,
     ManyToOne,
     JoinColumn,
@@ -12,11 +11,15 @@ import { VueStatistique } from '../../vue-statistique/entities/vue-statistique.e
 import { AuteurArticle } from '../../auteur-article/entities/auteur-article.entity/auteur-article.entity';
 import { CustomBaseEntity } from 'src/common/base/base.entity';
 
+export enum ArticleStatus {
+  BROUILLON = 'brouillon',
+  EN_ATTENTE = 'en_attente', 
+  PUBLIE = 'publie',
+  CORBEILLE = 'corbeille',
+}
+
 @Entity('article')
 export class Article extends CustomBaseEntity {
-  @PrimaryGeneratedColumn()
-  id: number;
-
   @Column({ type: 'varchar', length: 255 })
   titre: string;
 
@@ -24,16 +27,20 @@ export class Article extends CustomBaseEntity {
   contenu: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  image_couverture: string;
+  image_couverture: string | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  source_link: string;
+  source_link: string | null;
 
-  @Column({ type: 'varchar', length: 50, default: 'brouillon' })
-  statut: string;
+  @Column({ 
+    type: 'enum', 
+    enum: ArticleStatus, 
+    default: ArticleStatus.BROUILLON 
+  })
+  statut: ArticleStatus;
 
   @Column({ type: 'datetime', nullable: true })
-  published_at: Date;
+  published_at: Date | null;
 
   // --- RELATIONS ---
 

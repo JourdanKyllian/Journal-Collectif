@@ -19,18 +19,16 @@ export class AdminSeedService {
   async seed(): Promise<void> {
     try {
       // Vérification et création du rôle Admin
-      let adminRole = await this.roleRepository.findOne({ where: { libelle: 'Admin' } });
-      
+
+      const adminRole = await this.roleRepository.findOne({ where: { libelle: 'Admin' } });
       if (!adminRole) {
-        this.logger.log('Création du rôle Admin initial...');
-        adminRole = this.roleRepository.create({ libelle: 'Admin' });
-        adminRole = await this.roleRepository.save(adminRole);
+        throw new Error("Le rôle Admin n'existe pas ! Lancez d'abord le TableSeedService.");
       }
 
       // Cherche un compte lié au rôle Admin
       const adminExists = await this.usersRepository.findOne({
         where: {
-          role: { id: adminRole.id } // TypeORM va faire la jointure tout seul avec l'ID du rôle !
+          role: { id: adminRole.id }
         }
       });
 

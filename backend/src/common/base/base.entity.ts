@@ -2,10 +2,14 @@ import {
     CreateDateColumn,
     UpdateDateColumn,
     DeleteDateColumn,
-    Column
+    Column,
+    PrimaryGeneratedColumn
 } from 'typeorm';
 
 export abstract class CustomBaseEntity { // Base d'entités users, articles, categories et declaration_objet
+  @PrimaryGeneratedColumn()
+  id: number;
+
   @Column({ type: 'boolean', default: false })
   is_delete: boolean;
 

@@ -1,34 +1,40 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, UseGuards, Request } from '@nestjs/common';
 import { ArticleService } from './article.service';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
+import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
 
 @Controller('article')
 export class ArticleController {
   constructor(private readonly articleService: ArticleService) {}
 
+  // 📝 CRÉER / PROPOSER
   @Post()
-  create(@Body() createArticleDto: CreateArticleDto) {
-    return this.articleService.create(createArticleDto);
+  @UseGuards(JwtAuthGuard)
+  create(@Body() createArticleDto: CreateArticleDto, @Request() req) {
+    return this.articleService.create(createArticleDto, req.user.userId, req.user.role);
   }
 
-  @Get()
-  findAll() {
-    return this.articleService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.articleService.findOne(+id);
-  }
-
+  // ✏️ MODIFIER (Brouillon ou correction)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateArticleDto: UpdateArticleDto) {
-    return this.articleService.update(+id, updateArticleDto);
+  @UseGuards(JwtAuthGuard)
+  update(@Param('id') id: string, @Body() updateArticleDto: UpdateArticleDto, @Request() req) {
+    return this.articleService.update(+id, updateArticleDto, req.user.userId, req.user.role);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.articleService.remove(+id);
+  // ✅ VALIDER / PUBLIER (Admins uniquement)
+  @Patch(':id/publish')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Admin', 'moderateur')
+  publish(@Param('id') id: string) {
+    return this.articleService.publishArticle(+id);
+  }
+
+  // 🌍 PUBLIC : Liste des articles pour le journal
+  @Get('published')
+  findAll() {
+    return this.articleService.findAllPublished();
   }
 }

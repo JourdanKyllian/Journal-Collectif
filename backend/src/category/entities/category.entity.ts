@@ -1,6 +1,5 @@
 import {
   Entity,
-  PrimaryGeneratedColumn,
   Column,
   OneToMany
 } from 'typeorm';
@@ -10,14 +9,11 @@ import { CustomBaseEntity } from 'src/common/base/base.entity';
 
 @Entity('category')
 export class Category extends CustomBaseEntity {
-  @PrimaryGeneratedColumn()
-  id: number;
-
   @Column({ type: 'varchar', length: 100 })
   libelle: string;
 
   @Column({ type: 'text', nullable: true })
-  description: string;
+  description: string | null;
 
   // --- RELATIONS ---
   

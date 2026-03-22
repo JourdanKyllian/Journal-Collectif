@@ -16,7 +16,7 @@ export class ImageArticle {
   @Column({ type: 'varchar', length: 255 })
   url_image: string;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 255 })
   legend: string;
 
   @CreateDateColumn()

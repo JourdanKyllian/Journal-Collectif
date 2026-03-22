@@ -1,26 +1,25 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { CreateUserDto } from './dto/create-user.dto';
 
-/**
- * Controller de gestion des utilisateurs
- */
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  /**
-   * Créer un nouvel utilisateur, seulement accessible par un 'Admin'
-   * @param createUserDto 
-   * @returns 
-   */
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('Admin')
-  @Post()
-  async create(@Body() createUserDto: any) {
-    return {message: "Route de création d'utilisateur atteinte avec succès par l'Admin !"};
+  @Post('create')
+  async create(@Body() createUserDto: CreateUserDto) {
+    return this.usersService.create(createUserDto);
   }
-  
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Admin')
+  @Get('all')
+  async findAll() {
+    return this.usersService.findAll();
+  }
 }

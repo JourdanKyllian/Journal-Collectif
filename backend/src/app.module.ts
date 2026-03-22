@@ -1,7 +1,8 @@
-import { Module, OnModuleInit } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common'; // <-- OnModuleInit a disparu
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { AdminSeedService } from './common/database/seed/admin.seed';
+import { dataSourceOptions } from './common/database/data-source';
 
 import { Users } from './users/entities/user.entity';
 import { Role } from './role/entities/role.entity';
@@ -13,28 +14,22 @@ import { ImageArticleModule } from './image-article/image-article.module';
 import { VueStatistiqueModule } from './vue-statistique/vue-statistique.module';
 import { CategoryModule } from './category/category.module';
 import { AuthModule } from './auth/auth.module';
+import { LoggerMiddleware } from './common/middleware/logger.middleware';
+import { TableSeedService } from './common/database/seed/table.seed';
 
 @Module({
   imports: [
     TypeOrmModule.forRoot({
-      type: 'mysql',
-      host: 'localhost',
-      port: 3306,
-      username: 'root',
-      password: '',
-      database: 'journal',
-      autoLoadEntities: true,
-      synchronize: true,
-      logging: false,
+      ...dataSourceOptions,
+      autoLoadEntities: true
     }),
     
-    // Déclarations modules pour que SeedService puisse y accéder
     TypeOrmModule.forFeature([Users, Role]), 
     
     JwtModule.register({
-      global: true, // Rend JWT accessible partout sans réimport
-      secret: 'TA_CLEF_SECRETE_ICI', // À mettre en .env en prod
-      signOptions: { expiresIn: '1h' }, // J'ai mis 1h, 5m c'est trop court pour développer sans devenir fou !
+      global: true, 
+      secret: 'TA_CLEF_SECRETE_ICI', 
+      signOptions: { expiresIn: '1h' }, 
     }),
     
     UsersModule,
@@ -46,14 +41,18 @@ import { AuthModule } from './auth/auth.module';
     CategoryModule,
     AuthModule
   ],
-  providers: [AdminSeedService],
+  // Ajout de TableSeedService ici pour que ton fichier src/seed.ts puisse s'en servir !
+  providers: [AdminSeedService, TableSeedService],
 })
 
-// OnModuleInit lance le Seed automatiquement au démarrage du serveur
-export class AppModule implements OnModuleInit {
-  constructor(private readonly seedService: AdminSeedService) {}
-
-  async onModuleInit() {
-    await this.seedService.seed();
+// On garde uniquement NestModule pour ton Middleware de logs
+export class AppModule implements NestModule {
+  
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(LoggerMiddleware)
+      .forRoutes('*'); 
   }
+
+  // Toute la partie onModuleInit a été supprimée ! 🧹
 }
