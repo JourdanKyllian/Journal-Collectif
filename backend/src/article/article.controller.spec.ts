@@ -4,7 +4,7 @@ import { ArticleService } from './article.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Article } from './entities/article.entity';
 import { Users } from '../users/entities/user.entity';
-import { Category } from '../category/entities/category.entity';
+import { Category } from '../categorie/entities/categorie.entity';
 import { AuteurArticle } from '../auteur-article/entities/auteur-article.entity/auteur-article.entity';
 
 describe('ArticleController', () => {

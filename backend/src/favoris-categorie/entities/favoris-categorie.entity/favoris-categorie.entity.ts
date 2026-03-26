@@ -9,7 +9,7 @@ import {
   OneToMany
 } from 'typeorm';
 import { Users } from '../../../users/entities/user.entity';
-import { Category } from '../../../category/entities/category.entity';
+import { Category } from '../../../categorie/entities/categorie.entity';
 
 @Entity('favoris_categorie')
 export class FavorisCategorie {

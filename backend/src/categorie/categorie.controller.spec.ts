@@ -1,8 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CategoryController } from './category.controller';
-import { CategoryService } from './category.service';
+import { CategoryController } from './categorie.controller';
+import { CategoryService } from './categorie.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Category } from './entities/category.entity';
+import { Category } from './entities/categorie.entity';
 
 describe('CategoryController', () => {
   let controller: CategoryController;

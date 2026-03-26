@@ -12,7 +12,7 @@ import { ArticleModule } from './article/article.module';
 import { DeclarationObjetModule } from './declaration-objet/declaration-objet.module';
 import { ImageArticleModule } from './image-article/image-article.module';
 import { VueStatistiqueModule } from './vue-statistique/vue-statistique.module';
-import { CategoryModule } from './category/category.module';
+import { CategoryModule } from './categorie/categorie.module';
 import { AuthModule } from './auth/auth.module';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { TableSeedService } from './common/database/seed/table.seed';
