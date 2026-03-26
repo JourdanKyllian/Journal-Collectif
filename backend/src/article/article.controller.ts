@@ -10,21 +10,21 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 export class ArticleController {
   constructor(private readonly articleService: ArticleService) {}
 
-  // 📝 CRÉER / PROPOSER
+  // CRÉER / PROPOSER
   @Post()
   @UseGuards(JwtAuthGuard)
   create(@Body() createArticleDto: CreateArticleDto, @Request() req) {
     return this.articleService.create(createArticleDto, req.user.userId, req.user.role);
   }
 
-  // ✏️ MODIFIER (Brouillon ou correction)
+  // MODIFIER (Brouillon ou correction)
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   update(@Param('id') id: string, @Body() updateArticleDto: UpdateArticleDto, @Request() req) {
     return this.articleService.update(+id, updateArticleDto, req.user.userId, req.user.role);
   }
 
-  // ✅ VALIDER / PUBLIER (Admins uniquement)
+  // VALIDER / PUBLIER (Admins uniquement)
   @Patch(':id/publish')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('Admin', 'moderateur')
@@ -32,7 +32,7 @@ export class ArticleController {
     return this.articleService.publishArticle(+id);
   }
 
-  // 🌍 PUBLIC : Liste des articles pour le journal
+  // PUBLIC : Liste des articles pour le journal
   @Get('published')
   findAll() {
     return this.articleService.findAllPublished();

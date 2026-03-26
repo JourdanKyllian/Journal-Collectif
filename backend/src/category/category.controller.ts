@@ -10,19 +10,19 @@ import { Roles } from 'src/common/decorators/roles.decorator';
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
-  // 🌍 PUBLIC : Tout le monde peut voir les catégories
+  // PUBLIC : Tout le monde peut voir les catégories
   @Get()
   findAll() {
     return this.categoryService.findAll();
   }
 
-  // 🌍 PUBLIC : Voir une seule catégorie
+  // PUBLIC : Voir une seule catégorie
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.categoryService.findOne(+id);
   }
 
-  // 🔒 PROTÉGÉ : Seuls Admin et Moderateur
+  // PROTÉGÉ : Seuls Admin et Moderateur
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('Admin', 'moderateur')
@@ -30,7 +30,7 @@ export class CategoryController {
     return this.categoryService.create(createCategoryDto);
   }
 
-  // 🔒 PROTÉGÉ : Seuls Admin et Moderateur
+  // PROTÉGÉ : Seuls Admin et Moderateur
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('Admin', 'moderateur')
@@ -38,7 +38,7 @@ export class CategoryController {
     return this.categoryService.update(+id, updateCategoryDto);
   }
 
-  // 🔒 PROTÉGÉ : Seuls Admin et Moderateur
+  // PROTÉGÉ : Seuls Admin et Moderateur
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('Admin', 'moderateur')
