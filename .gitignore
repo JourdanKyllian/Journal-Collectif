@@ -1,0 +1,25 @@
+# --- Système ---
+.DS_Store
+Thumbs.db
+*.log
+
+# --- Éditeur (VS Code, IntelliJ) ---
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# --- Sécurité ---
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+
+# --- Dépendances & Build ---
+node_modules/
+dist/
+build/
+out/
+.next/

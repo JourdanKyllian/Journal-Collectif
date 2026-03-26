@@ -5,7 +5,7 @@ import {
   JoinColumn
 } from 'typeorm';
 import { Users } from '../../users/entities/user.entity';
-import { CustomBaseEntity } from 'src/common/base/base.entity';
+import { CustomBaseEntity } from '../../common/base/base.entity';
 
 @Entity('declaration_objet')
 export class DeclarationObjet extends CustomBaseEntity {
