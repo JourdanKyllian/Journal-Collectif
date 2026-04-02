@@ -1,4 +1,5 @@
 import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsStrongPasswordCustom } from 'src/common/decorators/is-strong-password.decorator';
 
 export class RegisterDto {
   /**
@@ -14,7 +15,8 @@ export class RegisterDto {
    * @example motdepasse123!
    */
   @IsString()
-  @MinLength(14)
+  @IsNotEmpty()
+  @IsStrongPasswordCustom()
   password: string;
   
   // ===========================
