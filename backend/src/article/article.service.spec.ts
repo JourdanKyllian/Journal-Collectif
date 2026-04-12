@@ -5,7 +5,9 @@ import { Article, ArticleStatus } from './entities/article.entity';
 import { Users } from '../users/entities/user.entity';
 import { Category } from '../categorie/entities/categorie.entity';
 import { AuteurArticle } from '../auteur-article/entities/auteur-article.entity/auteur-article.entity';
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { ForbiddenException } from '@nestjs/common';
+import { describe, it, expect, jest } from '@jest/globals';
+import { beforeEach } from 'node:test';
 
 describe('ArticleService', () => {
   let service: ArticleService;

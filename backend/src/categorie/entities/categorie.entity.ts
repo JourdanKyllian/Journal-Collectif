@@ -16,11 +16,11 @@ export class Category extends CustomBaseEntity {
   @Column({ type: 'text', nullable: true })
   description: string | null;
 
-  @Column({ type: 'varchar', length: 10, nullable: true })
+  @Column({ type: 'varchar', length: 10, nullable: false })
   icon: string;
 
   // Le bandeau permanent
-  @Column()
+  @Column({ type: 'varchar', length: 255,nullable: false })
   image_bandeau_url: string;
 
   // --- RELATIONS ---

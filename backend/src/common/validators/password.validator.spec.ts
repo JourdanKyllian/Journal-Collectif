@@ -1,4 +1,4 @@
-import { describe, it } from 'node:test';
+import { describe, it, expect } from '@jest/globals';
 import { isValidPassword } from './password.validator';
 
 describe('isValidPassword', () => {

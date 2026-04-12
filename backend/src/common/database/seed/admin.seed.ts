@@ -56,7 +56,11 @@ export class AdminSeedService {
       this.logger.log(`Utilisateur Admin créé avec succès : ${adminEmail}`);
       
     } catch (error) {
-      this.logger.error(`Erreur lors du seed : ${error.message}`, error.stack);
+      if (error instanceof Error) {
+        this.logger.error(`Erreur lors du seed : ${error.message}`, error.stack);
+      } else {
+        this.logger.error(`Erreur inconnue lors du seed : ${String(error)}`);
+      }
       throw error;
     }
   }
