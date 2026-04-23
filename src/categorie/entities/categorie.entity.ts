@@ -1,33 +1,33 @@
+import { Article } from '@/article/entities/article.entity';
+import { CustomBaseEntity } from '@/common/base/base.entity';
+import { FavorisCategorie } from '@/favoris-categorie/entities/favoris-categorie.entity/favoris-categorie.entity';
 import {
   Entity,
   Column,
   OneToMany,
 } from 'typeorm';
-import { Article } from 'src/article/entities/article.entity';
-import { CustomBaseEntity } from 'src/common/base/base.entity';
-import { FavorisCategorie } from 'src/favoris-categorie/entities/favoris-categorie.entity/favoris-categorie.entity';
 
 
 @Entity('category')
 export class Category extends CustomBaseEntity {
   @Column({ type: 'varchar', length: 100 })
-  libelle: string;
+  libelle!: string;
 
   @Column({ type: 'text', nullable: true })
-  description: string | null;
+  description!: string | null;
 
   @Column({ type: 'varchar', length: 10, nullable: false })
-  icon: string;
+  icon!: string;
 
   // Le bandeau permanent
   @Column({ type: 'varchar', length: 255,nullable: false })
-  image_bandeau_url: string;
+  image_bandeau_url!: string;
 
   // --- RELATIONS ---
   
   @OneToMany(() => Article, (article) => article.category)
-  articles: Article[];
+  articles!: Article[];
 
   @OneToMany(() => FavorisCategorie, (fc) => fc.category)
-  favorisCategories: FavorisCategorie[];
+  favorisCategories!: FavorisCategorie[];
 }

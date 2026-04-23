@@ -1,25 +1,57 @@
-# --- Système ---
+# compiled output
+/dist
+/node_modules
+/build
+out/
+.next/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS
 .DS_Store
 Thumbs.db
-*.log
 
-# --- Éditeur (VS Code, IntelliJ) ---
-.vscode/
-.idea/
+# Tests
+/coverage
+/.nyc_output
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
 *.sublime-project
 *.sublime-workspace
 
-# --- Sécurité ---
+# IDE - VSCode
+.vscode/
+
+# dotenv environment variable files
 .env
-.env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env.local
 *.pem
 
-# --- Dépendances & Build ---
-node_modules/
-dist/
-build/
-out/
-.next/
+# temp directory
+.temp
+.tmp
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Diagnostic reports (https://nodejs.org/api/report.html)
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
