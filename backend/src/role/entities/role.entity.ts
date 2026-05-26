@@ -9,13 +9,13 @@ import { Users } from '../../users/entities/user.entity';
 @Entity('role')
 export class Role {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ type: 'varchar', length: 50 })
-  libelle: string;
+  libelle!: string;
 
   // --- RELATIONS ---
 
   @OneToMany(() => Users, (user) => user.role)
-  users: Users[];
+  users!: Users[];
 }

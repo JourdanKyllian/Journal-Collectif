@@ -1,6 +1,6 @@
-import { Article } from '@/article/entities/article.entity';
-import { CustomBaseEntity } from '@/common/base/base.entity';
-import { FavorisCategorie } from '@/favoris-categorie/entities/favoris-categorie.entity/favoris-categorie.entity';
+import { Article } from 'src/article/entities/article.entity';
+import { CustomBaseEntity } from 'src/common/base/base.entity';
+import { FavorisCategorie } from 'src/favoris-categorie/entities/favoris-categorie.entity/favoris-categorie.entity';
 import {
   Entity,
   Column,
