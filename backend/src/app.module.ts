@@ -16,6 +16,7 @@ import { CategoryModule } from './categorie/categorie.module';
 import { AuthModule } from './auth/auth.module';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { TableSeedService } from './common/database/seed/table.seed';
+import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
@@ -39,7 +40,8 @@ import { TableSeedService } from './common/database/seed/table.seed';
     ImageArticleModule,
     VueStatistiqueModule,
     CategoryModule,
-    AuthModule
+    AuthModule,
+    HealthModule
   ],
   // Ajout de TableSeedService ici pour que ton fichier src/seed.ts puisse s'en servir !
   providers: [AdminSeedService, TableSeedService],
