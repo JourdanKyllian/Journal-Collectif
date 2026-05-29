@@ -1,0 +1,56 @@
+# =========================================
+# GLOBAUX (S'applique au Backend et Frontend)
+# =========================================
+node_modules/
+.env
+.env.*.local
+*.pem
+.temp
+.tmp
+logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+pids/
+*.pid
+*.seed
+*.pid.lock
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# =========================================
+# BACKEND (NestJS)
+# =========================================
+dist/
+coverage/
+.nyc_output/
+.nest/
+
+# =========================================
+# FRONTEND (Next.js / React)
+# =========================================
+build/
+out/
+.next/
+.swc/
+
+# =========================================
+# OS & SYSTEME
+# =========================================
+.DS_Store
+Thumbs.db
+
+# =========================================
+# IDEs & EDITEURS DE CODE
+# =========================================
+.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-project
+*.sublime-workspace
+.vscode/
