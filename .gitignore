@@ -27,6 +27,7 @@ dist/
 coverage/
 .nyc_output/
 .nest/
+backend.txt
 
 # =========================================
 # FRONTEND (Next.js / React)
@@ -35,6 +36,7 @@ build/
 out/
 .next/
 .swc/
+frontend.txt
 
 # =========================================
 # OS & SYSTEME
