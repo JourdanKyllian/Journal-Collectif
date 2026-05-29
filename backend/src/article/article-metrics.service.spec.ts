@@ -69,3 +69,28 @@ describe('ArticleMetricsService - Répartition des contributions', () => {
   });
 });
 
+describe('ArticleMetricsService - Score de fraîcheur', () => {
+  let service: ArticleMetricsService;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [ArticleMetricsService],
+    }).compile();
+
+    service = module.get<ArticleMetricsService>(ArticleMetricsService);
+  });
+
+  it('devrait retourner 100 pour un article mis à jour aujourd\'hui (0 jour)', () => {
+    expect(service.calculateContentDecay(0)).toBe(100);
+  });
+
+  it('devrait diminuer le score de 0.5 point par jour (ex: 10 jours = 95)', () => {
+    expect(service.calculateContentDecay(10)).toBe(95);
+  });
+
+  it('ne devrait jamais descendre en dessous de 0 (ex: 300 jours = 0)', () => {
+    // 300 jours * 0.5 = 150 points en moins. 100 - 150 = -50. 
+    // La fonction doit bloquer à 0.
+    expect(service.calculateContentDecay(300)).toBe(0);
+  });
+});

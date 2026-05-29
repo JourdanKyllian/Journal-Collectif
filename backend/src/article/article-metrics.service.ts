@@ -61,4 +61,22 @@ export class ArticleMetricsService {
     return distribution;
   }
 
+  /**
+   * Calcule le score de fraîcheur (Content Decay) d'une publication.
+   * Le score part de 100 et diminue de 0.5 point par jour.
+   * Il ne peut pas être inférieur à 0.
+   * * @param daysSinceUpdate Nombre de jours depuis la dernière mise à jour
+   */
+  calculateContentDecay(daysSinceUpdate: number): number {
+    // Si le nombre de jours est négatif (erreur temporelle)
+    if (daysSinceUpdate < 0) {
+      return 100;
+    }
+
+    // Calcul du score avec le facteur de dégradation (0.5 point / jour)
+    const rawScore = 100 - (daysSinceUpdate * 0.5);
+
+    // Empêche le score de descendre en dessous de 0
+    return Math.max(0, rawScore);
+  }
 }
