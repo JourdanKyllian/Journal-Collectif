@@ -7,7 +7,7 @@ import helmet from 'helmet'; // <-- 1. L'import de Helmet
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // --- 🛡️ SÉCURITÉ ---
+  // --- SÉCURITÉ ---
 
   // Protection des en-têtes HTTP
   app.use(
@@ -33,7 +33,7 @@ async function bootstrap() {
     credentials: true, // Très important si tu utilises des cookies ou des sessions plus tard
   });
 
-  // --- ⚙️ CONFIGURATION GLOBALE ---
+  // --- CONFIGURATION GLOBALE ---
 
   app.setGlobalPrefix('api');
 
@@ -44,7 +44,7 @@ async function bootstrap() {
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
-  // --- 📖 SWAGGER ---
+  // --- SWAGGER ---
 
   const config = new DocumentBuilder()
     .setTitle('Journal API')

@@ -5,28 +5,28 @@ import {
   JoinColumn
 } from 'typeorm';
 import { Users } from '../../users/entities/user.entity';
-import { CustomBaseEntity } from 'src/common/base/base.entity';
+import { CustomBaseEntity } from '../../common/base/base.entity';
 
 @Entity('declaration_objet')
 export class DeclarationObjet extends CustomBaseEntity {
   @Column({ type: 'varchar', length: 50 })
-  type_declaration: string;
+  type_declaration!: string;
 
   @Column({ type: 'varchar', length: 255 })
-  name_object: string;
+  name_object!: string;
 
   @Column({ type: 'text', nullable: false })
-  description: string;
+  description!: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  lieu_presume: string | null;
+  lieu_presume!: string | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  image_url: string | null;
+  image_url!: string | null;
 
   // --- RELATIONS ---
 
   @ManyToOne(() => Users, (user) => user.declarations)
   @JoinColumn({ name: 'user_id' })
-  user: Users;
+  user!: Users;
 }

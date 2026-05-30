@@ -1,0 +1,24 @@
+# Dépendances et builds locaux
+node_modules
+dist
+npm-debug.log
+yarn-error.log
+
+# Fichiers Git et CI
+.git
+.github
+
+# Fichiers d'environnement (Sécurité !)
+.env
+.env.*
+*.local
+
+# Fichiers de tests et docs
+coverage
+test
+tests
+*.md
+
+# Configuration IDE
+.vscode
+.idea

@@ -12,21 +12,21 @@ import { Users } from '../../users/entities/user.entity';
 @Entity('vue_statistique')
 export class VueStatistique {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  session_anonyme: string | null;
+  session_anonyme!: string | null;
 
   @CreateDateColumn()
-  occured_at: Date;
+  occured_at!: Date;
 
   // --- RELATIONS ---
 
   @ManyToOne(() => Article, (article) => article.vues, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'article_id' })
-  article: Article;
+  article!: Article;
 
   @ManyToOne(() => Users, (user) => user.vues, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'user_id' })
-  user: Users;
+  user!: Users;
 }

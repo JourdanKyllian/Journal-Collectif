@@ -12,24 +12,24 @@ import { Article } from '../../../article/entities/article.entity';
 @Entity('auteur_article')
 export class AuteurArticle {
   @PrimaryColumn({ name: 'user_id' })
-  userId: number;
+  userId!: number;
 
   @PrimaryColumn({ name: 'article_id' })
-  articleId: number;
+  articleId!: number;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
-  role_contribution: string | null;
+  role_contribution!: string | null;
 
   @CreateDateColumn()
-  created_at: Date;
+  created_at!: Date;
 
   // --- RELATIONS ---
 
   @ManyToOne(() => Users, (user) => user.auteursArticles, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
-  user: Users;
+  user!: Users;
 
   @ManyToOne(() => Article, (article) => article.auteursArticles, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'article_id' })
-  article: Article;
+  article!: Article;
 }

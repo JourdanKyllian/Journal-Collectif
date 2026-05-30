@@ -5,7 +5,7 @@ import { Article, ArticleStatus } from './entities/article.entity';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { Users } from '../users/entities/user.entity';
-import { Category } from '../category/entities/category.entity';
+import { Category } from '../categorie/entities/categorie.entity';
 import { AuteurArticle } from '../auteur-article/entities/auteur-article.entity/auteur-article.entity';
 
 @Injectable()

@@ -15,44 +15,44 @@ import { CustomBaseEntity } from 'src/common/base/base.entity';
 @Entity('users')
 export class Users extends CustomBaseEntity{
   @Column({ type: 'varchar', length: 100, nullable: true })
-  lastname: string | null;
+  lastname!: string | null;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
-  firstname: string | null;
+  firstname!: string | null;
 
   @Column({ type: 'varchar', length: 255, unique: true })
-  email: string;
+  email!: string;
 
   @Column({ type: 'varchar', length: 255 })
-  password: string;
+  password!: string;
 
   @Column({ type: 'varchar', length: 20, nullable: true })
-  tel: string | null;
+  tel!: string | null;
 
   @Column({ type: 'boolean', default: false })
-  is_phone_verified: boolean;
+  is_phone_verified!: boolean;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  token_auth: string | null;
+  token_auth!: string | null;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  token_notification: string | null;
+  token_notification!: string | null;
 
   // --- RELATIONS ---
 
   @ManyToOne(() => Role, (role) => role.users)
   @JoinColumn({ name: 'role_id' })
-  role: Role;
+  role!: Role;
 
   @OneToMany(() => DeclarationObjet, (declaration) => declaration.user)
-  declarations: DeclarationObjet[];
+  declarations!: DeclarationObjet[];
 
   @OneToMany(() => VueStatistique, (vue) => vue.user)
-  vues: VueStatistique[];
+  vues!: VueStatistique[];
 
   @OneToMany(() => AuteurArticle, (auteur) => auteur.user)
-  auteursArticles: AuteurArticle[];
+  auteursArticles!: AuteurArticle[];
 
   @OneToMany(() => FavorisCategorie, (fc) => fc.user)
-  favorisCategories: FavorisCategorie[];
+  favorisCategories!: FavorisCategorie[];
 }
