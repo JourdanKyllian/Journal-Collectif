@@ -4,19 +4,30 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Category } from './entities/categorie.entity';
 import { ConflictException } from '@nestjs/common';
 
+// Crée un type propre pour ton faux repository
+type MockRepository = {
+  find: jest.Mock;
+  findOne: jest.Mock;
+  create: jest.Mock;
+  save: jest.Mock;
+};
+
+// Récupère le vrai type du DTO pour tes tests
+type CreateDto = Parameters<CategoryService['create']>[0];
+
 describe('CategoryService', () => {
   let service: CategoryService;
-  let repository: any;
+  let repository: MockRepository;
 
-  // 1. On prépare le Mock du repository
   const mockCategoryRepository = {
+    find: jest.fn(),
     findOne: jest.fn(),
-    create: jest.fn().mockImplementation(dto => dto),
-    save: jest.fn().mockImplementation(cat => Promise.resolve({ id: Date.now(), ...cat })),
-    find: jest.fn().mockResolvedValue([
-      { id: 1, libelle: 'Politique' },
-      { id: 2, libelle: 'Sport' },
-    ]),
+    create: jest.fn().mockImplementation((dto: unknown) => dto),
+    save: jest
+      .fn()
+      .mockImplementation((categorie: unknown) =>
+        Promise.resolve({ id: 99, ...(categorie as object) }),
+      ),
   };
 
   beforeEach(async () => {
@@ -31,6 +42,8 @@ describe('CategoryService', () => {
     }).compile();
 
     service = module.get<CategoryService>(CategoryService);
+
+    // Force le typage ici pour que TypeScript comprenne
     repository = module.get(getRepositoryToken(Category));
   });
 
@@ -40,12 +53,14 @@ describe('CategoryService', () => {
 
   // --- TEST : CRÉATION ---
   it('devrait créer une nouvelle catégorie', async () => {
-    const dto = { libelle: 'Technologie', description: 'Actu tech' };
-    
-    // On simule que la catégorie n'existe pas encore (findOne renvoie null)
+    const dto = {
+      libelle: 'Technologie',
+      description: 'Actu tech',
+    } as unknown as CreateDto;
+
     repository.findOne.mockResolvedValue(null);
 
-    const result = await service.create(dto as any);
+    const result = await service.create(dto);
 
     expect(result).toHaveProperty('id');
     expect(result.libelle).toBe('Technologie');
@@ -54,20 +69,20 @@ describe('CategoryService', () => {
 
   // --- TEST : DOUBLON ---
   it('devrait rejeter la création si le libellé existe déjà', async () => {
-    const dto = { libelle: 'Politique' };
-    
-    // On simule que findOne trouve déjà une catégorie
+    const dto = { libelle: 'Politique' } as unknown as CreateDto;
+
     repository.findOne.mockResolvedValue({ id: 1, libelle: 'Politique' });
 
-    // Selon ton code actuel, vérifie si tu as une ConflictException 
-    // Si tu n'as pas géré l'erreur dans ton service, ce test échouera (ce qui est une bonne chose !)
-    await expect(service.create(dto as any))
-      .rejects
-      .toThrow(ConflictException);
+    await expect(service.create(dto)).rejects.toThrow(ConflictException);
   });
 
   // --- TEST : LISTE ---
   it('devrait retourner toutes les catégories', async () => {
+    repository.find.mockResolvedValue([
+      { id: 1, libelle: 'Politique' },
+      { id: 2, libelle: 'Tech' },
+    ]);
+
     const result = await service.findAll();
     expect(result).toHaveLength(2);
     expect(result[0].libelle).toBe('Politique');

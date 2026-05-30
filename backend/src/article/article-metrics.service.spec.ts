@@ -9,22 +9,22 @@ describe('ArticleMetricsService - Temps de lecture', () => {
       providers: [ArticleMetricsService],
     }).compile();
 
-    
     service = module.get<ArticleMetricsService>(ArticleMetricsService);
   });
 
   it('devrait retourner 1 minute pour un texte court', () => {
-    const texteCourt = "Voici un petit test pour vérifier le temps de lecture de notre journal collectif.";
+    const texteCourt =
+      'Voici un petit test pour vérifier le temps de lecture de notre journal collectif.';
     expect(service.calculateReadingTime(texteCourt)).toBe(1);
   });
 
   it('devrait retourner 2 minutes pour un texte de 400 mots', () => {
-    const texteLong = "mot ".repeat(400); 
+    const texteLong = 'mot '.repeat(400);
     expect(service.calculateReadingTime(texteLong)).toBe(2);
   });
 
   it('devrait retourner 0 pour un texte vide', () => {
-    expect(service.calculateReadingTime("")).toBe(0);
+    expect(service.calculateReadingTime('')).toBe(0);
   });
 });
 
@@ -41,26 +41,26 @@ describe('ArticleMetricsService - Répartition des contributions', () => {
 
   it('devrait calculer une répartition égale 50/50', () => {
     const contributions = [
-      { userId: 1, text: "Un deux trois quatre cinq." }, // 5 mots
-      { userId: 2, text: "Six sept huit neuf dix." }   // 5 mots
+      { userId: 1, text: 'Un deux trois quatre cinq.' }, // 5 mots
+      { userId: 2, text: 'Six sept huit neuf dix.' }, // 5 mots
     ];
-    
+
     // On test pour que l'utilisateur 1 ait 50% et l'utilisateur 2 ait 50%
     expect(service.calculateContributionsDistribution(contributions)).toEqual({
       1: 50,
-      2: 50
+      2: 50,
     });
   });
 
   it('devrait calculer une répartition inégale 75/25', () => {
     const contributions = [
-      { userId: 1, text: "mot ".repeat(75) },
-      { userId: 2, text: "mot ".repeat(25) }
+      { userId: 1, text: 'mot '.repeat(75) },
+      { userId: 2, text: 'mot '.repeat(25) },
     ];
-    
+
     expect(service.calculateContributionsDistribution(contributions)).toEqual({
       1: 75,
-      2: 25
+      2: 25,
     });
   });
 
@@ -80,7 +80,7 @@ describe('ArticleMetricsService - Score de fraîcheur', () => {
     service = module.get<ArticleMetricsService>(ArticleMetricsService);
   });
 
-  it('devrait retourner 100 pour un article mis à jour aujourd\'hui (0 jour)', () => {
+  it("devrait retourner 100 pour un article mis à jour aujourd'hui (0 jour)", () => {
     expect(service.calculateContentDecay(0)).toBe(100);
   });
 
@@ -89,7 +89,7 @@ describe('ArticleMetricsService - Score de fraîcheur', () => {
   });
 
   it('ne devrait jamais descendre en dessous de 0 (ex: 300 jours = 0)', () => {
-    // 300 jours * 0.5 = 150 points en moins. 100 - 150 = -50. 
+    // 300 jours * 0.5 = 150 points en moins. 100 - 150 = -50.
     // La fonction doit bloquer à 0.
     expect(service.calculateContentDecay(300)).toBe(0);
   });

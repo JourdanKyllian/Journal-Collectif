@@ -1,12 +1,7 @@
 import { Article } from 'src/article/entities/article.entity';
 import { CustomBaseEntity } from 'src/common/base/base.entity';
 import { FavorisCategorie } from 'src/favoris-categorie/entities/favoris-categorie.entity/favoris-categorie.entity';
-import {
-  Entity,
-  Column,
-  OneToMany,
-} from 'typeorm';
-
+import { Entity, Column, OneToMany } from 'typeorm';
 
 @Entity('category')
 export class Category extends CustomBaseEntity {
@@ -20,11 +15,11 @@ export class Category extends CustomBaseEntity {
   icon!: string;
 
   // Le bandeau permanent
-  @Column({ type: 'varchar', length: 255,nullable: false })
+  @Column({ type: 'varchar', length: 255, nullable: false })
   image_bandeau_url!: string;
 
   // --- RELATIONS ---
-  
+
   @OneToMany(() => Article, (article) => article.category)
   articles!: Article[];
 

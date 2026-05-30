@@ -1,0 +1,19 @@
+#!/usr/bin/env sh
+
+# Arrête immédiatement le script si une commande échoue
+set -e
+
+echo "Démarrage des vérifications Pre-commit (Backend)..."
+
+# On rentre dans le dossier backend
+cd backend
+
+# 1. Vérification du style (Lint)
+echo "Étape 1 : Vérification du Linting..."
+npm run lint
+
+# 2. Vérification de la logique (Tests)
+echo "Étape 2 : Lancement des tests..."
+npm run test --passWithNoTests
+
+echo "Tout est au vert, le commit est autorisé !"

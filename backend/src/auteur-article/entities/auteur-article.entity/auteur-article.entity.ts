@@ -4,7 +4,7 @@ import {
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
-  PrimaryColumn
+  PrimaryColumn,
 } from 'typeorm';
 import { Users } from '../../../users/entities/user.entity';
 import { Article } from '../../../article/entities/article.entity';
@@ -25,11 +25,15 @@ export class AuteurArticle {
 
   // --- RELATIONS ---
 
-  @ManyToOne(() => Users, (user) => user.auteursArticles, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Users, (user) => user.auteursArticles, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'user_id' })
   user!: Users;
 
-  @ManyToOne(() => Article, (article) => article.auteursArticles, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Article, (article) => article.auteursArticles, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'article_id' })
   article!: Article;
 }

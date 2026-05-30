@@ -1,4 +1,8 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
@@ -16,12 +20,17 @@ export class UsersService {
   ) {}
 
   async create(createUserDto: CreateUserDto) {
-    const userExists = await this.usersRepository.findOne({ where: { email: createUserDto.email } });
+    const userExists = await this.usersRepository.findOne({
+      where: { email: createUserDto.email },
+    });
     if (userExists) throw new ConflictException('Cet email est déjà utilisé');
 
-    // 1. On force la recherche du rôle Admin
-    const adminRole = await this.roleRepository.findOne({ where: { libelle: 'Admin' } });
-    if (!adminRole) throw new NotFoundException('Le rôle Admin est introuvable');
+    // Force la recherche du rôle Admin
+    const adminRole = await this.roleRepository.findOne({
+      where: { libelle: 'Admin' },
+    });
+    if (!adminRole)
+      throw new NotFoundException('Le rôle Admin est introuvable');
 
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
 
@@ -36,8 +45,9 @@ export class UsersService {
     });
 
     const savedUser = await this.usersRepository.save(newUser);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userWithoutPassword } = savedUser;
-    
+
     return savedUser;
   }
 
@@ -45,7 +55,8 @@ export class UsersService {
     const users = await this.usersRepository.find({
       relations: ['role'],
     });
-    return users.map(user => {
+    return users.map((user) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...userWithoutPassword } = user;
       return userWithoutPassword;
     });

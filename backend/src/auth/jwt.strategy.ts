@@ -8,13 +8,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false, // Rejette les tokens expirés
-      secretOrKey: 'TA_CLEF_SECRETE_ICI', // ⚠️ Doit être exactement la même clé que dans ton AppModule !
+      secretOrKey: 'TA_CLEF_SECRETE_ICI', // ⚠️ Doit être exactement la même clé que dans AppModule
     });
   }
 
   // Cette fonction est appelée AUTOMATIQUEMENT si le token est valide
-  async validate(payload: any) {
-    // Ce qu'on retourne ici sera accessible dans toutes nos requêtes via "req.user"
-    return { userId: payload.sub, email: payload.email, role: payload.role };
+  validate(payload: { sub: number; email: string; role: string }) {
+    return {
+      userId: payload.sub,
+      email: payload.email,
+      role: payload.role,
+    };
   }
 }

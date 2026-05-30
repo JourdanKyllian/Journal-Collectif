@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { IsStrongPasswordCustom } from 'src/common/decorators/is-strong-password.decorator';
 
 export class RegisterDto {
@@ -8,7 +8,7 @@ export class RegisterDto {
    */
   @IsEmail()
   @IsNotEmpty()
-  email: string;
+  email!: string;
 
   /**
    * Le mot de passe (minimum 14 caractères imposé par le RGPD)
@@ -17,8 +17,8 @@ export class RegisterDto {
   @IsString()
   @IsNotEmpty()
   @IsStrongPasswordCustom()
-  password: string;
-  
+  password!: string;
+
   // ===========================
   // Champs facultatifs à l'inscription
   // ===========================
@@ -31,7 +31,7 @@ export class RegisterDto {
   @IsString()
   lastname?: string;
 
-  /**   
+  /**
    * Le prénom
    * @example Jean
    */

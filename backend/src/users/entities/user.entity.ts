@@ -1,10 +1,4 @@
-import {
-  Entity,
-  Column,
-  ManyToOne,
-  JoinColumn,
-  OneToMany
-} from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Role } from '../../role/entities/role.entity';
 import { DeclarationObjet } from '../../declaration-objet/entities/declaration-objet.entity';
 import { VueStatistique } from '../../vue-statistique/entities/vue-statistique.entity';
@@ -13,7 +7,7 @@ import { FavorisCategorie } from '../../favoris-categorie/entities/favoris-categ
 import { CustomBaseEntity } from 'src/common/base/base.entity';
 
 @Entity('users')
-export class Users extends CustomBaseEntity{
+export class Users extends CustomBaseEntity {
   @Column({ type: 'varchar', length: 100, nullable: true })
   lastname!: string | null;
 

@@ -7,9 +7,9 @@ export const dataSourceOptions: DataSourceOptions = {
   username: 'root',
   password: '',
   database: 'journal',
-  entities: [__dirname + '/../../**/*.entity{.ts,.js}'], 
+  entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
   migrations: [],
-  synchronize: false, 
+  synchronize: false,
   logging: false,
 };
 

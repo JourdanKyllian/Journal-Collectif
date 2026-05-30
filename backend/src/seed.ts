@@ -6,17 +6,17 @@ import { AdminSeedService } from './common/database/seed/admin.seed';
 async function bootstrap() {
   const app = await NestFactory.createApplicationContext(AppModule);
 
-  // On récupère tes deux services
+  // Récupère tes deux services
   const tableSeedService = app.get(TableSeedService);
   const adminSeedService = app.get(AdminSeedService);
 
   console.log('🌱 --- DÉBUT DU SEEDING --- 🌱');
 
   try {
-    // 1. On lance le service des tables (Rôles)
+    // Lance le service des tables (Rôles)
     await tableSeedService.seed();
-    
-    // 2. On lance le service de l'Admin
+
+    // Lance le service de l'Admin
     await adminSeedService.seed();
 
     console.log('--- SEEDING TERMINÉ AVEC SUCCÈS ---');
@@ -27,4 +27,6 @@ async function bootstrap() {
   }
 }
 
-bootstrap();
+bootstrap().catch((err) => {
+  console.error('Erreur lors du démarrage :', err);
+});

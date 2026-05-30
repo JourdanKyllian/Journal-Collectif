@@ -59,7 +59,9 @@ describe('HealthController', () => {
     mockRedis.ping.mockResolvedValue('PONG');
 
     // On attend que le contrôleur lève l'exception native NestJS
-    await expect(controller.checkHealth()).rejects.toThrow(ServiceUnavailableException);
+    await expect(controller.checkHealth()).rejects.toThrow(
+      ServiceUnavailableException,
+    );
   });
 
   // Simuler une erreur Redis
@@ -68,6 +70,8 @@ describe('HealthController', () => {
     mockDataSource.query.mockResolvedValue([{ '?column?': 1 }]);
     mockRedis.ping.mockRejectedValue(new Error('Redis timeout'));
 
-    await expect(controller.checkHealth()).rejects.toThrow(ServiceUnavailableException);
+    await expect(controller.checkHealth()).rejects.toThrow(
+      ServiceUnavailableException,
+    );
   });
 });

@@ -6,7 +6,7 @@ import {
   ManyToOne,
   JoinColumn,
   PrimaryColumn,
-  OneToMany
+  OneToMany,
 } from 'typeorm';
 import { Users } from '../../../users/entities/user.entity';
 import { Category } from '../../../categorie/entities/categorie.entity';
@@ -27,11 +27,15 @@ export class FavorisCategorie {
 
   // --- RELATIONS ---
 
-  @ManyToOne(() => Users, (user) => user.favorisCategories, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Users, (user) => user.favorisCategories, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'user_id' })
   user!: Users;
 
-  @ManyToOne(() => Category, (category) => category.favorisCategories, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Category, (category) => category.favorisCategories, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'category_id' })
   category!: Category;
 

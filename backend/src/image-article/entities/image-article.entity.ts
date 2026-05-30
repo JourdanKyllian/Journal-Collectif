@@ -4,7 +4,7 @@ import {
   Column,
   CreateDateColumn,
   ManyToOne,
-  JoinColumn
+  JoinColumn,
 } from 'typeorm';
 import { Article } from '../../article/entities/article.entity';
 
@@ -24,7 +24,9 @@ export class ImageArticle {
 
   // --- RELATIONS ---
 
-  @ManyToOne(() => Article, (article) => article.images, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Article, (article) => article.images, {
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'article_id' })
   article!: Article;
 }

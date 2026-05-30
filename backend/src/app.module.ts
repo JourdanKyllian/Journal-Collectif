@@ -22,17 +22,17 @@ import { HealthModule } from './health/health.module';
   imports: [
     TypeOrmModule.forRoot({
       ...dataSourceOptions,
-      autoLoadEntities: true
+      autoLoadEntities: true,
     }),
-    
-    TypeOrmModule.forFeature([Users, Role]), 
-    
+
+    TypeOrmModule.forFeature([Users, Role]),
+
     JwtModule.register({
-      global: true, 
-      secret: 'TA_CLEF_SECRETE_ICI', 
-      signOptions: { expiresIn: '1h' }, 
+      global: true,
+      secret: 'TA_CLEF_SECRETE_ICI',
+      signOptions: { expiresIn: '1h' },
     }),
-    
+
     UsersModule,
     RoleModule,
     ArticleModule,
@@ -41,7 +41,7 @@ import { HealthModule } from './health/health.module';
     VueStatistiqueModule,
     CategoryModule,
     AuthModule,
-    HealthModule
+    HealthModule,
   ],
   // Ajout de TableSeedService ici pour que ton fichier src/seed.ts puisse s'en servir !
   providers: [AdminSeedService, TableSeedService],
@@ -49,11 +49,8 @@ import { HealthModule } from './health/health.module';
 
 // On garde uniquement NestModule pour ton Middleware de logs
 export class AppModule implements NestModule {
-  
   configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(LoggerMiddleware)
-      .forRoutes('*'); 
+    consumer.apply(LoggerMiddleware).forRoutes('*');
   }
 
   // Toute la partie onModuleInit a été supprimée ! 🧹

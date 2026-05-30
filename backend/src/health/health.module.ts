@@ -8,7 +8,7 @@ import Redis from 'ioredis';
     {
       provide: 'REDIS_CLIENT',
       useFactory: () => {
-        // En local, ça pointera sur localhost. 
+        // En local, ça pointera sur localhost.
         // Sur Docker, process.env.REDIS_HOST prendra la valeur "redis"
         return new Redis({
           host: process.env.REDIS_HOST || 'localhost',

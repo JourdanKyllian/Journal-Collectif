@@ -4,7 +4,7 @@ import {
   Column,
   CreateDateColumn,
   ManyToOne,
-  JoinColumn
+  JoinColumn,
 } from 'typeorm';
 import { Article } from '../../article/entities/article.entity';
 import { Users } from '../../users/entities/user.entity';
@@ -26,7 +26,10 @@ export class VueStatistique {
   @JoinColumn({ name: 'article_id' })
   article!: Article;
 
-  @ManyToOne(() => Users, (user) => user.vues, { onDelete: 'SET NULL', nullable: true })
+  @ManyToOne(() => Users, (user) => user.vues, {
+    onDelete: 'SET NULL',
+    nullable: true,
+  })
   @JoinColumn({ name: 'user_id' })
   user!: Users;
 }
