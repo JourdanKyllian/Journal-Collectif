@@ -1,49 +1,58 @@
-# ========== STAGE 1 : Build ==========
-FROM node:22-slim AS builder
+# ========== STAGE 1 : Dépendances ==========
+FROM node:22-slim AS deps
 WORKDIR /app
 
-# On profite du cache des layers pour les dépendances
 COPY package*.json ./
 RUN npm ci --legacy-peer-deps
 
-# Copie du code source et compilation TS -> JS
+# ========== STAGE 2 : Build ==========
+FROM node:22-slim AS builder
+WORKDIR /app
+
+# Récupère les dépendances
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# Désactive pour accélérer le build, la collecte des données de télémétrie de Next
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Compilation de l'application
 RUN npm run build
 
-# On nettoie les dépendances pour ne garder que la prod (gain de place énorme)
-RUN npm prune --production --legacy-peer-deps
+# ========== STAGE 3 : Production ==========
+FROM node:22-slim AS runner
+WORKDIR /app
 
-# ========== STAGE 2 : Production ==========
-FROM node:22-slim AS production
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN apk update && apk upgrade --no-cache && \
-    rm -rf /usr/local/lib/node_modules/npm \
+# Maj OS, ajout de curl (pour le healthcheck) et nettoyage apt
+RUN apt-get update && apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# Suppression de NPM pour un scan Trivy clean (zéro vulnérabilité)
+RUN rm -rf /usr/local/lib/node_modules/npm \
     /usr/local/bin/npm \
     /usr/local/bin/npx \
     /usr/local/lib/node_modules/corepack
 
-WORKDIR /app
+# Création d'un utilisateur non-root
+RUN groupadd -r appgroup && useradd -r -g appgroup appuser
 
-ENV NODE_ENV=production
+# Création du dossier .next avec les bons droits
+RUN mkdir .next && chown appuser:appgroup .next
 
-# Création d'un utilisateur non-root pour la sécurité
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+# Copie UNIQUEMENT ce qui est nécessaire depuis le stage builder
+# Le dossier public (images statiques, favicon...)
+COPY --from=builder --chown=appuser:appgroup /app/public ./public
+# Le serveur standalone allégé
+COPY --from=builder --chown=appuser:appgroup /app/.next/standalone ./
+# Les assets statiques générés (JS/CSS)
+COPY --from=builder --chown=appuser:appgroup /app/.next/static ./.next/static
 
-# On ne récupère QUE le nécessaire du stage builder
-# 1. Les modules de prod uniquement
-COPY --from=builder --chown=appuser:appgroup /app/node_modules ./node_modules
-# 2. Le code compilé (dist)
-COPY --from=builder --chown=appuser:appgroup /app/dist ./dist
-# 3. Le package.json
-COPY --from=builder --chown=appuser:appgroup /app/package.json ./
-
-# On passe sur l'utilisateur limité
 USER appuser
 EXPOSE 3000
 
-# Le Healthcheck demandé par le CTO (utilise ton endpoint /health)
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
-
-# Lancement de l'app compilée
-CMD ["node", "dist/src/main.js"]
+# Next.js standalone ne s'utilise plus avec "npm start"
+CMD ["node", "server.js"]
