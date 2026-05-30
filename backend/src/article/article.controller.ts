@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
 import { ArticleService } from './article.service';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
@@ -20,15 +29,31 @@ export class ArticleController {
   // CRÉER / PROPOSER
   @Post()
   @UseGuards(JwtAuthGuard)
-  create(@Body() createArticleDto: CreateArticleDto, @Req() req: RequestWithUser) {
-    return this.articleService.create(createArticleDto, req.user.userId, req.user.role);
+  create(
+    @Body() createArticleDto: CreateArticleDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.articleService.create(
+      createArticleDto,
+      req.user.userId,
+      req.user.role,
+    );
   }
 
   // MODIFIER (Brouillon ou correction)
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
-  update(@Param('id') id: string, @Body() updateArticleDto: UpdateArticleDto, @Req() req: RequestWithUser) {
-    return this.articleService.update(+id, updateArticleDto, req.user.userId, req.user.role);
+  update(
+    @Param('id') id: string,
+    @Body() updateArticleDto: UpdateArticleDto,
+    @Req() req: RequestWithUser,
+  ) {
+    return this.articleService.update(
+      +id,
+      updateArticleDto,
+      req.user.userId,
+      req.user.role,
+    );
   }
 
   // VALIDER / PUBLIER (Admins uniquement)

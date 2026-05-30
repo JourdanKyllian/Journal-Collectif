@@ -1,6 +1,10 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, FindOptionsWhere } from 'typeorm';
 import { Category } from './entities/categorie.entity';
 import { CreateCategoryDto } from './dto/create-categorie.dto';
 import { UpdateCategoryDto } from './dto/update-categorie.dto';
@@ -13,16 +17,16 @@ export class CategoryService {
   ) {}
 
   async create(createCategoryDto: CreateCategoryDto) {
-    // 1. Vérifier si la catégorie existe déjà
-    const existing = await this.categoryRepository.findOne({ 
-      where: { libelle: createCategoryDto.libelle } 
+    const existing = await this.categoryRepository.findOne({
+      where: { libelle: createCategoryDto.libelle },
     });
-    
+
     if (existing) {
-      throw new ConflictException(`La catégorie "${createCategoryDto.libelle}" existe déjà.`);
+      throw new ConflictException(
+        `La catégorie "${createCategoryDto.libelle}" existe déjà.`,
+      );
     }
 
-    // 2. Créer et sauvegarder
     const newCategory = this.categoryRepository.create(createCategoryDto);
     return this.categoryRepository.save(newCategory);
   }
@@ -32,16 +36,16 @@ export class CategoryService {
   }
 
   async findOne(id: number) {
-    // On suppose que ton CustomBaseEntity utilise 'id' comme clé primaire
-    const category = await this.categoryRepository.findOne({ where: { id: id as any } });
+    const category = await this.categoryRepository.findOne({
+      where: { id } as FindOptionsWhere<Category>,
+    });
+
     if (!category) throw new NotFoundException('Catégorie introuvable.');
     return category;
   }
 
   async update(id: number, updateCategoryDto: UpdateCategoryDto) {
     const category = await this.findOne(id);
-    
-    // On fusionne les nouvelles données avec l'ancienne catégorie
     const updatedCategory = Object.assign(category, updateCategoryDto);
     return this.categoryRepository.save(updatedCategory);
   }

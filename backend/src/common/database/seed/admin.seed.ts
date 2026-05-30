@@ -20,25 +20,31 @@ export class AdminSeedService {
     try {
       // Vérification et création du rôle Admin
 
-      const adminRole = await this.roleRepository.findOne({ where: { libelle: 'Admin' } });
+      const adminRole = await this.roleRepository.findOne({
+        where: { libelle: 'Admin' },
+      });
       if (!adminRole) {
-        throw new Error("Le rôle Admin n'existe pas ! Lancez d'abord le TableSeedService.");
+        throw new Error(
+          "Le rôle Admin n'existe pas ! Lancez d'abord le TableSeedService.",
+        );
       }
 
       // Cherche un compte lié au rôle Admin
       const adminExists = await this.usersRepository.findOne({
         where: {
-          role: { id: adminRole.id }
-        }
+          role: { id: adminRole.id },
+        },
       });
 
       if (adminExists) {
-        this.logger.log('Un compte Administrateur existe déjà en base. Annulation du Seed.');
+        this.logger.log(
+          'Un compte Administrateur existe déjà en base. Annulation du Seed.',
+        );
         return;
       }
 
       // Création d'admin si aucun n'a été trouvé
-      this.logger.log('Création de l\'utilisateur admin initial...');
+      this.logger.log("Création de l'utilisateur admin initial...");
 
       const adminEmail = 'admin@journal.fr';
       const hashedPassword = await bcrypt.hash('admin123', 10);
@@ -48,16 +54,18 @@ export class AdminSeedService {
         firstname: 'Super',
         email: adminEmail,
         password: hashedPassword,
-        role: adminRole, 
+        role: adminRole,
         is_phone_verified: true,
       });
 
       await this.usersRepository.save(adminUser);
       this.logger.log(`Utilisateur Admin créé avec succès : ${adminEmail}`);
-      
     } catch (error) {
       if (error instanceof Error) {
-        this.logger.error(`Erreur lors du seed : ${error.message}`, error.stack);
+        this.logger.error(
+          `Erreur lors du seed : ${error.message}`,
+          error.stack,
+        );
       } else {
         this.logger.error(`Erreur inconnue lors du seed : ${String(error)}`);
       }

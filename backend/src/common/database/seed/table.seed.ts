@@ -17,7 +17,9 @@ export class TableSeedService {
     const rolesToCreate = ['Admin', 'utilisateur', 'journaliste', 'moderateur'];
 
     for (const libelle of rolesToCreate) {
-      const roleExists = await this.roleRepository.findOne({ where: { libelle } });
+      const roleExists = await this.roleRepository.findOne({
+        where: { libelle },
+      });
       if (!roleExists) {
         await this.roleRepository.save(this.roleRepository.create({ libelle }));
         this.logger.log(`Rôle ajouté : ${libelle}`);

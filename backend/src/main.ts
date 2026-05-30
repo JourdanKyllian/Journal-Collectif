@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import helmet from 'helmet'; // <-- 1. L'import de Helmet
+import helmet from 'helmet';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -13,7 +13,7 @@ async function bootstrap() {
   app.use(
     helmet({
       crossOriginResourcePolicy: false,
-      // On assouplit légèrement la CSP pour autoriser l'interface de Swagger
+      // Assouplit légèrement la CSP pour autoriser l'interface de Swagger
       contentSecurityPolicy: {
         directives: {
           defaultSrc: [`'self'`],
@@ -27,10 +27,14 @@ async function bootstrap() {
 
   // CORS : Autoriser ton Frontend
   app.enableCors({
-    // Remplace ces URLs par celles de ton futur Frontend (ex: localhost:4200 pour Angular, 5173 pour Vite, etc.)
-    origin: ['http://localhost:4200', 'http://localhost:5173', 'http://localhost:3000', 'http://localhost:3000/api'], 
+    origin: [
+      'http://localhost:4200',
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://localhost:3000/api',
+    ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true, // Très important si tu utilises des cookies ou des sessions plus tard
+    credentials: true,
   });
 
   // --- CONFIGURATION GLOBALE ---
@@ -48,7 +52,9 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('Journal API')
-    .setDescription('Documentation de l\'API du projet Journal du Collectif Chalonnais')
+    .setDescription(
+      "Documentation de l'API du projet Journal du Collectif Chalonnais",
+    )
     .setVersion('1.0')
     .addBearerAuth()
     .build();
@@ -56,10 +62,12 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api-docs', app, document);
 
-  // --- 🚀 DÉMARRAGE ---
+  // --- DÉMARRAGE ---
 
   await app.listen(process.env.PORT ?? 3000);
-  console.log(`🚀 Serveur lancé sur : http://localhost:3000/api/v1`);
-  console.log(`📖 Documentation API sur : http://localhost:3000/api-docs`);
+  console.log(`Serveur lancé sur : http://localhost:3000/api/v1`);
+  console.log(`Documentation API sur : http://localhost:3000/api-docs`);
 }
-bootstrap();
+bootstrap().catch((err) => {
+  console.error('Erreur lors du démarrage :', err);
+});

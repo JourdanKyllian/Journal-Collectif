@@ -1,12 +1,13 @@
 import {
-    CreateDateColumn,
-    UpdateDateColumn,
-    DeleteDateColumn,
-    Column,
-    PrimaryGeneratedColumn
+  CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn,
+  Column,
+  PrimaryGeneratedColumn,
 } from 'typeorm';
 
-export abstract class CustomBaseEntity { // Base d'entités users, articles, categories et declaration_objet
+export abstract class CustomBaseEntity {
+  // Base d'entités users, articles, categories et declaration_objet
   @PrimaryGeneratedColumn()
   id: number;
 

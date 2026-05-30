@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class ArticleMetricsService {
-  
   /**
    * Calcule le temps de lecture estimé d'un texte.
    * Basé sur une moyenne de 225 mots lus par minute.
@@ -24,7 +23,9 @@ export class ArticleMetricsService {
    * Calcule la répartition des contributions en pourcentage par utilisateur.
    * Basé sur le nombre de mots rédigés.
    */
-  calculateContributionsDistribution(contributions: { userId: number; text: string }[]): Record<number, number> {
+  calculateContributionsDistribution(
+    contributions: { userId: number; text: string }[],
+  ): Record<number, number> {
     // Si le tableau est vide
     if (!contributions || contributions.length === 0) {
       return {};
@@ -35,14 +36,14 @@ export class ArticleMetricsService {
 
     // Compte le nombre de mots pour chaque utilisateur
     for (const contribution of contributions) {
-      const text = contribution.text || "";
+      const text = contribution.text || '';
       // Gestion des textes vides pour éviter de compter 1 mot pour des espaces
-      const count = text.trim() === "" ? 0 : text.trim().split(/\s+/).length;
-      
+      const count = text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
+
       if (!wordCounts[contribution.userId]) {
         wordCounts[contribution.userId] = 0;
       }
-      
+
       wordCounts[contribution.userId] += count;
       totalWords += count;
     }
@@ -55,7 +56,9 @@ export class ArticleMetricsService {
     // Calcule le pourcentage pour chaque utilisateur
     const distribution: Record<number, number> = {};
     for (const userId in wordCounts) {
-      distribution[userId] = Math.round((wordCounts[userId] / totalWords) * 100);
+      distribution[userId] = Math.round(
+        (wordCounts[userId] / totalWords) * 100,
+      );
     }
 
     return distribution;
@@ -74,7 +77,7 @@ export class ArticleMetricsService {
     }
 
     // Calcul du score avec le facteur de dégradation (0.5 point / jour)
-    const rawScore = 100 - (daysSinceUpdate * 0.5);
+    const rawScore = 100 - daysSinceUpdate * 0.5;
 
     // Empêche le score de descendre en dessous de 0
     return Math.max(0, rawScore);

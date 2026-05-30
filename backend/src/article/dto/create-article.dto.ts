@@ -1,4 +1,11 @@
-import { IsNotEmpty, IsOptional, IsString, MaxLength, IsInt, IsDateString } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  MaxLength,
+  IsInt,
+  IsDateString,
+} from 'class-validator';
 
 export class CreateArticleDto {
   @IsString()
@@ -25,12 +32,15 @@ export class CreateArticleDto {
   @MaxLength(50)
   statut?: string; // ex: 'brouillon' ou 'publie'
 
-  @IsDateString({}, { message: 'La date de publication doit être une date valide' })
+  @IsDateString(
+    {},
+    { message: 'La date de publication doit être une date valide' },
+  )
   @IsOptional()
   published_at?: Date;
 
   // ⚠️ C'est ici qu'on fait le lien avec la Catégorie !
-  @IsInt({ message: 'L\'ID de la catégorie doit être un nombre entier' })
-  @IsNotEmpty({ message: 'L\'article doit appartenir à une catégorie' })
-  categoryId: number; 
+  @IsInt({ message: "L'ID de la catégorie doit être un nombre entier" })
+  @IsNotEmpty({ message: "L'article doit appartenir à une catégorie" })
+  categoryId: number;
 }
