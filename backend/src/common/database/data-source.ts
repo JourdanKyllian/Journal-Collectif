@@ -11,11 +11,11 @@ export const dataSourceOptions: DataSourceOptions = {
   username: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  
+
   // Utilise des chemins qui fonctionnent à la fois en TS (dev) et JS (dist)
   entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
   migrations: [__dirname + '/../migrations/*{.ts,.js}'],
-  
+
   synchronize: false, // Toujours false en production !
   logging: true,
 };
