@@ -8,7 +8,7 @@ import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from './dto/create-user.dto';
 import { Users } from './entities/user.entity';
-import { Role } from '../role/entities/role.entity';
+import { Role } from '../roles/entities/roles.entity';
 
 @Injectable()
 export class UsersService {
@@ -40,7 +40,7 @@ export class UsersService {
       email: createUserDto.email,
       password: hashedPassword,
       tel: createUserDto.tel || null,
-      role: adminRole, // LE RÔLE EST VERROUILLÉ ICI
+      role: adminRole, // LE RÔLE EST VERROUILLÉ
       is_phone_verified: false,
     });
 

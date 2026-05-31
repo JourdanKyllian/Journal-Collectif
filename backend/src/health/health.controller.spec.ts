@@ -2,23 +2,32 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { HealthController } from './health.controller';
 import { DataSource } from 'typeorm';
 import { ServiceUnavailableException } from '@nestjs/common';
+import {
+  beforeEach,
+  describe,
+  it,
+  expect,
+  afterEach,
+  jest,
+} from '@jest/globals';
 
 describe('HealthController', () => {
   let controller: HealthController;
 
-  // Simulation de TypeORM (PostgreSQL)
+  // Simulation typée de TypeORM (PostgreSQL)
   const mockDataSource = {
-    query: jest.fn(),
+    query: jest.fn<() => Promise<Record<string, number>[]>>(),
   };
 
-  // Simulation du client Redis
+  // Simulation typée du client Redis
   const mockRedis = {
-    ping: jest.fn(),
+    ping: jest.fn<() => Promise<string>>(),
   };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [HealthController],
+      // On injecte les mocks directement ici
       providers: [
         {
           provide: DataSource,
@@ -38,9 +47,7 @@ describe('HealthController', () => {
     jest.clearAllMocks();
   });
 
-  // Simuler une bonne connexion
   it('devrait retourner le statut "healthy" en JSON natif', async () => {
-    // Les services répondent bien
     mockDataSource.query.mockResolvedValue([{ '?column?': 1 }]);
     mockRedis.ping.mockResolvedValue('PONG');
 
@@ -52,21 +59,16 @@ describe('HealthController', () => {
     expect(result).toHaveProperty('timestamp');
   });
 
-  // Simuler une erreur PostgreSQL
   it('devrait jeter une erreur 503 (ServiceUnavailable) si PostgreSQL crash', async () => {
-    // PostgreSQL échoue, Redis fonctionne
     mockDataSource.query.mockRejectedValue(new Error('Connection timeout'));
     mockRedis.ping.mockResolvedValue('PONG');
 
-    // On attend que le contrôleur lève l'exception native NestJS
     await expect(controller.checkHealth()).rejects.toThrow(
       ServiceUnavailableException,
     );
   });
 
-  // Simuler une erreur Redis
   it('devrait jeter une erreur 503 (ServiceUnavailable) si Redis crash', async () => {
-    // PostgreSQL fonctionne, Redis échoue
     mockDataSource.query.mockResolvedValue([{ '?column?': 1 }]);
     mockRedis.ping.mockRejectedValue(new Error('Redis timeout'));
 

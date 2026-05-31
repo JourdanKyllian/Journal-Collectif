@@ -33,7 +33,7 @@ export class Article extends CustomBaseEntity {
   })
   statut!: ArticleStatus;
 
-  @Column({ type: 'datetime', nullable: true })
+  @Column({ type: 'timestamp', nullable: true })
   published_at!: Date | null;
 
   // --- RELATIONS ---

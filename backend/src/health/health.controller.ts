@@ -10,13 +10,11 @@ import Redis from 'ioredis';
 
 @Controller('health')
 export class HealthController {
-  // Instancie le Logger en lui donnant le nom du contrôleur pour tracer d'où vient le log
+  // Le Logger de NestJS sera automatiquement converti en JSON par Pino
   private readonly logger = new Logger(HealthController.name);
 
   constructor(
-    // Injection de TypeORM pour interroger PostgreSQL
     private readonly dataSource: DataSource,
-    // Injection du client Redis via le token défini
     @Inject('REDIS_CLIENT') private readonly redis: Redis,
   ) {}
 
@@ -26,6 +24,8 @@ export class HealthController {
       status: 'healthy',
       database: 'connected',
       cache: 'connected',
+      uptime: Math.floor(process.uptime()), // Temps en secondes depuis le démarrage
+      version: process.env.npm_package_version || '1.0.0', // Récupère la version du package.json
       timestamp: new Date().toISOString(),
     };
 
@@ -62,7 +62,7 @@ export class HealthController {
     }
 
     this.logger.log('HealthCheck exécuté avec succès');
-    // Si tout passe, on retourne l'objet
+
     return health;
   }
 }

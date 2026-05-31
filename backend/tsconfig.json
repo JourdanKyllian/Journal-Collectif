@@ -2,13 +2,14 @@
   "compilerOptions": {
     /* Configuration du moteur */
     "target": "ES2023",
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "outDir": "./dist",
-    "rootDir": "src",
+    "rootDir": "./",
     
-    /* Alias de chemins */
+    /* Alias de chemins (Le vrai standard TS 5.0+) */
     "paths": {
+      "@/*": ["./src/*"],
       "src/*": ["./src/*"]
     },
 
@@ -19,16 +20,22 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
 
-    /* Qualité de code & Performance */
+    /* Qualité de code & Strictness (indispensable pour ton linter) */
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictBindCallApply": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "isolatedModules": true,
+    
+    /* Performance & Debug */
     "sourceMap": true,
     "incremental": true,
     "skipLibCheck": true,
     "removeComments": true,
-    "strictNullChecks": true,
-    "forceConsistentCasingInFileNames": true,
-    "isolatedModules": true,
 
-    /* Résolution des types globaux (Pour tes tests !) */
+    /* Résolution des types globaux (Fix pour Jest) */
     "types": ["jest", "node"]
   },
   "include": ["src/**/*"],

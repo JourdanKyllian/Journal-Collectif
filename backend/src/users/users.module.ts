@@ -3,8 +3,8 @@ import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Users } from './entities/user.entity';
-import { FavorisCategorie } from 'src/favoris-categorie/entities/favoris-categorie.entity/favoris-categorie.entity';
-import { Role } from 'src/role/entities/role.entity';
+import { FavorisCategorie } from '../favoris-categorie/entities/favoris-categorie.entity/favoris-categorie.entity';
+import { Role } from '../roles/entities/roles.entity';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Users, FavorisCategorie, Role])],

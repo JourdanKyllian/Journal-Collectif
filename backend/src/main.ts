@@ -3,9 +3,14 @@ import { AppModule } from './app.module';
 import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
+import { Logger } from 'nestjs-pino';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // BufferLogs en true permet à Pino de capturer les logs de démarrage de NestJS
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+
+  // Confier les clés du camion à Pino
+  app.useLogger(app.get(Logger));
 
   // --- SÉCURITÉ ---
 
@@ -13,7 +18,6 @@ async function bootstrap() {
   app.use(
     helmet({
       crossOriginResourcePolicy: false,
-      // Assouplit légèrement la CSP pour autoriser l'interface de Swagger
       contentSecurityPolicy: {
         directives: {
           defaultSrc: [`'self'`],
@@ -64,10 +68,16 @@ async function bootstrap() {
 
   // --- DÉMARRAGE ---
 
-  await app.listen(process.env.PORT ?? 3000);
-  console.log(`Serveur lancé sur : http://localhost:3000/api/v1`);
-  console.log(`Documentation API sur : http://localhost:3000/api-docs`);
+  const port = process.env.PORT ?? 3000;
+  await app.listen(port);
+
+  // Vrai Logger au lieu de console.log pour formater en JSON
+  const logger = app.get(Logger);
+  logger.log(`Serveur lancé sur : http://localhost:${port}/api/v1`);
+  logger.log(`Documentation API sur : http://localhost:${port}/api-docs`);
 }
+
 bootstrap().catch((err) => {
-  console.error('Erreur lors du démarrage :', err);
+  // Garder un console.error en dernier recours en cas de crash fatal avant l'init
+  console.error('Erreur fatale lors du démarrage :', err);
 });

@@ -9,17 +9,17 @@ import {
 export abstract class CustomBaseEntity {
   // Base d'entités users, articles, categories et declaration_objet
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ type: 'boolean', default: false })
-  is_delete: boolean;
+  is_delete!: boolean;
 
   @CreateDateColumn()
-  created_at: Date;
+  created_at!: Date;
 
   @UpdateDateColumn()
-  updated_at: Date;
+  updated_at!: Date;
 
   @DeleteDateColumn() // Gère le Soft Delete automatiquement
-  deleted_at: Date;
+  deleted_at!: Date;
 }

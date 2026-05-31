@@ -1,5 +1,5 @@
 import { Entity, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
-import { Role } from '../../role/entities/role.entity';
+import { Role } from '../../roles/entities/roles.entity';
 import { DeclarationObjet } from '../../declaration-objet/entities/declaration-objet.entity';
 import { VueStatistique } from '../../vue-statistique/entities/vue-statistique.entity';
 import { AuteurArticle } from '../../auteur-article/entities/auteur-article.entity/auteur-article.entity';

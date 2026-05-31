@@ -11,11 +11,11 @@ export class CreateArticleDto {
   @IsString()
   @IsNotEmpty({ message: 'Le titre est obligatoire' })
   @MaxLength(255, { message: 'Le titre ne doit pas dépasser 255 caractères' })
-  titre: string;
+  titre!: string;
 
   @IsString()
   @IsNotEmpty({ message: 'Le contenu est obligatoire' })
-  contenu: string;
+  contenu!: string;
 
   @IsString()
   @IsOptional()
@@ -39,8 +39,7 @@ export class CreateArticleDto {
   @IsOptional()
   published_at?: Date;
 
-  // ⚠️ C'est ici qu'on fait le lien avec la Catégorie !
   @IsInt({ message: "L'ID de la catégorie doit être un nombre entier" })
   @IsNotEmpty({ message: "L'article doit appartenir à une catégorie" })
-  categoryId: number;
+  categoryId!: number;
 }

@@ -8,7 +8,7 @@ export class LoginDto {
    */
   @IsEmail()
   @IsNotEmpty()
-  email: string;
+  email!: string;
 
   /**
    * Mot de passe de l'utilisateur
@@ -17,5 +17,5 @@ export class LoginDto {
    */
   @IsString()
   @IsNotEmpty()
-  password: string;
+  password!: string;
 }
