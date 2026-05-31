@@ -1,21 +1,43 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
-    "declaration": true,
-    "removeComments": true,
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "allowSyntheticDefaultImports": true,
-    "target": "es2021",
-    "sourceMap": true,
+    /* Configuration du moteur */
+    "target": "ES2023",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "outDir": "./dist",
-    "baseUrl": "./",
-    "incremental": true,
-    "skipLibCheck": true,
-    "strictNullChecks": true,
+    "rootDir": "./",
+    
+    /* Alias de chemins (Le vrai standard TS 5.0+) */
+    "paths": {
+      "@/*": ["./src/*"],
+      "src/*": ["./src/*"]
+    },
+
+    /* Support de NestJS & Decorateurs */
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "declaration": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+
+    /* Qualité de code & Strictness (indispensable pour ton linter) */
+    "strict": true,
     "noImplicitAny": true,
+    "strictNullChecks": true,
     "strictBindCallApply": true,
     "forceConsistentCasingInFileNames": true,
-    "noFallthroughCasesInSwitch": true
-  }
+    "noFallthroughCasesInSwitch": true,
+    "isolatedModules": true,
+    
+    /* Performance & Debug */
+    "sourceMap": true,
+    "incremental": true,
+    "skipLibCheck": true,
+    "removeComments": true,
+
+    /* Résolution des types globaux (Fix pour Jest) */
+    "types": ["jest", "node"]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

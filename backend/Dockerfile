@@ -1,5 +1,6 @@
 # ========== STAGE 1 : Build (Debian complet pour la compatibilité) ==========
 FROM node:22-slim AS builder
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 # Copie des dépendances et cache des layers
@@ -19,7 +20,7 @@ RUN npm prune --production --legacy-peer-deps
 FROM gcr.io/distroless/nodejs22-debian12
 WORKDIR /app
 
-# On copie UNIQUEMENT le code compilé et les modules de prod depuis le builder
+# Copie UNIQUEMENT le code compilé et les modules de prod depuis le builder
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist

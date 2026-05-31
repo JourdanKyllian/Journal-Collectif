@@ -13,7 +13,7 @@ export class CreateUserDto {
    */
   @IsString()
   @IsNotEmpty()
-  lastname: string;
+  lastname!: string;
 
   /**
    * Le prénom obligatoire
@@ -21,14 +21,14 @@ export class CreateUserDto {
    */
   @IsString()
   @IsNotEmpty()
-  firstname: string;
+  firstname!: string;
 
   /**
    * L'adresse email professionnelle
    * @example jean.dupont@journal.fr
    */
   @IsEmail()
-  email: string;
+  email!: string;
 
   /**
    * Le mot de passe temporaire
@@ -36,7 +36,7 @@ export class CreateUserDto {
    */
   @IsString()
   @MinLength(14)
-  password: string;
+  password!: string;
 
   // ===========================
   // Champs facultatifs à la création

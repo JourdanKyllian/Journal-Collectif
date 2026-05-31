@@ -1,5 +1,6 @@
 # ========== STAGE 1 : Dépendances ==========
 FROM node:22-slim AS deps
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 COPY package*.json ./
@@ -7,6 +8,7 @@ RUN npm ci --legacy-peer-deps
 
 # ========== STAGE 2 : Build ==========
 FROM node:22-slim AS builder
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 # Récupère les dépendances
