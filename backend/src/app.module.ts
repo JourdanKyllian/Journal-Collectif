@@ -5,9 +5,9 @@ import { AdminSeedService } from './common/database/seed/admin.seed';
 import { dataSourceOptions } from './common/database/data-source';
 
 import { Users } from './users/entities/user.entity';
-import { Role } from './role/entities/role.entity';
+import { Role } from './roles/entities/roles.entity';
 import { UsersModule } from './users/users.module';
-import { RoleModule } from './role/role.module';
+import { RoleModule } from './roles/roles.module';
 import { ArticleModule } from './article/article.module';
 import { DeclarationObjetModule } from './declaration-objet/declaration-objet.module';
 import { ImageArticleModule } from './image-article/image-article.module';
@@ -53,5 +53,4 @@ export class AppModule implements NestModule {
     consumer.apply(LoggerMiddleware).forRoutes('*');
   }
 
-  // Toute la partie onModuleInit a été supprimée ! 🧹
 }

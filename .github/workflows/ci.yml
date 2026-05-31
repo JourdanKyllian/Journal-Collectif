@@ -63,3 +63,14 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: 1
         run: npm run build
+
+  # ==========================================
+  # Scan Trivy
+  # ==========================================
+      - name: Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'ghcr.io/jourdankyllian/dockertp:latest'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '1'

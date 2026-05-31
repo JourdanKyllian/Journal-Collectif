@@ -1,8 +1,8 @@
-# ========== STAGE 1 : Build ==========
+# ========== STAGE 1 : Build (Debian complet pour la compatibilité) ==========
 FROM node:22-slim AS builder
 WORKDIR /app
 
-# Copie des dépendances et cache des layers pour les dépendances
+# Copie des dépendances et cache des layers
 COPY package*.json ./
 RUN npm ci --legacy-peer-deps
 
@@ -10,41 +10,25 @@ RUN npm ci --legacy-peer-deps
 COPY . .
 RUN npm run build
 
-# Nettoie les dépendances pour ne garder que la prod
+# Nettoyage pour ne garder que la production (NPM est présent ici pour faire le prune)
 RUN npm prune --production --legacy-peer-deps
 
-# ========== STAGE 2 : Production ==========
-FROM node:22-slim AS production
+
+# ========== STAGE 2 : Production (Distroless, sécurité maximale) ==========
+# On utilise l'image Google Distroless (basée sur Debian 12 pour la compatibilité glibc)
+FROM gcr.io/distroless/nodejs22-debian12
 WORKDIR /app
 
-# Maj OS, ajout de curl (pour le healthcheck) et nettoyage des caches apt
-RUN apt-get update && apt-get upgrade -y && \
-    apt-get install -y --no-install-recommends curl && \
-    rm -rf /var/lib/apt/lists/*
+# On copie UNIQUEMENT le code compilé et les modules de prod depuis le builder
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
 
-# Suppression de NPM pour un scan Trivy clean (zéro vulnérabilité critique)
-RUN rm -rf /usr/local/lib/node_modules/npm \
-    /usr/local/bin/npm \
-    /usr/local/bin/npx \
-    /usr/local/lib/node_modules/corepack
-
+# Variables d'environnement
 ENV NODE_ENV=production
 
-# Création d'un utilisateur non-root (Syntaxe Debian)
-RUN groupadd -r appgroup && useradd -r -g appgroup appuser
-
-# Copie des fichiers depuis le builder
-COPY --from=builder --chown=appuser:appgroup /app/node_modules ./node_modules
-COPY --from=builder --chown=appuser:appgroup /app/dist ./dist
-COPY --from=builder --chown=appuser:appgroup /app/package.json ./
-
-# On passe sur l'utilisateur limité
-USER appuser
 EXPOSE 3000
 
-# Healthcheck via curl (car wget n'est pas par défaut sur debian slim)
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-  CMD curl -f http://localhost:3000/health || exit 1
-
-# Lancement de l'app compilée (dist/main.js pour NestJS)
-CMD ["node", "dist/main.js"]
+# Attention : Distroless exécute directement "node" par défaut, 
+# donc on donne juste le chemin du fichier !
+CMD ["dist/main.js"]

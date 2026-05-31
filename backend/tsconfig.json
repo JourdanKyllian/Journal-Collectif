@@ -1,36 +1,21 @@
 {
   "compilerOptions": {
-    /* Configuration du moteur */
-    "target": "ES2023",
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "outDir": "./dist",
-    "rootDir": "src",
-    
-    /* Alias de chemins */
-    "paths": {
-      "src/*": ["./src/*"]
-    },
-
-    /* Support de NestJS & Decorateurs */
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
+    "module": "commonjs",
     "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-
-    /* Qualité de code & Performance */
+    "target": "es2021",
     "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
-    "removeComments": true,
     "strictNullChecks": true,
+    "noImplicitAny": true,
+    "strictBindCallApply": true,
     "forceConsistentCasingInFileNames": true,
-    "isolatedModules": true,
-
-    /* Résolution des types globaux (Pour tes tests !) */
-    "types": ["jest", "node"]
-  },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+    "noFallthroughCasesInSwitch": true
+  }
 }
