@@ -1,12 +1,15 @@
 import { Module } from '@nestjs/common';
+import { TerminusModule } from '@nestjs/terminus';
 import { HealthController } from './health.controller';
 import Redis from 'ioredis';
 
 @Module({
+  imports: [TerminusModule],
   controllers: [HealthController],
   providers: [
     {
       provide: 'REDIS_CLIENT',
+
       useFactory: () => {
         // En local, ça pointera sur localhost.
         // Sur Docker, process.env.REDIS_HOST prendra la valeur "redis"

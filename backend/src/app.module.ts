@@ -1,4 +1,5 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { LoggerModule } from 'nestjs-pino';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { AdminSeedService } from './common/database/seed/admin.seed';
@@ -20,6 +21,15 @@ import { HealthModule } from './health/health.module';
 
 @Module({
   imports: [
+    LoggerModule.forRoot({
+      pinoHttp: {
+        customProps: (req, res) => ({
+          context: 'HTTP',
+        }),
+        transport: undefined, // undefined force la sortie en JSON brut
+      },
+    }),
+
     TypeOrmModule.forRoot({
       ...dataSourceOptions,
       autoLoadEntities: true,
@@ -43,7 +53,6 @@ import { HealthModule } from './health/health.module';
     AuthModule,
     HealthModule,
   ],
-  // Ajout de TableSeedService ici pour que ton fichier src/seed.ts puisse s'en servir !
   providers: [AdminSeedService, TableSeedService],
 })
 
