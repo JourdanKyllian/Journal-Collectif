@@ -62,7 +62,7 @@ export class HealthController {
     }
 
     this.logger.log('HealthCheck exécuté avec succès');
-    
+
     return health;
   }
 }

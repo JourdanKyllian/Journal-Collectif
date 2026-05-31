@@ -23,7 +23,7 @@ import { HealthModule } from './health/health.module';
   imports: [
     LoggerModule.forRoot({
       pinoHttp: {
-        customProps: (req, res) => ({
+        customProps: () => ({
           context: 'HTTP',
         }),
         transport: undefined, // undefined force la sortie en JSON brut

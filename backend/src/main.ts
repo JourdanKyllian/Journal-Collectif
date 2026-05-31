@@ -70,7 +70,7 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
-  
+
   // Vrai Logger au lieu de console.log pour formater en JSON
   const logger = app.get(Logger);
   logger.log(`Serveur lancé sur : http://localhost:${port}/api/v1`);
