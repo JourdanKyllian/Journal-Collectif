@@ -5,6 +5,16 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
 
+/**
+ * Initialise et démarre l'application backend NestJS.
+ *
+ * Configure la sécurité (Helmet, CORS), le journaliseur (Pino),
+ * le versionnage de l'API (URI), la validation globale des données,
+ * et génère la documentation Swagger.
+ *
+ * @async
+ * @returns {Promise<void>} Une promesse qui se résout lorsque l'application est en écoute.
+ */
 async function bootstrap() {
   // BufferLogs en true permet à Pino de capturer les logs de démarrage de NestJS
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
