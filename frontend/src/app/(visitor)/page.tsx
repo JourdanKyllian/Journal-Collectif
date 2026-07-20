@@ -1,109 +1,140 @@
-"use client";
-
 import Link from "next/link";
 import {
   ArrowRight,
   Palette, HardHat, Trophy,
-  Megaphone, Siren, PartyPopper, Building2,
+  Megaphone, Siren, PartyPopper, Building2, BookOpen,
+  LucideIcon
 } from "lucide-react";
 import ArticleCard from "@/components/features/ArticleCard";
 import { Button }  from "@/components/ui/button";
+import { fetchApi } from "@/lib/api";
+import type { JSX } from "react";
 
-// ── Données mock (triées du + récent au + ancien) ────────────
-// Remplacer par : await fetchApi<Article[]>('/articles?limit=6&sort=publishedAt:desc')
-const RECENT_ARTICLES = [
-  {
-    id: 1,
-    title:         "Festival d'Été 2026 : Programme complet dévoilé",
-    excerpt:       "Trois jours de concerts, expositions et animations pour toute la famille...",
-    category:      "Culture",
-    date:          "15 fév. 2026",
-    dateIso:       "2026-02-15",
-    readTime:      "3 min",
-    icon:          Palette,
-    gradientClass: "bg-linear-to-br from-vert to-noir",
-  },
-  {
-    id: 2,
-    title:         "Rénovation Route Nationale : fermeture jusqu'au 28 fév.",
-    excerpt:       "Des déviations sont mises en place. Voici les itinéraires conseillés...",
-    category:      "Travaux",
-    date:          "14 fév. 2026",
-    dateIso:       "2026-02-14",
-    readTime:      "2 min",
-    icon:          HardHat,
-    gradientClass: "bg-linear-to-br from-vert/80 to-vert",
-  },
-  {
-    id: 3,
-    title:         "Victoire de l'équipe locale en demi-finale régionale",
-    excerpt:       "Un match remporté 3-1 dans une ambiance électrisante au stade...",
-    category:      "Sport",
-    date:          "13 fév. 2026",
-    dateIso:       "2026-02-13",
-    readTime:      "4 min",
-    icon:          Trophy,
-    gradientClass: "bg-linear-to-br from-noir to-vert",
-  },
-  {
-    id: 4,
-    title:         "Conseil municipal — Compte-rendu séance du 10 fév.",
-    excerpt:       "Budget 2026 voté, nouveau plan de mobilité douce approuvé...",
-    category:      "Annonces",
-    date:          "12 fév. 2026",
-    dateIso:       "2026-02-12",
-    readTime:      "5 min",
-    icon:          Megaphone,
-    gradientClass: "bg-linear-to-br from-noir/90 to-vert/60",
-  },
-  {
-    id: 5,
-    title:         "Alerte météo : fortes pluies attendues ce week-end",
-    excerpt:       "La préfecture recommande d'éviter les déplacements non essentiels...",
-    category:      "Faits divers",
-    date:          "11 fév. 2026",
-    dateIso:       "2026-02-11",
-    readTime:      "2 min",
-    icon:          Siren,
-    gradientClass: "bg-linear-to-br from-vert to-noir/90",
-  },
-  {
-    id: 6,
-    title:         "Marché de printemps — Inscriptions 2026 ouvertes",
-    excerpt:       "La municipalité lance les inscriptions pour l'édition 2026...",
-    category:      "Événements",
-    date:          "10 fév. 2026",
-    dateIso:       "2026-02-10",
-    readTime:      "3 min",
-    icon:          PartyPopper,
-    gradientClass: "bg-linear-to-br from-noir to-vert/80",
-  },
-] satisfies {
-  id: number; title: string; excerpt: string; category: string;
-  date: string; dateIso: string; readTime: string;
-  icon: React.ElementType; gradientClass: string;
-}[];
+/**
+ * Determines the appropriate icon for a given category name.
+ *
+ * @param {string} categoryName - The name of the category.
+ * @returns {LucideIcon} The corresponding Lucide React icon component.
+ */
+const getCategoryIcon = (categoryName: string): LucideIcon => {
+  switch (categoryName?.toLowerCase()) {
+    case 'culture': return Palette;
+    case 'sport': return Trophy;
+    case 'travaux': return HardHat;
+    case 'faits divers': return Siren;
+    case 'événements': return PartyPopper;
+    case 'annonces': return Megaphone;
+    case 'politique & mairie': return Building2;
+    default: return BookOpen;
+  }
+};
 
-// ── Tri du plus récent au plus ancien ────────────────────────
-const sortedArticles = [...RECENT_ARTICLES].sort(
-  (a, b) => new Date(b.dateIso).getTime() - new Date(a.dateIso).getTime()
-);
+/**
+ * Returns a background gradient class based on the article's index.
+ *
+ * @param {number} index - The position index of the article in the list.
+ * @returns {string} Tailwind CSS classes for the gradient background.
+ */
+const getGradientClass = (index: number): string => {
+  const gradients = [
+    "bg-linear-to-br from-vert to-noir",
+    "bg-linear-to-br from-vert/80 to-vert",
+    "bg-linear-to-br from-noir to-vert",
+    "bg-linear-to-br from-noir/90 to-vert/60",
+    "bg-linear-to-br from-vert to-noir/90",
+    "bg-linear-to-br from-noir to-vert/80",
+  ];
+  return gradients[index % gradients.length];
+};
 
-export default function Home() {
+/**
+ * Calculates the estimated reading time for a given text based on a 225 words per minute average.
+ *
+ * @param {string} text - The content of the article.
+ * @returns {string} The estimated reading time formatted as a string.
+ */
+const calculateReadTime = (text: string): string => {
+  if (!text) return "1 min";
+  const wordCount = text.trim().split(/\s+/).length;
+  const minutes = Math.ceil(wordCount / 225);
+  return `${minutes} min`;
+};
+
+/**
+ * Formats an ISO date string into a localized French date string.
+ *
+ * @param {string} isoDate - The ISO formatted date string.
+ * @returns {string} The localized date string.
+ */
+const formatDate = (isoDate: string): string => {
+  if (!isoDate) return "Date inconnue";
+  const date = new Date(isoDate);
+  return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
+/**
+ * Represents the article data structure retrieved from the backend API.
+ *
+ * @interface BackendArticle
+ * @property {number} id - The unique identifier of the article.
+ * @property {string} titre - The title of the article.
+ * @property {string} contenu - The main body content of the article.
+ * @property {string} published_at - The publication timestamp in ISO format.
+ * @property {Object} [category] - The category relation object.
+ * @property {string} category.libelle - The name of the category.
+ */
+interface BackendArticle {
+  id: number;
+  titre: string;
+  contenu: string;
+  published_at: string;
+  category?: {
+    libelle: string;
+  };
+}
+
+/**
+ * Server component rendering the homepage.
+ * Fetches published articles from the backend API and maps them to the frontend format.
+ *
+ * @returns {Promise<JSX.Element>} The rendered homepage component.
+ */
+export default async function Home(): Promise<JSX.Element> {
+  let latestArticles: any[] = [];
+
+  try {
+    const response = await fetchApi<BackendArticle[]>('/v1/article/published', {
+      next: { revalidate: 60 }
+    });
+
+    latestArticles = response.slice(0, 6).map((article, index) => ({
+      id: article.id,
+      title: article.titre,
+      excerpt: article.contenu ? article.contenu.substring(0, 100) + '...' : 'Pas de résumé disponible...',
+      category: article.category?.libelle || 'Général',
+      date: formatDate(article.published_at),
+      dateIso: article.published_at,
+      readTime: calculateReadTime(article.contenu),
+      icon: getCategoryIcon(article.category?.libelle || ''),
+      gradientClass: getGradientClass(index),
+    }));
+  } catch (error) {
+    console.error("Erreur lors de la récupération des articles :", error);
+    latestArticles = [];
+  }
+
+  const featuredArticle = latestArticles.length > 0 ? latestArticles[0] : null;
+
   return (
     <div className="w-full">
-
-      {/* ── Hero ──────────────────────────────────────────────── */}
       <section
         className="bg-linear-to-br from-vert via-vert/90 to-noir pt-16 pb-24 px-6 relative overflow-hidden"
         aria-label="Présentation du journal"
       >
-        {/* Orbe décoratif */}
         <div
           className="absolute top-0 right-0 w-125 h-125 bg-or/10 rounded-full blur-3xl pointer-events-none -translate-y-1/2 translate-x-1/4"
           aria-hidden="true"
         />
-        {/* Découpe bas de section */}
         <div
           className="absolute bottom-0 left-0 right-0 h-16 bg-blanc"
           style={{ clipPath: "ellipse(55% 100% at 50% 100%)" }}
@@ -140,33 +171,33 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Carte "À la une" — desktop uniquement */}
-          <div
-            className="hidden md:block bg-blanc/5 border border-or/25 rounded-2xl p-7 backdrop-blur-md"
-            aria-label="Article à la une"
-          >
-            <span className="inline-flex items-center gap-1.5 bg-or text-noir font-poppins font-black text-xs px-3 py-1 rounded-full mb-4">
-              🔥 À la une
-            </span>
-            <h2 className="font-montserrat font-bold text-blanc text-xl leading-tight mb-3">
-              {sortedArticles[0].title}
-            </h2>
-            <p className="font-raleway text-blanc/70 text-sm leading-relaxed mb-5">
-              {sortedArticles[0].excerpt}
-            </p>
-            <div className="flex gap-4 text-xs text-champagne font-montserrat">
-              <span className="flex items-center gap-1">
-                <Palette size={14} aria-hidden="true" />
-                {sortedArticles[0].category}
+          {featuredArticle && (
+            <div
+              className="hidden md:block bg-blanc/5 border border-or/25 rounded-2xl p-7 backdrop-blur-md"
+              aria-label="Article à la une"
+            >
+              <span className="inline-flex items-center gap-1.5 bg-or text-noir font-poppins font-black text-xs px-3 py-1 rounded-full mb-4">
+                🔥 À la une
               </span>
-              <span>📅 {sortedArticles[0].date}</span>
-              <span>📖 {sortedArticles[0].readTime}</span>
+              <h2 className="font-montserrat font-bold text-blanc text-xl leading-tight mb-3">
+                {featuredArticle.title}
+              </h2>
+              <p className="font-raleway text-blanc/70 text-sm leading-relaxed mb-5">
+                {featuredArticle.excerpt}
+              </p>
+              <div className="flex gap-4 text-xs text-champagne font-montserrat">
+                <span className="flex items-center gap-1">
+                  <featuredArticle.icon size={14} aria-hidden="true" />
+                  {featuredArticle.category}
+                </span>
+                <span>📅 {featuredArticle.date}</span>
+                <span>📖 {featuredArticle.readTime}</span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </section>
 
-      {/* ── 6 Articles récents ────────────────────────────────── */}
       <section
         className="max-w-7xl mx-auto px-6 py-16"
         aria-labelledby="recent-articles-heading"
@@ -183,7 +214,6 @@ export default function Home() {
               Articles récents
             </h2>
           </div>
-          {/* Lien vers /articles pour les filtres avancés */}
           <Link
             href="/articles"
             className="font-montserrat font-semibold text-sm text-vert hover:bg-vert/10 px-4 py-2 rounded-lg transition-all flex items-center gap-1.5"
@@ -193,15 +223,19 @@ export default function Home() {
           </Link>
         </div>
 
-        {/* Grille — 6 articles max, triés par date ──── */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sortedArticles.slice(0, 6).map((article) => (
-            <ArticleCard key={article.id} {...article} />
-          ))}
+          {latestArticles.length > 0 ? (
+            latestArticles.map((article) => (
+              <ArticleCard key={article.id} {...article} />
+            ))
+          ) : (
+            <p className="col-span-full text-center text-champagne font-montserrat py-10">
+              Aucun article publié pour le moment.
+            </p>
+          )}
         </div>
       </section>
 
-      {/* ── Bandeau statistiques ─────────────────────────────── */}
       <section
         className="bg-linear-to-r from-noir to-vert py-16 px-6"
         aria-label="Statistiques du journal"

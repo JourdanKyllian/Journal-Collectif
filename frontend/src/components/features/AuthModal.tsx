@@ -19,36 +19,87 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import { fetchApi } from "@/lib/api";
 
+/**
+ * Interface defining the properties for the AuthModal component.
+ *
+ * @interface AuthModalProps
+ * @property {boolean} isOpen - Determines whether the modal is visible.
+ * @property {() => void} onClose - Callback function to trigger the modal closure.
+ * @property {(user: any) => void} onLoginSuccess - Callback function executed upon successful authentication.
+ */
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onLoginSuccess: (user: any) => void;
 }
 
+/**
+ * Authentication modal component handling user login and registration.
+ * Communicates with the backend API to establish sessions and store JWT tokens.
+ *
+ * @param {AuthModalProps} props - The component properties.
+ * @returns {JSX.Element} The rendered modal component.
+ */
 export default function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  /**
+   * Processes the form submission, authenticates via the API, decodes the JWT,
+   * stores tokens in local storage, and updates the application state.
+   *
+   * @param {React.FormEvent} e - The form submission event.
+   * @returns {Promise<void>}
+   */
+  const handleLogin = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
-    const isFakeAdmin = email.includes("admin");
-    onLoginSuccess({
-      name: isFakeAdmin ? "Admin Chalonnais" : "Jean Dupont",
-      email: email || "jean@exemple.fr",
-      role: isFakeAdmin ? "admin" : "user"
-    });
-    onClose();
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const response = await fetchApi<any>('/v1/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password }),
+      });
+
+      localStorage.setItem('access_token', response.access_token);
+      localStorage.setItem('refresh_token', response.refresh_token);
+
+      const payloadBase64 = response.access_token.split('.')[1];
+      const payload = JSON.parse(atob(payloadBase64));
+
+      onLoginSuccess({
+        name: payload.role === 'Admin' ? "Admin Chalonnais" : "Citoyen",
+        email: payload.email,
+        role: payload.role === 'Admin' ? 'admin' : 'user'
+      });
+
+      onClose();
+    } catch (err: any) {
+      setError(err.message || "Erreur de connexion");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const fillDemo = (demoEmail: string, demoPass: string) => {
+  /**
+   * Populates the authentication form with demonstration credentials.
+   *
+   * @param {string} demoEmail - The demonstration email address.
+   * @param {string} demoPass - The demonstration password.
+   * @returns {void}
+   */
+  const fillDemo = (demoEmail: string, demoPass: string): void => {
     setEmail(demoEmail);
     setPassword(demoPass);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      {/* sm:max-w-105 = 420px en Tailwind v4 */}
       <DialogContent className="sm:max-w-105 bg-blanc border-champagne/30 rounded-3xl p-8 shadow-2xl overflow-hidden flex flex-col gap-0">
         
         <DialogHeader className="mb-6">
@@ -67,10 +118,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModal
           </div>
         </DialogHeader>
 
-        {/* FIX CRUCIAL : On ajoute 'flex flex-col w-full' ici pour forcer l'empilement */}
         <Tabs defaultValue="login" className="w-full flex flex-col">
-          
-          {/* TabsList en grid pour forcer les 2 colonnes horizontales */}
           <TabsList className="grid w-full grid-cols-2 bg-champagne/15 rounded-xl p-1 h-auto mb-8 border border-champagne/10 shrink-0">
             <TabsTrigger 
               value="login" 
@@ -86,7 +134,6 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModal
             </TabsTrigger>
           </TabsList>
 
-          {/* Formulaire de Connexion */}
           <TabsContent value="login" className="w-full m-0 focus-visible:outline-none space-y-6">
             <form onSubmit={handleLogin} className="space-y-5">
               <div className="space-y-2">
@@ -109,8 +156,15 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModal
                   className="h-14 px-5 border-champagne/40 rounded-xl font-montserrat text-sm bg-blanc focus-visible:ring-or/30 focus-visible:border-or shadow-xs"
                 />
               </div>
-              <Button type="submit" className="w-full h-14 bg-noir text-blanc font-montserrat font-black text-sm rounded-xl hover:bg-vert transition-all hover:-translate-y-0.5 shadow-lg">
-                Se connecter <ArrowRight size={18} className="ml-2" />
+
+              {error && (
+                <div className="p-3 bg-red-50 text-red-500 font-montserrat text-xs font-bold rounded-xl border border-red-200">
+                  {error}
+                </div>
+              )}
+
+              <Button type="submit" disabled={isLoading} className="w-full h-14 bg-noir text-blanc font-montserrat font-black text-sm rounded-xl hover:bg-vert transition-all hover:-translate-y-0.5 shadow-lg">
+                {isLoading ? "Connexion..." : "Se connecter"} <ArrowRight size={18} className="ml-2" />
               </Button>
             </form>
 
@@ -124,11 +178,11 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModal
             <div className="bg-or/10 border border-or/20 rounded-2xl p-4 space-y-2">
               <button 
                 type="button"
-                onClick={() => fillDemo('admin@chalonnais.fr', 'admin123')}
+                onClick={() => fillDemo('admin@journal.fr', 'admin123')}
                 className="w-full flex items-center justify-between px-4 py-3 bg-blanc border border-champagne/20 rounded-xl hover:border-or transition-all group"
               >
                 <span className="font-montserrat font-bold flex items-center gap-2.5 text-noir text-sm">
-                  <Crown size={16} className="text-or" /> admin@chalonnais.fr
+                  <Crown size={16} className="text-or" /> admin@journal.fr
                 </span>
                 <Badge className="bg-or text-noir font-poppins font-black text-[10px] border-0">Admin</Badge>
               </button>
@@ -145,7 +199,6 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModal
             </div>
           </TabsContent>
 
-          {/* Formulaire d'Inscription (Simplifié) */}
           <TabsContent value="register" className="w-full m-0 focus-visible:outline-none space-y-4">
              <Input placeholder="Nom complet" className="h-14 px-5 border-champagne/40 rounded-xl" />
              <Input type="email" placeholder="Email" className="h-14 px-5 border-champagne/40 rounded-xl" />
