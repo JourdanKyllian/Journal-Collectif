@@ -19,11 +19,18 @@ RUN npm prune --production --legacy-peer-deps
 FROM gcr.io/distroless/nodejs22-debian12:nonroot
 WORKDIR /app
 
+# Restauration du contexte global et de la topologie monorepo
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/backend/dist ./dist
+
+# Préservation de l'arborescence du service pour la résolution des assets statiques (Swagger)
+COPY --from=builder /app/backend/package.json ./backend/
+COPY --from=builder /app/backend/dist ./backend/dist
+COPY --from=builder /app/backend/node_module[s] ./backend/node_modules
 
 ENV NODE_ENV=production
 EXPOSE 3000
 
+# Isolation du contexte d'exécution de l'API
+WORKDIR /app/backend
 CMD ["node", "dist/main.js"]
