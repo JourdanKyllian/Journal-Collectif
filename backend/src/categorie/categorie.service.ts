@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindOptionsWhere } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Category } from './entities/categorie.entity';
 import { CreateCategoryDto } from './dto/create-categorie.dto';
 import { UpdateCategoryDto } from './dto/update-categorie.dto';
@@ -37,7 +37,7 @@ export class CategoryService {
 
   async findOne(id: number) {
     const category = await this.categoryRepository.findOne({
-      where: { id } as FindOptionsWhere<Category>,
+      where: { id },
     });
 
     if (!category) throw new NotFoundException('Catégorie introuvable.');

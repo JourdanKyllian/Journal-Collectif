@@ -1,8 +1,9 @@
 services:
   api:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      # Contexte défini à la racine pour la résolution du lockfile monorepo
+      context: .
+      dockerfile: backend/Dockerfile
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       DB_HOST: db
@@ -22,8 +23,8 @@ services:
 
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: frontend/Dockerfile
     environment:
       NODE_ENV: production
     depends_on:
