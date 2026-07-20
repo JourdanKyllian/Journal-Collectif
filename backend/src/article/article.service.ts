@@ -101,7 +101,7 @@ export class ArticleService {
 
     // Un journaliste ne peut pas publier direct
     if (updateArticleDto.statut && !isManagement) {
-      if ((updateArticleDto.statut as ArticleStatus) === ArticleStatus.PUBLIE) {
+      if (updateArticleDto.statut === ArticleStatus.PUBLIE) {
         updateArticleDto.statut = ArticleStatus.EN_ATTENTE;
       }
     }
