@@ -74,12 +74,12 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api-docs', app, document);
+  SwaggerModule.setup('api/docs', app, document);
 
   // --- DÉMARRAGE ---
 
   const port = process.env.PORT ?? 3000;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 
   // Vrai Logger au lieu de console.log pour formater en JSON
   const logger = app.get(Logger);

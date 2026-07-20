@@ -3,6 +3,13 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      target: builder
+    ports:
+      - "4000:3000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    command: npm run start:dev
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       DB_HOST: db
@@ -13,6 +20,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       NODE_ENV: production
+      PORT: 3000
     depends_on:
       db:
         condition: service_healthy
@@ -26,6 +34,8 @@ services:
       dockerfile: Dockerfile
     environment:
       NODE_ENV: production
+      PORT: 3000
+      HOSTNAME: "0.0.0.0"
     depends_on:
       - api
     restart: unless-stopped

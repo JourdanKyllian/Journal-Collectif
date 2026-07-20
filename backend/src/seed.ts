@@ -10,7 +10,7 @@ async function bootstrap() {
   const tableSeedService = app.get(TableSeedService);
   const adminSeedService = app.get(AdminSeedService);
 
-  console.log('🌱 --- DÉBUT DU SEEDING --- 🌱');
+  console.log('--- DÉBUT DU SEEDING ---');
 
   try {
     // Lance le service des tables (Rôles)
