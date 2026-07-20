@@ -4,5 +4,11 @@
   },
   "scripts": {
     "prepare": "husky"
-  }
+  },
+  "name": "journal-collectif-monorepo",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ]
 }
