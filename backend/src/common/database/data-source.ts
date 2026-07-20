@@ -14,7 +14,7 @@ export const dataSourceOptions: DataSourceOptions = {
 
   // Utilise des chemins qui fonctionnent à la fois en TS (dev) et JS (dist)
   entities: [__dirname + '/../../**/*.entity{.ts,.js}'],
-  migrations: [__dirname + '/../migrations/*{.ts,.js}'],
+  migrations: [__dirname + '/migrations/*{.ts,.js}'],
 
   synchronize: false, // Toujours false en production !
   logging: true,
