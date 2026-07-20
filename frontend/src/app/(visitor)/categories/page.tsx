@@ -75,7 +75,12 @@ function useToast() {
   return { message, show };
 }
 
-// ── Composant Toast inline ────────────────────────────────────
+/**
+ * Composant de notification Toast inline.
+ * 
+ * @param {Object} props - Propriétés du composant.
+ * @returns {JSX.Element} Le composant Toast rendu.
+ */
 function Toast({ message, onClose }: { message: string; onClose: () => void }) {
   return (
     <div
@@ -96,7 +101,12 @@ function Toast({ message, onClose }: { message: string; onClose: () => void }) {
   );
 }
 
-// ── Page Catégories ──────────────────────────────────────────
+/**
+ * Composant de la page des catégories d'articles.
+ * Affiche la grille des thématiques et permet de s'abonner par email ou notifications push.
+ * 
+ * @returns {JSX.Element} La page des catégories rendue.
+ */
 export default function CategoriesPage() {
   const toast = useToast();
 
@@ -119,7 +129,7 @@ export default function CategoriesPage() {
             Toutes les <span className="text-or">Catégories</span>
           </h1>
           <p className="font-raleway text-blanc/70 text-lg">
-            Filtrez les actualités selon vos centres d'intérêt — abonnez-vous pour ne rien manquer
+            Filtrez les actualités selon vos centres d&apos;intérêt — abonnez-vous pour ne rien manquer
           </p>
         </header>
 
@@ -181,7 +191,7 @@ export default function CategoriesPage() {
                 {/* ── Boutons d'abonnement ──────────────────── */}
                 <div className="px-6 pb-5 pt-2 border-t border-champagne/15 flex items-center gap-2">
                   <span className="font-montserrat text-xs text-champagne mr-auto">
-                    S'abonner :
+                    S&apos;abonner :
                   </span>
                   <button
                     onClick={() => handleSubscribe("email", cat.name)}

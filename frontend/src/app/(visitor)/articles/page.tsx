@@ -62,8 +62,13 @@ const CATEGORY_FILTERS: { id: Category; label: string }[] = [
   { id: "politique",   label: "🏛️ Politique"    },
 ];
 
-// ── Composant DateRange stylisé ──────────────────────────────
-// Utilise les inputs natifs type="date" (pas de dépendances externes)
+/**
+ * Composant de sélection d'une plage de dates stylisé.
+ * Utilise les inputs natifs type="date" (sans dépendance externe).
+ * 
+ * @param {Object} props - Propriétés du composant.
+ * @returns {JSX.Element} Le sélecteur de dates rendu.
+ */
 function DateRangePicker({
   from, to, onFromChange, onToChange, onClear,
 }: {
@@ -116,7 +121,12 @@ function DateRangePicker({
   );
 }
 
-// ── Page principale ──────────────────────────────────────────
+/**
+ * Composant de la page d'exploration de tous les articles du journal.
+ * Intègre la recherche textuelle, les filtres par catégorie et la sélection de plage de dates.
+ * 
+ * @returns {JSX.Element} La page des articles rendue.
+ */
 export default function ArticlesPage() {
   const [search,      setSearch]      = useState("");
   const [category,    setCategory]    = useState<Category>("all");
@@ -165,7 +175,7 @@ export default function ArticlesPage() {
           La <span className="text-or">Presse</span>
         </h1>
         <p className="font-raleway text-blanc/70 text-lg">
-          Toute l'actualité de Châlons — recherchez, filtrez, explorez
+          Toute l&apos;actualité de Châlons — recherchez, filtrez, explorez
         </p>
       </header>
 
@@ -286,7 +296,7 @@ export default function ArticlesPage() {
               Aucun résultat
             </h2>
             <p className="font-montserrat text-sm text-champagne mb-6">
-              Essayez d'autres mots-clés ou modifiez les filtres.
+              Essayez d&apos;autres mots-clés ou modifiez les filtres.
             </p>
             <Button
               onClick={clearAll}

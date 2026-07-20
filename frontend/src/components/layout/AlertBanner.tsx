@@ -18,6 +18,12 @@ const ALERTS = [
   },
 ] satisfies { id: number; type: "urgent" | "info"; message: string }[];
 
+/**
+ * Composant de bannière d'alerte défilante affiché en haut du site.
+ * Gère la rotation automatique des alertes, les transitions fluides et la fermeture par l'utilisateur.
+ * 
+ * @returns {JSX.Element | null} Le composant de bannière rendu ou null si fermé.
+ */
 export default function AlertBanner() {
   const [currentIdx, setCurrentIdx]   = useState(0);
   const [visible, setVisible]         = useState(true);
@@ -32,10 +38,13 @@ export default function AlertBanner() {
     }, 5000);
 
     return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentIdx]);
 
-  // ── Transition fade+slide ────────────────────────────────────
+  /**
+   * Déclenche une transition fluide (fade + slide) lors du changement d'alerte.
+   * 
+   * @param {number} nextIdx - L'index de la prochaine alerte à afficher.
+   */
   function triggerTransition(nextIdx: number) {
     setVisible(false);
     setTimeout(() => {
@@ -44,6 +53,11 @@ export default function AlertBanner() {
     }, 350); // doit correspondre à la durée CSS ci-dessous
   }
 
+  /**
+   * Navigue vers l'alerte précédente ou suivante.
+   * 
+   * @param {1 | -1} delta - La direction du déplacement (-1 pour précédent, 1 pour suivant).
+   */
   function goTo(delta: 1 | -1) {
     const next = (currentIdx + delta + ALERTS.length) % ALERTS.length;
     triggerTransition(next);

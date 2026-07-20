@@ -12,6 +12,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
+/**
+ * Composant du tableau de bord pour la gestion des utilisateurs et de leurs rôles.
+ * 
+ * @returns {JSX.Element} Le composant de la page des utilisateurs rendu.
+ */
 export default function UsersDashboard() {
   return (
     <div className="space-y-6 animate-slide-up">

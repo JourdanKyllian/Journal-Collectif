@@ -40,6 +40,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+/**
+ * Composant du tableau de bord pour la gestion des articles (publication, validation, création).
+ * 
+ * @returns {JSX.Element} Le composant de gestion des articles rendu.
+ */
 export default function ArticlesDashboard() {
   const [activeTab, setActiveTab] = useState("published");
 
@@ -49,7 +54,7 @@ export default function ArticlesDashboard() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="font-poppins font-black text-2xl text-noir">Articles</h1>
-          <p className="font-raleway text-champagne text-sm">Gérez l'ensemble du contenu éditorial</p>
+          <p className="font-raleway text-champagne text-sm">Gérez l&apos;ensemble du contenu éditorial</p>
         </div>
         <Button 
           onClick={() => setActiveTab("create")}
@@ -129,7 +134,7 @@ export default function ArticlesDashboard() {
                 <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100 border-0 font-poppins font-black text-xs">En attente</Badge>
               </div>
               <div className="font-montserrat text-xs text-champagne mb-3">🎉 Événements · Soumis par Marie Dupont · il y a 2h</div>
-              <p className="font-montserrat text-xs text-noir/70 line-clamp-2">La municipalité lance les inscriptions pour le marché de printemps 2026. Les exposants peuvent s'inscrire jusqu'au 15 mars...</p>
+              <p className="font-montserrat text-xs text-noir/70 line-clamp-2">La municipalité lance les inscriptions pour le marché de printemps 2026. Les exposants peuvent s&apos;inscrire jusqu&apos;au 15 mars...</p>
             </div>
             <div className="flex sm:flex-col gap-2 shrink-0 w-full sm:w-auto mt-4 sm:mt-0">
               <Button size="sm" className="bg-green-500 hover:bg-green-600 text-blanc font-montserrat font-bold rounded-lg flex-1 sm:flex-none">
@@ -221,7 +226,7 @@ export default function ArticlesDashboard() {
                   <Eye size={16} className="mr-2" /> Aperçu
                 </Button>
                 <Button className="flex-1 py-6 bg-noir text-blanc font-montserrat font-bold rounded-xl hover:bg-vert hover:-translate-y-0.5 transition-all">
-                  <CheckCircle2 size={16} className="mr-2" /> Publier l'article
+                  <CheckCircle2 size={16} className="mr-2" /> Publier l&apos;article
                 </Button>
               </div>
             </div>

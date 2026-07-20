@@ -11,10 +11,10 @@ import { fetchApi } from "@/lib/api";
 import type { JSX } from "react";
 
 /**
- * Determines the appropriate icon for a given category name.
+ * Détermine l'icône appropriée pour un nom de catégorie donné.
  *
- * @param {string} categoryName - The name of the category.
- * @returns {LucideIcon} The corresponding Lucide React icon component.
+ * @param {string} categoryName - Le nom de la catégorie.
+ * @returns {LucideIcon} Le composant d'icône Lucide React correspondant.
  */
 const getCategoryIcon = (categoryName: string): LucideIcon => {
   switch (categoryName?.toLowerCase()) {
@@ -30,10 +30,10 @@ const getCategoryIcon = (categoryName: string): LucideIcon => {
 };
 
 /**
- * Returns a background gradient class based on the article's index.
+ * Renvoie une classe de dégradé d'arrière-plan en fonction de l'index de l'article.
  *
- * @param {number} index - The position index of the article in the list.
- * @returns {string} Tailwind CSS classes for the gradient background.
+ * @param {number} index - L'index de position de l'article dans la liste.
+ * @returns {string} Les classes CSS Tailwind pour le fond en dégradé.
  */
 const getGradientClass = (index: number): string => {
   const gradients = [
@@ -48,10 +48,10 @@ const getGradientClass = (index: number): string => {
 };
 
 /**
- * Calculates the estimated reading time for a given text based on a 225 words per minute average.
+ * Calcule le temps de lecture estimé pour un texte donné sur la base d'une moyenne de 225 mots par minute.
  *
- * @param {string} text - The content of the article.
- * @returns {string} The estimated reading time formatted as a string.
+ * @param {string} text - Le contenu de l'article.
+ * @returns {string} Le temps de lecture estimé formaté sous forme de chaîne de caractères.
  */
 const calculateReadTime = (text: string): string => {
   if (!text) return "1 min";
@@ -61,10 +61,10 @@ const calculateReadTime = (text: string): string => {
 };
 
 /**
- * Formats an ISO date string into a localized French date string.
+ * Formate une chaîne de date ISO en une chaîne de date française localisée.
  *
- * @param {string} isoDate - The ISO formatted date string.
- * @returns {string} The localized date string.
+ * @param {string} isoDate - La chaîne de date au format ISO.
+ * @returns {string} La chaîne de date localisée.
  */
 const formatDate = (isoDate: string): string => {
   if (!isoDate) return "Date inconnue";
@@ -73,15 +73,15 @@ const formatDate = (isoDate: string): string => {
 };
 
 /**
- * Represents the article data structure retrieved from the backend API.
+ * Représente la structure de données d'un article récupéré depuis l'API backend.
  *
  * @interface BackendArticle
- * @property {number} id - The unique identifier of the article.
- * @property {string} titre - The title of the article.
- * @property {string} contenu - The main body content of the article.
- * @property {string} published_at - The publication timestamp in ISO format.
- * @property {Object} [category] - The category relation object.
- * @property {string} category.libelle - The name of the category.
+ * @property {number} id - L'identifiant unique de l'article.
+ * @property {string} titre - Le titre de l'article.
+ * @property {string} contenu - Le contenu principal du corps de l'article.
+ * @property {string} published_at - L'horodatage de publication au format ISO.
+ * @property {Object} [category] - L'objet de relation de la catégorie.
+ * @property {string} category.libelle - Le nom de la catégorie.
  */
 interface BackendArticle {
   id: number;
@@ -94,13 +94,28 @@ interface BackendArticle {
 }
 
 /**
- * Server component rendering the homepage.
- * Fetches published articles from the backend API and maps them to the frontend format.
+ * Interface représentant la structure d'un aperçu d'article formaté pour l'affichage frontal.
+ */
+interface ArticlePreview {
+  id: number;
+  title: string;
+  excerpt: string;
+  category: string;
+  date: string;
+  dateIso: string;
+  readTime: string;
+  icon: LucideIcon;
+  gradientClass: string;
+}
+
+/**
+ * Composant serveur rendant la page d'accueil.
+ * Récupère les articles publiés depuis l'API backend et les associe au format frontal.
  *
- * @returns {Promise<JSX.Element>} The rendered homepage component.
+ * @returns {Promise<JSX.Element>} Le composant de page d'accueil rendu.
  */
 export default async function Home(): Promise<JSX.Element> {
-  let latestArticles: any[] = [];
+  let latestArticles: ArticlePreview[] = [];
 
   try {
     const response = await fetchApi<BackendArticle[]>('/v1/article/published', {
@@ -147,7 +162,7 @@ export default async function Home(): Promise<JSX.Element> {
               📰 Journal en ligne · Collectif Chalonnais
             </span>
             <h1 className="font-poppins font-black text-4xl md:text-5xl text-blanc leading-tight mb-5">
-              L'actualité de<br />
+              L&apos;actualité de<br />
               <span className="text-or">Châlons</span> en temps réel
             </h1>
             <p className="font-raleway text-blanc/80 text-lg leading-relaxed mb-8">

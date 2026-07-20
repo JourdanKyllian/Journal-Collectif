@@ -2,6 +2,12 @@ import Link from "next/link";
 import { SearchX, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+/**
+ * Composant de la page 404 (Page Introuvable).
+ * S'affiche lorsqu'un utilisateur navigue vers une URL inexistante.
+ * 
+ * @returns {JSX.Element} La page 404 rendue.
+ */
 export default function NotFound() {
   return (
     <div className="min-h-[calc(100vh-70px)] flex flex-col items-center justify-center px-6 bg-blanc text-center">
@@ -12,11 +18,11 @@ export default function NotFound() {
         Page <span className="text-or">Introuvable</span> (404)
       </h1>
       <p className="font-raleway text-champagne text-lg max-w-md mx-auto mb-8">
-        Il semblerait que vous vous soyez perdu dans les rues de la commune. Cette page n'existe pas ou a été déplacée.
+        Il semblerait que vous vous soyez perdu dans les rues de la commune. Cette page n&apos;existe pas ou a été déplacée.
       </p>
       <Link href="/">
         <Button className="bg-noir text-blanc font-montserrat font-bold px-8 py-6 rounded-xl hover:bg-vert transition-all">
-          <ArrowLeft size={18} className="mr-2" /> Retourner à l'accueil
+          <ArrowLeft size={18} className="mr-2" /> Retourner à l&apos;accueil
         </Button>
       </Link>
     </div>

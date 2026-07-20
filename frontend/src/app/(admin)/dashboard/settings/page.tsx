@@ -5,6 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+/**
+ * Composant du tableau de bord pour la gestion des paramètres généraux du journal municipal.
+ * 
+ * @returns {JSX.Element} Le composant de la page des paramètres rendu.
+ */
 export default function SettingsDashboard() {
   return (
     <div className="space-y-6 animate-slide-up">

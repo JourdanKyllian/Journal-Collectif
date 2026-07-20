@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { Landmark } from "lucide-react";
 
+/**
+ * Composant de pied de page (Footer) affiché en bas de chaque page publique.
+ * Fournit les liens de navigation, les catégories principales et les informations de contact.
+ * 
+ * @returns {JSX.Element} Le composant de pied de page rendu.
+ */
 export default function Footer() {
   return (
     <footer className="bg-noir px-6 pt-14 pb-8 mt-auto">

@@ -12,15 +12,28 @@ import {
   ArrowLeft 
 } from "lucide-react";
 
-export default function DashboardLayout({
-  children,
-}: {
+/**
+ * Interface représentant les propriétés du layout administrateur.
+ * 
+ * @interface DashboardLayoutProps
+ * @property {React.ReactNode} children - Les composants enfants à rendre dans la zone principale.
+ */
+interface DashboardLayoutProps {
   children: React.ReactNode;
-}) {
+}
+
+/**
+ * Composant de mise en page pour l'espace d'administration.
+ * Intègre une barre latérale (sidebar) fixe et une zone de contenu déroulante.
+ * 
+ * @param {DashboardLayoutProps} props - Les propriétés du composant.
+ * @returns {JSX.Element} La mise en page administrateur rendue.
+ */
+export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
 
   const menuItems = [
-    { name: "Vue d'ensemble", href: "/dashboard", icon: LayoutDashboard },
+    { name: "Vue d&apos;ensemble", href: "/dashboard", icon: LayoutDashboard },
     { name: "Articles", href: "/dashboard/articles", icon: Newspaper },
     { name: "Objets perdus", href: "/dashboard/lost", icon: Search },
     { name: "Alertes", href: "/dashboard/alerts", icon: Bell },

@@ -7,6 +7,12 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
+/**
+ * Composant de la page d'accueil du tableau de bord administrateur.
+ * Affiche les statistiques globales et des raccourcis d'actions rapides.
+ * 
+ * @returns {JSX.Element} Le composant du tableau de bord rendu.
+ */
 export default function DashboardPage() {
   const stats = [
     { title: "Articles publiés", value: "382", sub: "+12 ce mois", icon: Newspaper, color: "text-green-600", bg: "bg-green-50" },
@@ -19,7 +25,7 @@ export default function DashboardPage() {
     <div className="space-y-8 animate-slide-up">
       <div>
         <h1 className="font-poppins font-black text-2xl text-noir mb-1">Dashboard</h1>
-        <p className="font-raleway text-champagne text-sm">Bienvenue sur l'interface d'administration</p>
+        <p className="font-raleway text-champagne text-sm">Bienvenue sur l&apos;interface d&apos;administration</p>
       </div>
 
       {/* Grille de stats */}

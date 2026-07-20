@@ -6,6 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 
+/**
+ * Composant de la page de profil utilisateur pour l'espace visiteur.
+ * Permet de consulter ses informations, de gérer ses abonnements aux catégories et ses préférences de notifications.
+ * 
+ * @returns {JSX.Element} La page de profil rendue.
+ */
 export default function ProfilePage() {
   // Simulations d'états pour les notifications et abonnements
   const [notifImportant, setNotifImportant] = useState(true);
@@ -67,7 +73,7 @@ export default function ProfilePage() {
           </h3>
           <div className="space-y-4">
             <div className="flex justify-between items-center py-3 border-b border-champagne/10">
-              <span className="font-montserrat font-semibold text-sm text-noir">Alertes & Articles importants</span>
+              <span className="font-montserrat font-semibold text-sm text-noir">Alertes &amp; Articles importants</span>
               <Switch 
                 checked={notifImportant} 
                 onCheckedChange={setNotifImportant} 

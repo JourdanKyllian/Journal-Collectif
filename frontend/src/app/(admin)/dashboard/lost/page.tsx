@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { 
-  Search, 
   Trash2, 
   CheckCircle2, 
   XCircle, 
@@ -27,6 +26,11 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 
+/**
+ * Composant de tableau de bord pour la modération et le suivi des déclarations d'objets perdus ou trouvés.
+ * 
+ * @returns {JSX.Element} Le composant de gestion des objets perdus rendu.
+ */
 export default function LostObjectsDashboard() {
   const [activeTab, setActiveTab] = useState("active");
 
@@ -36,7 +40,7 @@ export default function LostObjectsDashboard() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="font-poppins font-black text-2xl text-noir">Objets Perdus</h1>
-          <p className="font-raleway text-champagne text-sm">Modérez les déclarations d'objets</p>
+          <p className="font-raleway text-champagne text-sm">Modérez les déclarations d&apos;objets</p>
         </div>
       </div>
 

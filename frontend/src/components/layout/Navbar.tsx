@@ -22,17 +22,37 @@ import {
 } from "@/components/ui/sheet";
 import AuthModal from "@/components/features/AuthModal";
 
+/**
+ * Interface décrivant la structure d'un utilisateur authentifié dans la navigation.
+ */
+interface AuthUser {
+  name: string;
+  email: string;
+  role: 'admin' | 'user';
+}
+
+/**
+ * Composant de barre de navigation principale (Navbar).
+ * Gère l'affichage responsive (desktop / mobile), l'état de l'utilisateur connecté
+ * et l'ouverture de la modale d'authentification.
+ *
+ * @returns {JSX.Element} Le composant de navigation rendu.
+ */
 export default function Navbar() {
   const pathname = usePathname();
   
   // Nouveaux états pour gérer la modale et l'utilisateur connecté
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [user, setUser] = useState<any>(null); // null = personne n'est connecté
+  const [user, setUser] = useState<AuthUser | null>(null); // null = personne n'est connecté
   
   const isAdmin = user?.role === "admin";
 
-  // Fonction appelée quand la modale réussit la connexion
-  const handleLoginSuccess = (userData: any) => {
+  /**
+   * Fonction appelée lorsque la modale valide une connexion réussie.
+   * 
+   * @param {AuthUser} userData - Les informations de l'utilisateur connecté.
+   */
+  const handleLoginSuccess = (userData: AuthUser) => {
     setUser(userData);
   };
 
