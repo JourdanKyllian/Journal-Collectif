@@ -22,17 +22,34 @@ import {
 import { fetchApi } from "@/lib/api";
 
 /**
+ * Interface représentant les données de l'utilisateur authentifié.
+ */
+interface AuthUser {
+  name: string;
+  email: string;
+  role: 'admin' | 'user';
+}
+
+/**
+ * Interface représentant la réponse de l'API lors d'une connexion réussie.
+ */
+interface LoginResponse {
+  access_token: string;
+  refresh_token: string;
+}
+
+/**
  * Interface defining the properties for the AuthModal component.
  *
  * @interface AuthModalProps
  * @property {boolean} isOpen - Determines whether the modal is visible.
  * @property {() => void} onClose - Callback function to trigger the modal closure.
- * @property {(user: any) => void} onLoginSuccess - Callback function executed upon successful authentication.
+ * @property {(user: AuthUser) => void} onLoginSuccess - Callback function executed upon successful authentication.
  */
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onLoginSuccess: (user: any) => void;
+  onLoginSuccess: (user: AuthUser) => void;
 }
 
 /**
@@ -61,7 +78,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModal
     setIsLoading(true);
 
     try {
-      const response = await fetchApi<any>('/v1/auth/login', {
+      const response = await fetchApi<LoginResponse>('/v1/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       });
@@ -79,8 +96,9 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModal
       });
 
       onClose();
-    } catch (err: any) {
-      setError(err.message || "Erreur de connexion");
+    } catch (err: unknown) {
+      const errObj = err as Error;
+      setError(errObj.message || "Erreur de connexion");
     } finally {
       setIsLoading(false);
     }
