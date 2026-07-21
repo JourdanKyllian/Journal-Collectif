@@ -22,6 +22,19 @@ type Category =
   | "annonces"
   | "politique";
 
+interface RawArticle {
+  id: number;
+  title?: string;
+  titre?: string;
+  excerpt?: string;
+  content?: string;
+  contenu?: string;
+  category?: string | { libelle?: string };
+  publishedAt?: string;
+  published_at?: string;
+  createdAt?: string;
+}
+
 /**
  * Contrat d'interface pour l'affichage UI des articles.
  * Mappe les données brutes de l'API vers les besoins visuels (icônes, Tailwind).
@@ -133,24 +146,28 @@ export default function ArticlesPage() {
     const loadArticles = async () => {
       try {
         setIsLoading(true);
-        // Typage temporaire via any[], à remplacer par l'interface DTO de NestJS.
-        const rawArticles = await fetchApi<any[]>('/v1/article/published');
+        const rawArticles = await fetchApi<RawArticle[]>('/v1/article/published');
         
         const formattedArticles: ArticleUI[] = rawArticles.map((item) => {
-          const categoryName = item.category || 'Annonces';
+          const categoryName = typeof item.category === 'object' && item.category !== null 
+            ? (item.category as { libelle?: string }).libelle || 'Annonces' 
+            : item.category || 'Annonces';
+          
           const uiStyles = mapCategoryToUI(categoryName);
-          const pubDate = new Date(item.publishedAt || item.createdAt || Date.now());
+          const rawDate = item.publishedAt || item.published_at || item.createdAt || Date.now();
+          const pubDate = new Date(rawDate);
+
+          const titleText = item.title || item.titre || '';
+          const bodyText = item.excerpt || item.content || item.contenu || '';
 
           return {
             id: item.id,
-            title: item.title,
-            // Fallback de présentation: tronque le contenu si aucun extrait spécifique n'est fourni
-            excerpt: item.excerpt || (item.content ? item.content.substring(0, 100) + '...' : ''), 
+            title: titleText,
+            excerpt: bodyText.length > 100 ? bodyText.substring(0, 100) + '...' : bodyText, 
             category: categoryName,
             categorySlug: uiStyles.slug,
             date: pubDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }),
             dateIso: pubDate.toISOString().split('T')[0],
-            // TODO: Implémenter l'estimation dynamique du temps de lecture
             readTime: "3 min", 
             icon: uiStyles.icon,
             gradientClass: uiStyles.gradient,

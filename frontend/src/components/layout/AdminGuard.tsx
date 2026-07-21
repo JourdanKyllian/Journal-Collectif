@@ -29,9 +29,10 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
       if (payload.role !== "Admin") {
         router.push("/");
       } else {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setIsAuthorized(true);
       }
-    } catch (error) {
+    } catch {
       localStorage.removeItem("access_token");
       localStorage.removeItem("refresh_token");
       router.push("/");

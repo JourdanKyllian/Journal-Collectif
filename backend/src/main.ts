@@ -4,6 +4,7 @@ import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
+import cookieParser from 'cookie-parser';
 
 /**
  * Initialise et démarre l'application backend NestJS.
@@ -21,6 +22,9 @@ async function bootstrap() {
 
   // Confier les clés du camion à Pino
   app.useLogger(app.get(Logger));
+
+  // --- ACTIVATION DES COOKIES ---
+  app.use(cookieParser());
 
   // --- SÉCURITÉ ---
 
@@ -41,12 +45,23 @@ async function bootstrap() {
 
   // CORS : Autoriser ton Frontend
   app.enableCors({
-    origin: [
-      'http://localhost:4200',
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'http://localhost:3000/api',
-    ],
+    origin: function (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) {
+      const allowedOrigins = [
+        'http://localhost:4200',
+        'http://localhost:5173',
+        'http://localhost:3000',
+        'http://localhost:3000/api',
+      ];
+      // On autorise si l'origine est dans la liste OU s'il n'y a pas d'origine (ex: Postman)
+      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Landmark, User, Settings, LogOut, Menu, LayoutGrid, Search, Home, Book } from "lucide-react";
+import { jwtDecode } from "jwt-decode";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -22,38 +23,66 @@ import {
 } from "@/components/ui/sheet";
 import AuthModal from "@/components/features/AuthModal";
 
-/**
- * Interface décrivant la structure d'un utilisateur authentifié dans la navigation.
- */
 interface AuthUser {
   name: string;
   email: string;
   role: 'admin' | 'user';
 }
 
-/**
- * Composant de barre de navigation principale (Navbar).
- * Gère l'affichage responsive (desktop / mobile), l'état de l'utilisateur connecté
- * et l'ouverture de la modale d'authentification.
- *
- * @returns {JSX.Element} Le composant de navigation rendu.
- */
+// Typage du payload attendu du backend
+interface CustomJwtPayload {
+  sub: number;
+  email: string;
+  role: string;
+  exp?: number;
+}
+
 export default function Navbar() {
   const pathname = usePathname();
   
-  // Nouveaux états pour gérer la modale et l'utilisateur connecté
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [user, setUser] = useState<AuthUser | null>(null); // null = personne n'est connecté
+  const [user, setUser] = useState<AuthUser | null>(null);
+  
+  // Auto-login : Au montage du composant, on regarde si un token existe
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    
+    if (token) {
+      try {
+        const payload = jwtDecode<CustomJwtPayload>(token);
+        
+        // Optionnel mais recommandé : vérifier grossièrement si le token n'est pas expiré
+        // (l'intercepteur API prendra le relais pour le refresh_token lors des vrais appels)
+        const isExpired = payload.exp && payload.exp * 1000 < Date.now();
+        
+        if (!isExpired) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setUser({
+            name: payload.role === 'Admin' ? "Admin Chalonnais" : "Citoyen",
+            email: payload.email,
+            role: payload.role === 'Admin' ? 'admin' : 'user'
+          });
+        }
+      } catch {
+        // Token illisible ou corrompu, on nettoie en silence
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+      }
+    }
+  }, []); // Le tableau vide [] garantit que ça ne s'exécute qu'une seule fois au chargement
   
   const isAdmin = user?.role === "admin";
 
-  /**
-   * Fonction appelée lorsque la modale valide une connexion réussie.
-   * 
-   * @param {AuthUser} userData - Les informations de l'utilisateur connecté.
-   */
   const handleLoginSuccess = (userData: AuthUser) => {
     setUser(userData);
+  };
+
+  const handleLogout = () => {
+    // 1. On vide le localStorage
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    // 2. On met à jour l'état visuel
+    setUser(null);
   };
 
   const navLinks = [
@@ -68,7 +97,6 @@ export default function Navbar() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-blanc/90 backdrop-blur-xl border-b border-champagne/30 h-17.5 flex items-center">
         <div className="max-w-7xl mx-auto w-full px-6 flex items-center justify-between gap-8">
           
-          {/* Logo */}
           <Link href="/" className="flex items-center gap-3 shrink-0 cursor-pointer">
             <div className="w-10 h-10 bg-linear-to-br from-vert to-noir rounded-xl flex items-center justify-center text-or border-2 border-or shadow-sm">
               <Landmark size={20} />
@@ -79,7 +107,6 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* Navigation Desktop */}
           <ul className="hidden md:flex items-center gap-1 list-none">
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
@@ -98,7 +125,6 @@ export default function Navbar() {
             })}
           </ul>
 
-          {/* Côté Droit : Auth & Menu Mobile */}
           <div className="flex items-center gap-3 shrink-0">
             {!user ? (
               <Button 
@@ -136,7 +162,7 @@ export default function Navbar() {
                   )}
                   <DropdownMenuSeparator className="bg-champagne/25 my-1" />
                   <DropdownMenuItem 
-                    onClick={() => setUser(null)}
+                    onClick={handleLogout}
                     className="cursor-pointer font-semibold text-red-500 hover:bg-red-50 hover:text-red-600 rounded-xl px-3 py-2.5 focus:bg-red-50 focus:text-red-600"
                   >
                     <LogOut size={16} className="mr-2" /> Déconnexion
@@ -145,7 +171,6 @@ export default function Navbar() {
               </DropdownMenu>
             )}
 
-            {/* Menu Mobile via shadcn Sheet */}
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="md:hidden flex flex-col gap-1.5 p-2 rounded-lg hover:bg-or/10 h-auto">
@@ -185,7 +210,7 @@ export default function Navbar() {
                         </Link>
                       )}
                       <button 
-                        onClick={() => setUser(null)}
+                        onClick={handleLogout}
                         className="flex items-center gap-3 w-full text-left font-semibold text-sm text-red-500 px-4 py-4 rounded-xl hover:bg-red-50 transition-all"
                       >
                         <LogOut size={18} /> Déconnexion
@@ -199,7 +224,6 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* La Modale d'Authentification est rendue ici ! */}
       <AuthModal 
         isOpen={isAuthModalOpen} 
         onClose={() => setIsAuthModalOpen(false)} 

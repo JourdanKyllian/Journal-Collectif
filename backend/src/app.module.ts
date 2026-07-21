@@ -39,7 +39,7 @@ import { HealthModule } from './health/health.module';
 
     JwtModule.register({
       global: true,
-      secret: 'TA_CLEF_SECRETE_ICI',
+      secret: process.env.JWT_SECRET || 'fallback_insecure_key',
       signOptions: { expiresIn: '1h' },
     }),
 

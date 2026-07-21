@@ -1,5 +1,12 @@
-import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
-import { Request as ExpressRequest } from 'express';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Request,
+  Res,
+} from '@nestjs/common';
+import type { Response, Request as ExpressRequest } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -9,7 +16,6 @@ import { RefreshDto } from './dto/refresh.dto';
 interface RequestWithUser extends ExpressRequest {
   user: {
     userId: number;
-    // Peut ajouter email ou role ici au besoins
   };
 }
 
@@ -17,9 +23,38 @@ interface RequestWithUser extends ExpressRequest {
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  // Configuration centralisée pour la sécurité de nos cookies
+  private get cookieOptions() {
+    return {
+      httpOnly: true, // Invisible pour le JavaScript côté client
+      secure: process.env.NODE_ENV === 'production', // Uniquement sur HTTPS en production
+      sameSite: 'lax' as const, // Protection CSRF
+      path: '/', // Disponible sur tout le site
+    };
+  }
+
   @Post('login')
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto.email, loginDto.password);
+  async login(
+    @Body() loginDto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const tokens = await this.authService.login(
+      loginDto.email,
+      loginDto.password,
+    );
+
+    // On injecte les cookies dans la réponse HTTP
+    res.cookie('access_token', tokens.access_token, {
+      ...this.cookieOptions,
+      maxAge: 1000 * 60 * 60, // 1 heure
+    });
+
+    res.cookie('refresh_token', tokens.refresh_token, {
+      ...this.cookieOptions,
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 jours
+    });
+
+    return { message: 'Connexion réussie', role: tokens.access_token };
   }
 
   @Post('register')
@@ -28,14 +63,39 @@ export class AuthController {
   }
 
   @Post('refresh')
-  async refresh(@Body() refreshDto: RefreshDto) {
-    return this.authService.refreshToken(refreshDto.refresh_token);
+  async refresh(
+    @Body() refreshDto: RefreshDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const tokens = await this.authService.refreshToken(
+      refreshDto.refresh_token,
+    );
+
+    res.cookie('access_token', tokens.access_token, {
+      ...this.cookieOptions,
+      maxAge: 1000 * 60 * 60,
+    });
+
+    res.cookie('refresh_token', tokens.refresh_token, {
+      ...this.cookieOptions,
+      maxAge: 1000 * 60 * 60 * 24 * 7,
+    });
+
+    return { message: 'Session renouvelée avec succès' };
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('logout')
-  // 👈 3. On applique notre nouveau type fort sur le paramètre req !
-  async logout(@Request() req: RequestWithUser) {
-    return this.authService.logout(req.user.userId);
+  async logout(
+    @Request() req: RequestWithUser,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    await this.authService.logout(req.user.userId);
+
+    // Pour déconnecter l'utilisateur, on écrase les cookies avec une date d'expiration à 0
+    res.cookie('access_token', '', { ...this.cookieOptions, maxAge: 0 });
+    res.cookie('refresh_token', '', { ...this.cookieOptions, maxAge: 0 });
+
+    return { message: 'Déconnexion réussie' };
   }
 }
