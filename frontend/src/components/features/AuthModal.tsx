@@ -20,58 +20,40 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { fetchApi } from "@/lib/api";
+import { jwtDecode } from "jwt-decode";
 
-/**
- * Interface représentant les données de l'utilisateur authentifié.
- */
 interface AuthUser {
   name: string;
   email: string;
   role: 'admin' | 'user';
 }
 
-/**
- * Interface représentant la réponse de l'API lors d'une connexion réussie.
- */
 interface LoginResponse {
   access_token: string;
   refresh_token: string;
 }
 
-/**
- * Interface defining the properties for the AuthModal component.
- *
- * @interface AuthModalProps
- * @property {boolean} isOpen - Determines whether the modal is visible.
- * @property {() => void} onClose - Callback function to trigger the modal closure.
- * @property {(user: AuthUser) => void} onLoginSuccess - Callback function executed upon successful authentication.
- */
+// Typage strict de ce que contient ton JWT généré par NestJS
+interface CustomJwtPayload {
+  sub: number;
+  email: string;
+  role: string;
+  iat?: number;
+  exp?: number;
+}
+
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   onLoginSuccess: (user: AuthUser) => void;
 }
 
-/**
- * Authentication modal component handling user login and registration.
- * Communicates with the backend API to establish sessions and store JWT tokens.
- *
- * @param {AuthModalProps} props - The component properties.
- * @returns {JSX.Element} The rendered modal component.
- */
 export default function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModalProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  /**
-   * Processes the form submission, authenticates via the API, decodes the JWT,
-   * stores tokens in local storage, and updates the application state.
-   *
-   * @param {React.FormEvent} e - The form submission event.
-   * @returns {Promise<void>}
-   */
   const handleLogin = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setError(null);
@@ -86,8 +68,8 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModal
       localStorage.setItem('access_token', response.access_token);
       localStorage.setItem('refresh_token', response.refresh_token);
 
-      const payloadBase64 = response.access_token.split('.')[1];
-      const payload = JSON.parse(atob(payloadBase64));
+      // Décodage propre et sécurisé
+      const payload = jwtDecode<CustomJwtPayload>(response.access_token);
 
       onLoginSuccess({
         name: payload.role === 'Admin' ? "Admin Chalonnais" : "Citoyen",
@@ -104,13 +86,6 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModal
     }
   };
 
-  /**
-   * Populates the authentication form with demonstration credentials.
-   *
-   * @param {string} demoEmail - The demonstration email address.
-   * @param {string} demoPass - The demonstration password.
-   * @returns {void}
-   */
   const fillDemo = (demoEmail: string, demoPass: string): void => {
     setEmail(demoEmail);
     setPassword(demoPass);
