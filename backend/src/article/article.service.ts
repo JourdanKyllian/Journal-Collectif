@@ -32,7 +32,6 @@ export class ArticleService {
   ) {
     if (!userId) throw new ForbiddenException('Authentification invalide.');
 
-    // Vérification profil complet
     const user = await this.usersRepository.findOne({ where: { id: userId } });
     if (!user || !user.is_phone_verified || !user.firstname || !user.lastname) {
       throw new ForbiddenException(
@@ -40,24 +39,20 @@ export class ArticleService {
       );
     }
 
-    // Vérification catégorie
     const category = await this.categoryRepository.findOne({
       where: { id: createArticleDto.categoryId },
     });
     if (!category) throw new NotFoundException('Catégorie introuvable');
 
-    // Gestion intelligente du statut
     let statutFinal =
       (createArticleDto.statut as ArticleStatus) || ArticleStatus.BROUILLON;
 
     if (['utilisateur', 'journaliste'].includes(userRole)) {
-      // Un journaliste ne peut pas publier direct : s'il essaie, ça passe "en attente"
       if (statutFinal === ArticleStatus.PUBLIE) {
         statutFinal = ArticleStatus.EN_ATTENTE;
       }
     }
 
-    // Création
     const newArticle = this.articleRepository.create({
       ...createArticleDto,
       statut: statutFinal,
@@ -67,7 +62,6 @@ export class ArticleService {
 
     const savedArticle = await this.articleRepository.save(newArticle);
 
-    // Liaison Auteur
     await this.auteurArticleRepository.save(
       this.auteurArticleRepository.create({
         article: savedArticle,
@@ -91,7 +85,6 @@ export class ArticleService {
 
     if (!article) throw new NotFoundException('Article introuvable');
 
-    // Seul l'auteur ou un Admin/Modo peut modifier
     const isAuthor = article.auteursArticles.some((a) => a.user.id === userId);
     const isManagement = ['Admin', 'moderateur'].includes(userRole);
 
@@ -99,14 +92,12 @@ export class ArticleService {
       throw new ForbiddenException('Modification interdite.');
     }
 
-    // Un journaliste ne peut pas publier direct
     if (updateArticleDto.statut && !isManagement) {
       if (updateArticleDto.statut === ArticleStatus.PUBLIE) {
         updateArticleDto.statut = ArticleStatus.EN_ATTENTE;
       }
     }
 
-    // Si on passe en publié, on met la date
     if (
       (updateArticleDto.statut as ArticleStatus) === ArticleStatus.PUBLIE &&
       article.statut !== ArticleStatus.PUBLIE
@@ -127,12 +118,42 @@ export class ArticleService {
     return this.articleRepository.save(article);
   }
 
-  // Pour le site public (uniquement les publiés)
   findAllPublished() {
     return this.articleRepository.find({
       where: { statut: ArticleStatus.PUBLIE },
       relations: ['category', 'auteursArticles', 'auteursArticles.user'],
       order: { published_at: 'DESC' },
     });
+  }
+
+  findAllAdmin() {
+    return this.articleRepository.find({
+      relations: ['category', 'auteursArticles', 'auteursArticles.user'],
+      order: { created_at: 'DESC' },
+    });
+  }
+
+  async findOne(id: number) {
+    const article = await this.articleRepository.findOne({
+      where: { id },
+      relations: ['category', 'auteursArticles', 'auteursArticles.user'],
+    });
+
+    if (!article) throw new NotFoundException('Article introuvable');
+    return article;
+  }
+
+  async remove(id: number, userId: number, userRole: string) {
+    const article = await this.findOne(id);
+    
+    const isAuthor = article.auteursArticles.some((a) => a.user.id === userId);
+    const isManagement = ['Admin', 'moderateur'].includes(userRole);
+
+    if (!isAuthor && !isManagement) {
+      throw new ForbiddenException('Suppression interdite.');
+    }
+
+    const removedArticle = await this.articleRepository.softRemove(article);
+    return { message: `L'article #${id} a été supprimé avec succès.`, article: removedArticle };
   }
 }

@@ -5,6 +5,7 @@ import {
   Body,
   Patch,
   Param,
+  Delete,
   UseGuards,
   Req,
 } from '@nestjs/common';
@@ -18,12 +19,6 @@ import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
 /**
  * Interface représentant la requête HTTP étendue avec les données de l'utilisateur authentifié.
- *
- * @interface RequestWithUser
- * @extends {Request}
- * @property {Object} user - Les données de l'utilisateur authentifié extraites du JWT.
- * @property {number} user.userId - L'identifiant unique de l'utilisateur.
- * @property {string} user.role - Le rôle de l'utilisateur (ex: 'Admin', 'user').
  */
 interface RequestWithUser extends Request {
   user: {
@@ -94,7 +89,7 @@ export class ArticleController {
   }
 
   /**
-   * Valide et publie un article.
+   * Valide et publie un article manuellement.
    * Réservé aux utilisateurs ayant le rôle 'Admin' ou 'moderateur'.
    *
    * @param {string} id - L'identifiant unique de l'article à publier.
@@ -116,5 +111,43 @@ export class ArticleController {
   @Get('published')
   findAll() {
     return this.articleService.findAllPublished();
+  }
+
+  /**
+   * Récupère l'intégralité des articles (brouillons, en attente, publiés) pour le Dashboard.
+   * Nécessite l'authentification et des droits d'administration ou de rédaction.
+   *
+   * @returns {Promise<any[]>} Une liste exhaustive des articles.
+   */
+  @Get('admin/all')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('Admin', 'moderateur', 'journaliste')
+  findAllAdmin() {
+    return this.articleService.findAllAdmin();
+  }
+
+  /**
+   * Récupère les détails d'un article spécifique.
+   *
+   * @param {string} id - L'identifiant unique de l'article.
+   * @returns {Promise<any>} Les informations de l'article.
+   */
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.articleService.findOne(+id);
+  }
+
+  /**
+   * Supprime un article de manière logique (Soft Delete).
+   * Seul l'auteur, un Admin ou un modérateur peut effectuer cette action.
+   *
+   * @param {string} id - L'identifiant unique de l'article à supprimer.
+   * @param {RequestWithUser} req - La requête HTTP contenant le contexte de l'utilisateur authentifié.
+   * @returns {Promise<any>} Un objet confirmant la suppression.
+   */
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  remove(@Param('id') id: string, @Req() req: RequestWithUser) {
+    return this.articleService.remove(+id, req.user.userId, req.user.role);
   }
 }

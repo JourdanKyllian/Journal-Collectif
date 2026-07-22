@@ -32,7 +32,9 @@ export class CategoryService {
   }
 
   findAll() {
-    return this.categoryRepository.find();
+    return this.categoryRepository.find({
+      order: { created_at: 'DESC' },
+    });
   }
 
   async findOne(id: number) {
@@ -46,13 +48,16 @@ export class CategoryService {
 
   async update(id: number, updateCategoryDto: UpdateCategoryDto) {
     const category = await this.findOne(id);
-    const updatedCategory = Object.assign(category, updateCategoryDto);
-    return this.categoryRepository.save(updatedCategory);
+    Object.assign(category, updateCategoryDto);
+    return this.categoryRepository.save(category);
   }
 
   async remove(id: number) {
     const category = await this.findOne(id);
-    await this.categoryRepository.remove(category);
-    return { message: `La catégorie #${id} a été supprimée avec succès.` };
+    const removedCategory = await this.categoryRepository.softRemove(category);
+    return { 
+      message: `La catégorie #${id} a été supprimée avec succès.`, 
+      category: removedCategory 
+    };
   }
 }

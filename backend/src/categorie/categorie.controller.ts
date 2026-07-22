@@ -11,14 +11,14 @@ import {
 import { CategoryService } from './categorie.service';
 import { CreateCategoryDto } from './dto/create-categorie.dto';
 import { UpdateCategoryDto } from './dto/update-categorie.dto';
-import { RolesGuard } from 'src/common/guards/roles.guard';
-import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
-import { Roles } from 'src/common/decorators/roles.decorator';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { Roles } from '../common/decorators/roles.decorator';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 
 /**
  * Contrôleur gérant les points d'accès liés aux catégories.
- * Fournit les routes pour la création, la lecture, la mise à jour et la suppression des catégories.
+ * Fournit les routes pour la création, la lecture, la mise à jour et la suppression (Soft Delete) des catégories.
  * Les routes de modification nécessitent une authentification JWT et des privilèges spécifiques.
  */
 @ApiTags('Categories')
@@ -36,7 +36,7 @@ export class CategoryController {
    * Récupère la liste de toutes les catégories.
    * Cette route est accessible publiquement.
    *
-   * @returns {Promise<any[]>} Une liste de catégories.
+   * @returns {Promise<any[]>} Une liste de catégories triée par ordre de création.
    */
   @Get()
   findAll() {
@@ -88,11 +88,11 @@ export class CategoryController {
   }
 
   /**
-   * Supprime une catégorie existante.
+   * Supprime une catégorie existante de manière logique (Soft Delete).
    * Réservé aux utilisateurs ayant le rôle 'Admin' ou 'moderateur'.
    *
    * @param {string} id - L'identifiant unique de la catégorie à supprimer.
-   * @returns {Promise<any>} Le résultat de l'opération de suppression.
+   * @returns {Promise<any>} Un objet confirmant l'opération de suppression.
    */
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)

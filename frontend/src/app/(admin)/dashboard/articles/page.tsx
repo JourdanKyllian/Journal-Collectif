@@ -30,7 +30,6 @@ export default function ArticlesDashboard() {
     const loadAdminArticles = async () => {
       try {
         setIsLoading(true);
-        // L'appel API réel sera inséré ici pour récupérer tous les statuts d'articles :
         // const data = await fetchApi('/v1/article/admin/all');
       } catch (error) {
         console.error("Erreur lors de la récupération des articles:", error);
@@ -57,8 +56,8 @@ export default function ArticlesDashboard() {
         </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="bg-champagne/15 rounded-xl p-1 h-auto mb-6 flex-wrap justify-start">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex flex-col">
+        <TabsList className="bg-champagne/15 rounded-xl p-1 h-auto mb-6 flex flex-wrap justify-start gap-1">
           <TabsTrigger value="published" className="py-2.5 px-5 rounded-lg font-montserrat font-bold text-sm data-[state=active]:bg-blanc data-[state=active]:shadow-sm data-[state=active]:text-noir text-champagne">
             ✅ Publiés <Badge variant="secondary" className="ml-2 bg-green-100 text-green-700 hover:bg-green-100 border-0">12</Badge>
           </TabsTrigger>
@@ -73,7 +72,7 @@ export default function ArticlesDashboard() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="published">
+        <TabsContent value="published" className="outline-none">
           <div className="bg-blanc rounded-2xl border border-champagne/20 overflow-hidden">
             <Table>
               <TableHeader className="bg-champagne/5">
@@ -132,7 +131,7 @@ export default function ArticlesDashboard() {
           </div>
         </TabsContent>
 
-        <TabsContent value="pending" className="space-y-4">
+        <TabsContent value="pending" className="space-y-4 outline-none">
           <div className="bg-blanc border border-yellow-200 rounded-2xl p-5 flex flex-col sm:flex-row items-start gap-4 hover:shadow-md transition-all">
             <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center text-xl shrink-0">📝</div>
             <div className="flex-1 min-w-0">
@@ -157,7 +156,7 @@ export default function ArticlesDashboard() {
           </div>
         </TabsContent>
 
-        <TabsContent value="drafts">
+        <TabsContent value="drafts" className="outline-none">
           <div className="bg-blanc border border-champagne/30 rounded-2xl p-5 flex items-center gap-4 hover:shadow-md transition-all opacity-80">
             <div className="w-12 h-12 bg-champagne/20 rounded-xl flex items-center justify-center text-xl shrink-0 text-champagne"><PenSquare size={20} /></div>
             <div className="flex-1 min-w-0">
@@ -171,7 +170,7 @@ export default function ArticlesDashboard() {
           </div>
         </TabsContent>
 
-        <TabsContent value="create">
+        <TabsContent value="create" className="outline-none">
           <div className="bg-blanc rounded-2xl border border-champagne/20 p-6 max-w-3xl">
             <h2 className="font-poppins font-black text-xl text-noir mb-6 flex items-center gap-2"><PenSquare size={20} className="text-or" /> Nouvel article</h2>
             
