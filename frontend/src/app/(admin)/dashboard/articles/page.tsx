@@ -17,14 +17,29 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+/**
+ * Composant du tableau de bord pour la gestion des articles (publication, validation, création).
+ * 
+ * @returns {JSX.Element} Le composant de gestion des articles rendu.
+ */
 export default function ArticlesDashboard() {
   const [activeTab, setActiveTab] = useState("published");
   const [isLoading, setIsLoading] = useState(true);
 
-  // Simulation chargement initial
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 1500);
-    return () => clearTimeout(timer);
+    const loadAdminArticles = async () => {
+      try {
+        setIsLoading(true);
+        // L'appel API réel sera inséré ici pour récupérer tous les statuts d'articles :
+        // const data = await fetchApi('/v1/article/admin/all');
+      } catch (error) {
+        console.error("Erreur lors de la récupération des articles:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadAdminArticles();
   }, []);
 
   return (
@@ -58,7 +73,6 @@ export default function ArticlesDashboard() {
           </TabsTrigger>
         </TabsList>
 
-        {/* --- ONGLET : PUBLIÉS (AVEC SKELETON) --- */}
         <TabsContent value="published">
           <div className="bg-blanc rounded-2xl border border-champagne/20 overflow-hidden">
             <Table>
@@ -118,7 +132,6 @@ export default function ArticlesDashboard() {
           </div>
         </TabsContent>
 
-        {/* ... Les autres TabsContent (pending, drafts, create) restent identiques ... */}
         <TabsContent value="pending" className="space-y-4">
           <div className="bg-blanc border border-yellow-200 rounded-2xl p-5 flex flex-col sm:flex-row items-start gap-4 hover:shadow-md transition-all">
             <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center text-xl shrink-0">📝</div>
@@ -143,7 +156,86 @@ export default function ArticlesDashboard() {
             </div>
           </div>
         </TabsContent>
-        {/* ... */}
+
+        <TabsContent value="drafts">
+          <div className="bg-blanc border border-champagne/30 rounded-2xl p-5 flex items-center gap-4 hover:shadow-md transition-all opacity-80">
+            <div className="w-12 h-12 bg-champagne/20 rounded-xl flex items-center justify-center text-xl shrink-0 text-champagne"><PenSquare size={20} /></div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-montserrat font-bold text-sm mb-1">Brouillon — Conseil municipal mars 2026</h3>
+              <div className="font-montserrat text-xs text-champagne">📢 Annonces · Modifié il y a 1j</div>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" className="bg-or text-noir hover:bg-or/80 font-montserrat font-bold rounded-lg"><PenSquare size={14} className="mr-1.5" /> Éditer</Button>
+              <Button size="icon" variant="ghost" className="bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 rounded-lg h-9 w-9"><Trash2 size={14} /></Button>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="create">
+          <div className="bg-blanc rounded-2xl border border-champagne/20 p-6 max-w-3xl">
+            <h2 className="font-poppins font-black text-xl text-noir mb-6 flex items-center gap-2"><PenSquare size={20} className="text-or" /> Nouvel article</h2>
+            
+            <div className="space-y-5">
+              <div className="space-y-2">
+                <label className="font-montserrat font-bold text-xs text-vert tracking-wide uppercase">Titre *</label>
+                <Input placeholder="Titre accrocheur de l'article" className="px-4 py-6 border-champagne/40 rounded-xl bg-blanc focus-visible:ring-or/30 focus-visible:border-or" />
+              </div>
+
+              <div className="space-y-2">
+                <label className="font-montserrat font-bold text-xs text-vert tracking-wide uppercase">Résumé / Chapô *</label>
+                <Textarea rows={3} placeholder="2-3 phrases qui donnent envie de lire..." className="px-4 py-3 border-champagne/40 rounded-xl bg-blanc focus-visible:ring-or/30 focus-visible:border-or resize-none" />
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="font-montserrat font-bold text-xs text-vert tracking-wide uppercase">Catégorie *</label>
+                  <Select>
+                    <SelectTrigger className="px-4 py-6 border-champagne/40 rounded-xl bg-blanc focus:ring-or/30 focus:border-or font-montserrat text-sm">
+                      <SelectValue placeholder="Sélectionner..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-blanc border-champagne/40 rounded-xl font-montserrat">
+                      <SelectItem value="culture">🎭 Culture</SelectItem>
+                      <SelectItem value="sport">⚽ Sport</SelectItem>
+                      <SelectItem value="travaux">🏗️ Travaux</SelectItem>
+                      <SelectItem value="faits">🚨 Faits divers</SelectItem>
+                      <SelectItem value="events">🎉 Événements</SelectItem>
+                      <SelectItem value="annonces">📢 Annonces</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <label className="font-montserrat font-bold text-xs text-vert tracking-wide uppercase">Tags</label>
+                  <Input placeholder="festival, été (séparés par ,)" className="px-4 py-6 border-champagne/40 rounded-xl bg-blanc focus-visible:ring-or/30 focus-visible:border-or" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="font-montserrat font-bold text-xs text-vert tracking-wide uppercase">Contenu *</label>
+                <div className="border border-champagne/40 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-or/30 focus-within:border-or transition-all">
+                  <div className="bg-champagne/15 px-4 py-2.5 border-b border-champagne/30 flex gap-2 overflow-x-auto">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 bg-blanc border border-champagne/30 text-noir hover:bg-or/20 rounded-lg"><Bold size={14} /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 bg-blanc border border-champagne/30 text-noir hover:bg-or/20 rounded-lg"><Italic size={14} /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 bg-blanc border border-champagne/30 text-noir hover:bg-or/20 rounded-lg"><Underline size={14} /></Button>
+                    <span className="w-px bg-champagne/30 mx-1 shrink-0"></span>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 bg-blanc border border-champagne/30 text-noir hover:bg-or/20 rounded-lg"><Heading2 size={14} /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 bg-blanc border border-champagne/30 text-noir hover:bg-or/20 rounded-lg"><ImageIcon size={14} /></Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 bg-blanc border border-champagne/30 text-noir hover:bg-or/20 rounded-lg"><LinkIcon size={14} /></Button>
+                  </div>
+                  <Textarea rows={8} placeholder="Rédigez le contenu complet ici..." className="w-full border-0 focus-visible:ring-0 rounded-none bg-blanc font-montserrat text-sm resize-y" />
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button variant="outline" className="flex-1 py-6 border-champagne/40 text-noir font-montserrat font-bold rounded-xl hover:bg-champagne/10">
+                  <Eye size={16} className="mr-2" /> Aperçu
+                </Button>
+                <Button className="flex-1 py-6 bg-noir text-blanc font-montserrat font-bold rounded-xl hover:bg-vert hover:-translate-y-0.5 transition-all">
+                  <CheckCircle2 size={16} className="mr-2" /> Publier l&apos;article
+                </Button>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
       </Tabs>
     </div>
   );

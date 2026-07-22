@@ -2,41 +2,46 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { jwtDecode } from "jwt-decode";
+import { fetchApi } from "@/lib/api";
 
-interface CustomJwtPayload {
-  sub: number;
+interface AuthUser {
+  name: string;
   email: string;
-  role: string;
-  exp?: number;
+  role: 'admin' | 'user';
 }
 
+/**
+ * Composant de protection des routes (Guard) pour l'espace d'administration.
+ * Vérifie l'authentification et les habilitations de l'utilisateur via le cookie HTTP-Only.
+ * Redirige vers la page d'accueil si l'utilisateur n'est pas connecté ou n'a pas le rôle requis.
+ * 
+ * @param {Object} props - Les propriétés du composant.
+ * @param {React.ReactNode} props.children - Les composants enfants à rendre si l'accès est autorisé.
+ * @returns {JSX.Element} Les enfants si autorisé, sinon un écran de chargement pendant la vérification.
+ */
 export default function AdminGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
+    const checkAdminStatus = async () => {
+      try {
+        // L'API va lire le cookie HTTP-Only automatiquement
+        const user = await fetchApi<AuthUser>('/v1/auth/me');
 
-    if (!token) {
-      router.push("/");
-      return;
-    }
-
-    try {
-      const payload = jwtDecode<CustomJwtPayload>(token);
-
-      if (payload.role !== "Admin") {
+        // Vérification stricte du rôle retourné par le backend
+        if (user.role !== 'admin') {
+          router.push("/");
+        } else {
+          setIsAuthorized(true);
+        }
+      } catch {
+        // Si erreur 401 (non connecté) ou autre, on éjecte
         router.push("/");
-      } else {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setIsAuthorized(true);
       }
-    } catch {
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("refresh_token");
-      router.push("/");
-    }
+    };
+
+    checkAdminStatus();
   }, [router]);
 
   if (!isAuthorized) {

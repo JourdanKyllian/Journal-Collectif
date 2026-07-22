@@ -1,9 +1,13 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 /**
- * Fetch wrapper.
- * Le navigateur gère automatiquement l'envoi et la réception des cookies 
- * grâce à "credentials: 'include'".
+ * Wrapper asynchrone pour l'API Fetch.
+ * Gère automatiquement l'injection des en-têtes par défaut et la transmission des cookies sécurisés cross-origin.
+ *
+ * @param {string} endpoint - Le chemin de l'API à interroger (doit commencer par un slash).
+ * @param {RequestInit} [options={}] - Options natives de configuration de la requête Fetch.
+ * @returns {Promise<T>} Une promesse résolue avec le corps de la réponse formaté en JSON.
+ * @throws {Error} Lève une exception explicite si la réponse HTTP indique une erreur (ex: 401 Unauthorized).
  */
 export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const headers = new Headers(options.headers || {});
@@ -15,21 +19,13 @@ export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): 
   const config: RequestInit = { 
     ...options, 
     headers,
-    credentials: 'include' // Obligatoire pour envoyer/recevoir les cookies cross-origin
+    credentials: 'include'
   };
   
   const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
 
-  // Note : La logique de refresh token complexe n'est plus utile ici.
-  // Si le serveur renvoie 401 (non autorisé), c'est lui qui gérera le renvoi 
-  // d'un nouveau cookie via sa propre route /refresh, ou bien on redirige vers le login.
   if (response.status === 401) {
-       // Optionnel : Tu pourrais tenter un appel silencieux à `/auth/refresh` ici, 
-       // mais pour l'instant, on redirige simplement.
-       if (typeof window !== 'undefined') {
-           window.location.href = '/'; 
-       }
-       throw new Error("Session expirée, veuillez vous reconnecter.");
+       throw new Error("Session expirée ou non autorisée.");
   }
 
   if (!response.ok) {

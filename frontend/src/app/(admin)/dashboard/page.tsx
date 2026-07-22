@@ -20,10 +20,20 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
 
-  // Simulation de la récupération des données de stats (à lier avec l'API plus tard)
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 1200);
-    return () => clearTimeout(timer);
+    const loadDashboardStats = async () => {
+      try {
+        setIsLoading(true);
+        // L'appel API réel sera inséré ici :
+        // const data = await fetchApi('/v1/stats/dashboard');
+      } catch (error) {
+        console.error("Erreur lors de la récupération des statistiques:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadDashboardStats();
   }, []);
 
   const stats = [
@@ -40,7 +50,6 @@ export default function DashboardPage() {
         <p className="font-raleway text-champagne text-sm">Bienvenue sur l&apos;interface d&apos;administration</p>
       </div>
 
-      {/* --- GRILLE DE STATS AVEC SKELETON LOADER --- */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {isLoading 
           ? Array.from({ length: 4 }).map((_, i) => (
@@ -76,7 +85,6 @@ export default function DashboardPage() {
         }
       </div>
 
-      {/* Actions rapides */}
       <div className="grid md:grid-cols-3 gap-6">
         {isLoading ? (
           Array.from({ length: 3 }).map((_, i) => (

@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -7,8 +10,8 @@ import {
 } from "lucide-react";
 import ArticleCard from "@/components/features/ArticleCard";
 import { Button }  from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { fetchApi } from "@/lib/api";
-import type { JSX } from "react";
 
 /**
  * Détermine l'icône appropriée pour un nom de catégorie donné.
@@ -17,16 +20,15 @@ import type { JSX } from "react";
  * @returns {LucideIcon} Le composant d'icône Lucide React correspondant.
  */
 const getCategoryIcon = (categoryName: string): LucideIcon => {
-  switch (categoryName?.toLowerCase()) {
-    case 'culture': return Palette;
-    case 'sport': return Trophy;
-    case 'travaux': return HardHat;
-    case 'faits divers': return Siren;
-    case 'événements': return PartyPopper;
-    case 'annonces': return Megaphone;
-    case 'politique & mairie': return Building2;
-    default: return BookOpen;
-  }
+  const normalized = categoryName?.toLowerCase() || "";
+  if (normalized.includes('culture')) return Palette;
+  if (normalized.includes('sport')) return Trophy;
+  if (normalized.includes('travaux')) return HardHat;
+  if (normalized.includes('divers') || normalized.includes('alerte')) return Siren;
+  if (normalized.includes('evénement') || normalized.includes('evenement')) return PartyPopper;
+  if (normalized.includes('politique') || normalized.includes('mairie')) return Building2;
+  if (normalized.includes('annonce')) return Megaphone;
+  return BookOpen;
 };
 
 /**
@@ -73,15 +75,7 @@ const formatDate = (isoDate: string): string => {
 };
 
 /**
- * Représente la structure de données d'un article récupéré depuis l'API backend.
- *
- * @interface BackendArticle
- * @property {number} id - L'identifiant unique de l'article.
- * @property {string} titre - Le titre de l'article.
- * @property {string} contenu - Le contenu principal du corps de l'article.
- * @property {string} published_at - L'horodatage de publication au format ISO.
- * @property {Object} [category] - L'objet de relation de la catégorie.
- * @property {string} category.libelle - Le nom de la catégorie.
+ * Interface représentant la structure d'un article en base de données.
  */
 interface BackendArticle {
   id: number;
@@ -91,6 +85,14 @@ interface BackendArticle {
   category?: {
     libelle: string;
   };
+}
+
+/**
+ * Interface représentant la structure d'une catégorie en base de données.
+ */
+interface BackendCategory {
+  id: number;
+  libelle: string;
 }
 
 /**
@@ -109,34 +111,63 @@ interface ArticlePreview {
 }
 
 /**
- * Composant serveur rendant la page d'accueil.
- * Récupère les articles publiés depuis l'API backend et les associe au format frontal.
- *
- * @returns {Promise<JSX.Element>} Le composant de page d'accueil rendu.
+ * Interface représentant les statistiques globales à afficher.
  */
-export default async function Home(): Promise<JSX.Element> {
-  let latestArticles: ArticlePreview[] = [];
+interface DashboardStats {
+  articles: number;
+  categories: number;
+  subscribers: number;
+}
 
-  try {
-    const response = await fetchApi<BackendArticle[]>('/v1/article/published', {
-      next: { revalidate: 60 }
-    });
+/**
+ * Composant client rendant la page d'accueil.
+ * Gère la récupération asynchrone des articles et des statistiques, l'affichage des Skeleton Loaders,
+ * et le rendu de l'interface utilisateur.
+ *
+ * @returns {JSX.Element} Le composant de page d'accueil rendu.
+ */
+export default function Home() {
+  const [latestArticles, setLatestArticles] = useState<ArticlePreview[]>([]);
+  const [stats, setStats] = useState<DashboardStats>({ articles: 0, categories: 0, subscribers: 0 });
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-    latestArticles = response.slice(0, 6).map((article, index) => ({
-      id: article.id,
-      title: article.titre,
-      excerpt: article.contenu ? article.contenu.substring(0, 100) + '...' : 'Pas de résumé disponible...',
-      category: article.category?.libelle || 'Général',
-      date: formatDate(article.published_at),
-      dateIso: article.published_at,
-      readTime: calculateReadTime(article.contenu),
-      icon: getCategoryIcon(article.category?.libelle || ''),
-      gradientClass: getGradientClass(index),
-    }));
-  } catch (error) {
-    console.error("Erreur lors de la récupération des articles :", error);
-    latestArticles = [];
-  }
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const [articlesRes, categoriesRes] = await Promise.all([
+          fetchApi<BackendArticle[]>('/v1/article/published').catch(() => []),
+          fetchApi<BackendCategory[]>('/v1/category').catch(() => [])
+        ]);
+
+        const formattedArticles = articlesRes.slice(0, 6).map((article, index) => ({
+          id: article.id,
+          title: article.titre,
+          excerpt: article.contenu ? article.contenu.substring(0, 100) + '...' : 'Pas de résumé disponible...',
+          category: article.category?.libelle || 'Général',
+          date: formatDate(article.published_at),
+          dateIso: article.published_at,
+          readTime: calculateReadTime(article.contenu),
+          icon: getCategoryIcon(article.category?.libelle || ''),
+          gradientClass: getGradientClass(index),
+        }));
+
+        setLatestArticles(formattedArticles);
+        
+        setStats({
+          articles: articlesRes.length,
+          categories: categoriesRes.length,
+          subscribers: 0, 
+        });
+
+      } catch (error) {
+        console.error("Erreur lors de la récupération des données :", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
 
   const featuredArticle = latestArticles.length > 0 ? latestArticles[0] : null;
 
@@ -186,7 +217,18 @@ export default async function Home(): Promise<JSX.Element> {
             </div>
           </div>
 
-          {featuredArticle && (
+          {isLoading ? (
+            <div className="hidden md:block bg-blanc/5 border border-or/25 rounded-2xl p-7 backdrop-blur-md">
+              <Skeleton className="h-6 w-24 rounded-full mb-4 bg-blanc/20" />
+              <Skeleton className="h-8 w-3/4 mb-3 bg-blanc/20" />
+              <Skeleton className="h-4 w-full mb-2 bg-blanc/20" />
+              <Skeleton className="h-4 w-5/6 mb-5 bg-blanc/20" />
+              <div className="flex gap-4">
+                <Skeleton className="h-4 w-20 bg-blanc/20" />
+                <Skeleton className="h-4 w-24 bg-blanc/20" />
+              </div>
+            </div>
+          ) : featuredArticle ? (
             <div
               className="hidden md:block bg-blanc/5 border border-or/25 rounded-2xl p-7 backdrop-blur-md"
               aria-label="Article à la une"
@@ -209,7 +251,7 @@ export default async function Home(): Promise<JSX.Element> {
                 <span>📖 {featuredArticle.readTime}</span>
               </div>
             </div>
-          )}
+          ) : null}
         </div>
       </section>
 
@@ -239,7 +281,24 @@ export default async function Home(): Promise<JSX.Element> {
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {latestArticles.length > 0 ? (
+          {isLoading ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="bg-blanc border border-champagne/30 rounded-2xl overflow-hidden shadow-sm">
+                <Skeleton className="h-44 w-full rounded-none" />
+                <div className="p-5 space-y-4">
+                  <Skeleton className="h-5 w-3/4" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-3.5 w-full" />
+                    <Skeleton className="h-3.5 w-5/6" />
+                  </div>
+                  <div className="flex justify-between items-center pt-2">
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : latestArticles.length > 0 ? (
             latestArticles.map((article) => (
               <ArticleCard key={article.id} {...article} />
             ))
@@ -256,19 +315,28 @@ export default async function Home(): Promise<JSX.Element> {
         aria-label="Statistiques du journal"
       >
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          {[
-            { value: "1 240", label: "Abonnés actifs"  },
-            { value: "380",   label: "Articles publiés" },
-            { value: "7",     label: "Catégories"       },
-            { value: "24/7",  label: "Infos en direct"  },
-          ].map(({ value, label }) => (
-            <div key={label}>
-              <div className="font-poppins font-black text-4xl text-or mb-2" aria-label={`${value} ${label}`}>
-                {value}
+          {isLoading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex flex-col items-center justify-center">
+                <Skeleton className="h-10 w-24 mb-2 bg-blanc/10" />
+                <Skeleton className="h-4 w-32 bg-blanc/10" />
               </div>
-              <div className="font-raleway text-blanc/70 text-sm">{label}</div>
-            </div>
-          ))}
+            ))
+          ) : (
+            [
+              { value: stats.subscribers.toString(), label: "Abonnés actifs"  },
+              { value: stats.articles.toString(),    label: "Articles publiés" },
+              { value: stats.categories.toString(),  label: "Catégories"       },
+              { value: "24/7",                       label: "Infos en direct"  },
+            ].map(({ value, label }) => (
+              <div key={label}>
+                <div className="font-poppins font-black text-4xl text-or mb-2" aria-label={`${value} ${label}`}>
+                  {value}
+                </div>
+                <div className="font-raleway text-blanc/70 text-sm">{label}</div>
+              </div>
+            ))
+          )}
         </div>
       </section>
     </div>
