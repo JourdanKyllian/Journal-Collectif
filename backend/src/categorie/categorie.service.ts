@@ -55,9 +55,9 @@ export class CategoryService {
   async remove(id: number) {
     const category = await this.findOne(id);
     const removedCategory = await this.categoryRepository.softRemove(category);
-    return { 
-      message: `La catégorie #${id} a été supprimée avec succès.`, 
-      category: removedCategory 
+    return {
+      message: `La catégorie #${id} a été supprimée avec succès.`,
+      category: removedCategory,
     };
   }
 }

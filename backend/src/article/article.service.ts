@@ -145,7 +145,7 @@ export class ArticleService {
 
   async remove(id: number, userId: number, userRole: string) {
     const article = await this.findOne(id);
-    
+
     const isAuthor = article.auteursArticles.some((a) => a.user.id === userId);
     const isManagement = ['Admin', 'moderateur'].includes(userRole);
 
@@ -154,6 +154,9 @@ export class ArticleService {
     }
 
     const removedArticle = await this.articleRepository.softRemove(article);
-    return { message: `L'article #${id} a été supprimé avec succès.`, article: removedArticle };
+    return {
+      message: `L'article #${id} a été supprimé avec succès.`,
+      article: removedArticle,
+    };
   }
 }
