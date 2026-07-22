@@ -20,26 +20,11 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { fetchApi } from "@/lib/api";
-import { jwtDecode } from "jwt-decode";
 
 interface AuthUser {
   name: string;
   email: string;
   role: 'admin' | 'user';
-}
-
-interface LoginResponse {
-  access_token: string;
-  refresh_token: string;
-}
-
-// Typage strict de ce que contient ton JWT généré par NestJS
-interface CustomJwtPayload {
-  sub: number;
-  email: string;
-  role: string;
-  iat?: number;
-  exp?: number;
 }
 
 interface AuthModalProps {
@@ -60,21 +45,19 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModal
     setIsLoading(true);
 
     try {
-      const response = await fetchApi<LoginResponse>('/v1/auth/login', {
+      // Le backend pose les cookies HTTP-Only automatiquement
+      await fetchApi('/v1/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       });
 
-      localStorage.setItem('access_token', response.access_token);
-      localStorage.setItem('refresh_token', response.refresh_token);
-
-      // Décodage propre et sécurisé
-      const payload = jwtDecode<CustomJwtPayload>(response.access_token);
+      // Déduction du rôle selon l'email de démo ou la structure
+      const isAdmin = email.includes('admin');
 
       onLoginSuccess({
-        name: payload.role === 'Admin' ? "Admin Chalonnais" : "Citoyen",
-        email: payload.email,
-        role: payload.role === 'Admin' ? 'admin' : 'user'
+        name: isAdmin ? "Admin Chalonnais" : "Citoyen",
+        email: email,
+        role: isAdmin ? 'admin' : 'user'
       });
 
       onClose();

@@ -5,6 +5,7 @@ import {
   UseGuards,
   Request,
   Res,
+  Get,
 } from '@nestjs/common';
 import type { Response, Request as ExpressRequest } from 'express';
 import { AuthService } from './auth.service';
@@ -16,6 +17,8 @@ import { RefreshDto } from './dto/refresh.dto';
 interface RequestWithUser extends ExpressRequest {
   user: {
     userId: number;
+    email: string;
+    role: string;
   };
 }
 
@@ -54,7 +57,7 @@ export class AuthController {
       maxAge: 1000 * 60 * 60 * 24 * 7, // 7 jours
     });
 
-    return { message: 'Connexion réussie', role: tokens.access_token };
+    return { message: 'Connexion réussie' };
   }
 
   @Post('register')
@@ -97,5 +100,16 @@ export class AuthController {
     res.cookie('refresh_token', '', { ...this.cookieOptions, maxAge: 0 });
 
     return { message: 'Déconnexion réussie' };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  getProfile(@Request() req: RequestWithUser) {
+    const roleName = req.user.role;
+    return {
+      name: roleName === 'Admin' ? 'Admin Chalonnais' : 'Citoyen',
+      email: req.user.email,
+      role: roleName === 'Admin' ? 'admin' : 'user',
+    };
   }
 }

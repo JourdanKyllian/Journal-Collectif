@@ -10,17 +10,26 @@ import {
 import ArticleCard from "@/components/features/ArticleCard";
 import { Input }   from "@/components/ui/input";
 import { Button }  from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { fetchApi } from "@/lib/api";
 
-type Category =
-  | "all"
-  | "culture"
-  | "sport"
-  | "travaux"
-  | "faits-divers"
-  | "evenements"
-  | "annonces"
-  | "politique";
+// ── Utilitaires ─────────────────────────────────────────────
+
+/**
+ * Transforme un texte en identifiant propre (ex: "Faits Divers" -> "faits-divers")
+ * Garantit que les filtres marchent même si l'Admin ajoute des accents ou des espaces.
+ */
+const generateSlug = (text: string) => {
+  return text
+    .toString()
+    .toLowerCase()
+    .normalize("NFD") // Sépare les accents des lettres
+    .replace(/[\u0300-\u036f]/g, "") // Supprime les accents
+    .replace(/[^a-z0-9]+/g, "-") // Remplace les espaces et caractères spéciaux par des tirets
+    .replace(/(^-|-$)+/g, ""); // Nettoie les tirets au début et à la fin
+};
+
+// ── Types ───────────────────────────────────────────────────
 
 interface RawArticle {
   id: number;
@@ -35,16 +44,18 @@ interface RawArticle {
   createdAt?: string;
 }
 
-/**
- * Contrat d'interface pour l'affichage UI des articles.
- * Mappe les données brutes de l'API vers les besoins visuels (icônes, Tailwind).
- */
+interface BackendCategory {
+  id: number;
+  libelle: string;
+  icon: string; // Emoji
+}
+
 interface ArticleUI {
   id:            number;
   title:         string;
   excerpt:       string;
   category:      string;
-  categorySlug:  Category;
+  categorySlug:  string;
   date:          string;
   dateIso:       string;
   readTime:      string;
@@ -52,39 +63,34 @@ interface ArticleUI {
   gradientClass: string;
 }
 
+interface FilterCategory {
+  id: string;
+  label: string;
+}
+
+// ── Mapping Visuel (Icônes et Couleurs) ─────────────────────
+
 /**
- * Associe dynamiquement une catégorie BDD à ses propriétés UI.
- * Inclut une normalisation pour prévenir les erreurs de saisie côté back-office.
+ * Déduit l'icône Lucide et le dégradé Tailwind en fonction du nom de la catégorie.
+ * Si l'Admin crée une catégorie non reconnue, on lui assigne un style par défaut élégant.
  */
-const mapCategoryToUI = (categoryName: string): { slug: Category, icon: LucideIcon, gradient: string } => {
+const mapCategoryToUI = (categoryName: string): { icon: LucideIcon, gradient: string } => {
   const normalized = categoryName.toLowerCase().trim();
   
-  if (normalized.includes("culture")) return { slug: "culture", icon: Palette, gradient: "bg-linear-to-br from-vert to-noir" };
-  if (normalized.includes("travaux")) return { slug: "travaux", icon: HardHat, gradient: "bg-linear-to-br from-vert/80 to-vert" };
-  if (normalized.includes("sport")) return { slug: "sport", icon: Trophy, gradient: "bg-linear-to-br from-noir to-vert" };
-  if (normalized.includes("annonce")) return { slug: "annonces", icon: Megaphone, gradient: "bg-linear-to-br from-noir/90 to-vert/60" };
-  if (normalized.includes("divers") || normalized.includes("alerte")) return { slug: "faits-divers", icon: Siren, gradient: "bg-linear-to-br from-vert to-noir/90" };
-  if (normalized.includes("evénement") || normalized.includes("evenement")) return { slug: "evenements", icon: PartyPopper, gradient: "bg-linear-to-br from-noir to-vert/80" };
-  if (normalized.includes("politique") || normalized.includes("mairie")) return { slug: "politique", icon: Building2, gradient: "bg-linear-to-br from-vert/70 to-noir" };
+  if (normalized.includes("culture")) return { icon: Palette, gradient: "bg-linear-to-br from-vert to-noir" };
+  if (normalized.includes("travaux")) return { icon: HardHat, gradient: "bg-linear-to-br from-vert/80 to-vert" };
+  if (normalized.includes("sport")) return { icon: Trophy, gradient: "bg-linear-to-br from-noir to-vert" };
+  if (normalized.includes("annonce")) return { icon: Megaphone, gradient: "bg-linear-to-br from-noir/90 to-vert/60" };
+  if (normalized.includes("divers") || normalized.includes("alerte")) return { icon: Siren, gradient: "bg-linear-to-br from-vert to-noir/90" };
+  if (normalized.includes("evénement") || normalized.includes("evenement")) return { icon: PartyPopper, gradient: "bg-linear-to-br from-noir to-vert/80" };
+  if (normalized.includes("politique") || normalized.includes("mairie")) return { icon: Building2, gradient: "bg-linear-to-br from-vert/70 to-noir" };
   
-  return { slug: "annonces", icon: BookOpen, gradient: "bg-linear-to-br from-champagne/80 to-noir" };
+  // Style par défaut pour toute nouvelle catégorie créée par l'Admin
+  return { icon: BookOpen, gradient: "bg-linear-to-br from-champagne/80 to-noir" };
 };
 
-const CATEGORY_FILTERS: { id: Category; label: string }[] = [
-  { id: "all",         label: "Tous"             },
-  { id: "culture",     label: "🎭 Culture"       },
-  { id: "sport",       label: "⚽ Sport"         },
-  { id: "travaux",     label: "🏗️ Travaux"      },
-  { id: "faits-divers",label: "🚨 Faits divers"  },
-  { id: "evenements",  label: "🎉 Événements"    },
-  { id: "annonces",    label: "📢 Annonces"      },
-  { id: "politique",   label: "🏛️ Politique"    },
-];
+// ── Composant Sélecteur de Dates ────────────────────────────
 
-/**
- * Sélecteur de période chronologique natif.
- * Privilégie <input type="date"> pour maximiser l'accessibilité sans dépendance externe.
- */
 function DateRangePicker({
   from, to, onFromChange, onToChange, onClear,
 }: {
@@ -133,27 +139,46 @@ function DateRangePicker({
   );
 }
 
+// ── Composant Principal ─────────────────────────────────────
+
 export default function ArticlesPage() {
   const [articles, setArticles] = useState<ArticleUI[]>([]);
+  const [categoryFilters, setCategoryFilters] = useState<FilterCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   const [search,      setSearch]      = useState("");
-  const [category,    setCategory]    = useState<Category>("all");
+  const [category,    setCategory]    = useState<string>("all");
   const [dateFrom,    setDateFrom]    = useState("");
   const [dateTo,      setDateTo]      = useState("");
 
   useEffect(() => {
-    const loadArticles = async () => {
+    const loadData = async () => {
       try {
         setIsLoading(true);
-        const rawArticles = await fetchApi<RawArticle[]>('/v1/article/published');
-        
+        // On récupère TOUT en même temps avec Promise.all pour optimiser le temps de chargement
+        const [rawArticles, rawCategories] = await Promise.all([
+          fetchApi<RawArticle[]>('/v1/article/published'),
+          fetchApi<BackendCategory[]>('/v1/category')
+        ]);
+
+        // 1. Formatage des Catégories pour les filtres
+        const formattedCategories: FilterCategory[] = [
+          { id: "all", label: "Tous" }, // On garde toujours l'option "Tous"
+          ...rawCategories.map(cat => ({
+            id: generateSlug(cat.libelle),
+            label: `${cat.icon} ${cat.libelle}`
+          }))
+        ];
+        setCategoryFilters(formattedCategories);
+
+        // 2. Formatage des Articles
         const formattedArticles: ArticleUI[] = rawArticles.map((item) => {
           const categoryName = typeof item.category === 'object' && item.category !== null 
             ? (item.category as { libelle?: string }).libelle || 'Annonces' 
             : item.category || 'Annonces';
           
           const uiStyles = mapCategoryToUI(categoryName);
+          const slug = generateSlug(categoryName); // Le slug permet de lier avec les boutons filtres
           const rawDate = item.publishedAt || item.published_at || item.createdAt || Date.now();
           const pubDate = new Date(rawDate);
 
@@ -165,10 +190,10 @@ export default function ArticlesPage() {
             title: titleText,
             excerpt: bodyText.length > 100 ? bodyText.substring(0, 100) + '...' : bodyText, 
             category: categoryName,
-            categorySlug: uiStyles.slug,
+            categorySlug: slug,
             date: pubDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }),
             dateIso: pubDate.toISOString().split('T')[0],
-            readTime: "3 min", 
+            readTime: "3 min", // Calcul réel à implémenter si besoin
             icon: uiStyles.icon,
             gradientClass: uiStyles.gradient,
           };
@@ -176,13 +201,13 @@ export default function ArticlesPage() {
 
         setArticles(formattedArticles);
       } catch (error) {
-        console.error("Erreur lors de la récupération des articles:", error);
+        console.error("Erreur lors de la récupération des données:", error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadArticles();
+    loadData();
   }, []);
 
   const filtered = useMemo(() => {
@@ -191,6 +216,7 @@ export default function ArticlesPage() {
     );
 
     return sorted.filter((article) => {
+      // Filtrage par slug dynamique
       if (category !== "all" && article.categorySlug !== category) return false;
 
       if (search.trim()) {
@@ -260,21 +286,28 @@ export default function ArticlesPage() {
 
           <div className="flex gap-2 flex-wrap items-center">
             <div role="group" className="flex gap-2 flex-wrap">
-              {CATEGORY_FILTERS.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => setCategory(cat.id)}
-                  aria-pressed={category === cat.id}
-                  className={`
-                    font-montserrat font-bold text-sm px-5 py-2 rounded-full transition-all
-                    ${category === cat.id
-                      ? "bg-or text-noir shadow-md"
-                      : "bg-champagne/20 text-noir hover:bg-or/70 hover:text-noir"}
-                  `}
-                >
-                  {cat.label}
-                </button>
-              ))}
+              {/* --- SKELETON DES BOUTONS CATÉGORIES --- */}
+              {isLoading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-9 w-24 rounded-full" />
+                ))
+              ) : (
+                categoryFilters.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setCategory(cat.id)}
+                    aria-pressed={category === cat.id}
+                    className={`
+                      font-montserrat font-bold text-sm px-5 py-2 rounded-full transition-all
+                      ${category === cat.id
+                        ? "bg-or text-noir shadow-md"
+                        : "bg-champagne/20 text-noir hover:bg-or/70 hover:text-noir"}
+                    `}
+                  >
+                    {cat.label}
+                  </button>
+                ))
+              )}
             </div>
 
             {hasActiveFilter && (
@@ -291,7 +324,7 @@ export default function ArticlesPage() {
         <div className="mb-5 flex items-center justify-between flex-wrap gap-2">
           <p className="font-montserrat text-sm text-champagne">
             {isLoading 
-              ? "Chargement en cours..." 
+              ? "Recherche des archives..." 
               : filtered.length === 0
                 ? "Aucun article trouvé"
                 : `${filtered.length} article${filtered.length > 1 ? "s" : ""} trouvé${filtered.length > 1 ? "s" : ""}`
@@ -302,9 +335,25 @@ export default function ArticlesPage() {
           </p>
         </div>
 
+        {/* --- SKELETON DES ARTICLES --- */}
         {isLoading ? (
-          <div className="flex justify-center items-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-or"></div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-blanc border border-champagne/30 rounded-2xl overflow-hidden shadow-sm">
+                <Skeleton className="h-44 w-full rounded-none" />
+                <div className="p-5 space-y-4">
+                  <Skeleton className="h-5 w-3/4" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-3.5 w-full" />
+                    <Skeleton className="h-3.5 w-5/6" />
+                  </div>
+                  <div className="flex justify-between items-center pt-2">
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : filtered.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
