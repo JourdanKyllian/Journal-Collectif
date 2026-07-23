@@ -78,7 +78,10 @@ export class ImageArticleService {
    *
    * @returns {Promise<{ compressedCount: number; message: string }>} Résultat de la compression.
    */
-  async compressAgingImages(): Promise<{ compressedCount: number; message: string }> {
+  async compressAgingImages(): Promise<{
+    compressedCount: number;
+    message: string;
+  }> {
     const twoYearsAgo = new Date();
     twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
 
@@ -90,7 +93,10 @@ export class ImageArticleService {
     });
 
     if (oldImages.length === 0) {
-      return { compressedCount: 0, message: 'Aucune image vieillissante à compresser.' };
+      return {
+        compressedCount: 0,
+        message: 'Aucune image vieillissante à compresser.',
+      };
     }
 
     for (const image of oldImages) {
