@@ -39,7 +39,7 @@ describe('ImageArticleService - Gestion des erreurs & Stratégie SEO', () => {
       const dto: CreateImageArticleDto = {
         url_image: '/uploads/photo.jpg',
         legend: 'Photo d’illustration',
-      } as CreateImageArticleDto;
+      };
 
       const expectedEntity = { id: 1, ...dto };
 
@@ -97,7 +97,10 @@ describe('ImageArticleService - Gestion des erreurs & Stratégie SEO', () => {
       };
 
       mockImageRepository.findOne.mockResolvedValue(validImage);
-      mockImageRepository.softRemove.mockResolvedValue({ ...validImage, is_delete: true });
+      mockImageRepository.softRemove.mockResolvedValue({
+        ...validImage,
+        is_delete: true,
+      });
 
       await service.remove(1);
 
