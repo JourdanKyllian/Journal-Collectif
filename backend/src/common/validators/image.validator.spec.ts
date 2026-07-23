@@ -18,7 +18,9 @@ describe('validateImageFile - Sécurité & Format', () => {
 
   it('devrait rejeter un type MIME non autorisé', () => {
     const errors = validateImageFile('application/pdf', 'document.pdf');
-    expect(errors).toContain('Le type MIME "application/pdf" n’est pas autorisé.');
+    expect(errors).toContain(
+      'Le type MIME "application/pdf" n’est pas autorisé.',
+    );
   });
 
   it('devrait rejeter une extension de fichier non autorisée', () => {

@@ -2,6 +2,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  GoneException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -72,18 +73,30 @@ export class ArticleService {
     return savedArticle;
   }
 
+  async findOne(id: number) {
+    const article = await this.articleRepository.findOne({
+      where: { id },
+      relations: ['category', 'auteursArticles', 'auteursArticles.user'],
+      withDeleted: true, // Requis pour la vérification de l'état de suppression
+    });
+
+    if (!article) throw new NotFoundException('Article introuvable');
+
+    if (article.is_delete || article.deleted_at) {
+      throw new GoneException(`L'article #${id} a été retiré de la plateforme.`);
+    }
+
+    return article;
+  }
+
   async update(
     id: number,
     updateArticleDto: UpdateArticleDto,
     userId: number,
     userRole: string,
   ) {
-    const article = await this.articleRepository.findOne({
-      where: { id },
-      relations: ['auteursArticles', 'auteursArticles.user'],
-    });
-
-    if (!article) throw new NotFoundException('Article introuvable');
+    // Appel centralisé : gère automatiquement la levée des erreurs 404 et 410
+    const article = await this.findOne(id);
 
     const isAuthor = article.auteursArticles.some((a) => a.user.id === userId);
     const isManagement = ['Admin', 'moderateur'].includes(userRole);
@@ -110,8 +123,8 @@ export class ArticleService {
   }
 
   async publishArticle(id: number) {
-    const article = await this.articleRepository.findOne({ where: { id } });
-    if (!article) throw new NotFoundException('Article introuvable');
+    // Sécurisé par findOne : impossible de publier un article supprimé
+    const article = await this.findOne(id);
 
     article.statut = ArticleStatus.PUBLIE;
     article.published_at = new Date();
@@ -131,16 +144,6 @@ export class ArticleService {
       relations: ['category', 'auteursArticles', 'auteursArticles.user'],
       order: { created_at: 'DESC' },
     });
-  }
-
-  async findOne(id: number) {
-    const article = await this.articleRepository.findOne({
-      where: { id },
-      relations: ['category', 'auteursArticles', 'auteursArticles.user'],
-    });
-
-    if (!article) throw new NotFoundException('Article introuvable');
-    return article;
   }
 
   async remove(id: number, userId: number, userRole: string) {
