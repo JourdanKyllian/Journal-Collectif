@@ -45,7 +45,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           : 'Erreur interne du serveur';
 
     // Cast explicite pour satisfaire le linter strict
-    const message = Array.isArray(rawMessage) ? String(rawMessage[0]) : String(rawMessage);
+    const message = Array.isArray(rawMessage)
+      ? String(rawMessage[0])
+      : String(rawMessage);
 
     const rawErrorType =
       exceptionResponse &&
