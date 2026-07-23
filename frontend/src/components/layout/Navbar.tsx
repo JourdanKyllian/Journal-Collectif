@@ -118,7 +118,7 @@ export default function Navbar() {
             {/* --- GESTION DU FLICKER DESKTOP --- */}
             {isCheckingSession ? (
               // Squelette Vercel-style imitant la taille exacte du bouton Connexion
-              <Skeleton className="hidden md:block w-[140px] h-[52px] rounded-xl" />
+              <Skeleton className="hidden md:block w-35 h-13 rounded-xl" />
             ) : !user ? (
               <Button 
                 onClick={() => setIsAuthModalOpen(true)} 

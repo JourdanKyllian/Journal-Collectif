@@ -88,7 +88,7 @@ export default function DashboardPage() {
       <div className="grid md:grid-cols-3 gap-6">
         {isLoading ? (
           Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-[120px] rounded-2xl border border-champagne/20 p-6 flex flex-col items-start gap-3 bg-blanc">
+            <div key={i} className="h-30 rounded-2xl border border-champagne/20 p-6 flex flex-col items-start gap-3 bg-blanc">
                <Skeleton className="h-6 w-6 rounded-md" />
                <div className="space-y-2 w-full">
                  <Skeleton className="h-4 w-1/2" />
