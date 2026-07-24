@@ -70,7 +70,7 @@ export class ImageArticleService {
   async remove(id: number): Promise<void> {
     const image = await this.findOne(id);
     await this.imageRepository.softRemove(image);
-    
+
     this.logger.log(`Image #${id} marquée comme supprimée (410 activé).`);
   }
 

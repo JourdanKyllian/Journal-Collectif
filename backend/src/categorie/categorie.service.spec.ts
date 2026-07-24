@@ -111,7 +111,7 @@ describe('CategoryService', () => {
       ]);
 
       const result = await service.findAll();
-      
+
       expect(result).toHaveLength(2);
       expect(result[0].libelle).toBe('Politique');
     });
@@ -120,7 +120,7 @@ describe('CategoryService', () => {
   describe('findOne - Stratégie SEO HTTP 410', () => {
     it("devrait lever une NotFoundException (404) si la catégorie n'existe pas", async () => {
       repository.findOne.mockResolvedValue(null);
-      
+
       await expect(service.findOne(999)).rejects.toThrow(NotFoundException);
     });
 
@@ -131,7 +131,7 @@ describe('CategoryService', () => {
         is_delete: true,
         deleted_at: new Date(),
       });
-      
+
       await expect(service.findOne(1)).rejects.toThrow(GoneException);
     });
 
@@ -145,7 +145,7 @@ describe('CategoryService', () => {
       repository.findOne.mockResolvedValue(validCategory);
 
       const result = await service.findOne(1);
-      
+
       expect(result).toEqual(validCategory);
     });
   });
@@ -158,7 +158,7 @@ describe('CategoryService', () => {
       repository.findOne.mockResolvedValue(validCategory);
 
       await service.update(1, updateDto);
-      
+
       expect(repository.save).toHaveBeenCalledWith({
         id: 1,
         libelle: 'Nouvelle Tech',
@@ -169,12 +169,12 @@ describe('CategoryService', () => {
   describe('remove', () => {
     it('devrait supprimer logiquement (Soft Delete) une catégorie', async () => {
       const validCategory = { id: 1, libelle: 'Tech' };
-      
+
       repository.findOne.mockResolvedValue(validCategory);
       repository.softRemove.mockResolvedValue(validCategory);
 
       await service.remove(1);
-      
+
       expect(repository.softRemove).toHaveBeenCalledWith(validCategory);
     });
   });

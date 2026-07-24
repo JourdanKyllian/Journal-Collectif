@@ -115,7 +115,7 @@ describe('ArticleService - Gestion du contenu et règles SEO', () => {
         categoryId: 1,
         statut: ArticleStatus.PUBLIE,
       } as unknown as CreateDto;
-      
+
       const result = await service.create(dto, 2, 'journaliste');
 
       expect(result.statut).toBe(ArticleStatus.EN_ATTENTE);
@@ -140,7 +140,7 @@ describe('ArticleService - Gestion du contenu et règles SEO', () => {
         categoryId: 1,
         statut: ArticleStatus.BROUILLON,
       } as unknown as CreateDto;
-      
+
       const result = await service.create(dto, 1, 'Admin');
 
       expect(result.statut).toBe(ArticleStatus.BROUILLON);
@@ -165,7 +165,7 @@ describe('ArticleService - Gestion du contenu et règles SEO', () => {
         categoryId: 1,
         statut: ArticleStatus.PUBLIE,
       } as unknown as CreateDto;
-      
+
       const result = await service.create(dto, 1, 'Admin');
 
       expect(result.statut).toBe(ArticleStatus.PUBLIE);
@@ -203,7 +203,7 @@ describe('ArticleService - Gestion du contenu et règles SEO', () => {
       mockArticleRepository.findOne.mockResolvedValue(validArticle);
 
       const result = await service.findOne(1);
-      
+
       expect(result).toEqual(validArticle);
     });
   });

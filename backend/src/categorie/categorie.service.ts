@@ -96,7 +96,7 @@ export class CategoryService {
     updateCategoryDto: UpdateCategoryDto,
   ): Promise<Category> {
     const category = await this.findOne(id);
-    
+
     Object.assign(category, updateCategoryDto);
     return this.categoryRepository.save(category);
   }
