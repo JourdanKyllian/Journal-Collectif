@@ -48,6 +48,7 @@ async function bootstrap() {
         'http://localhost:5173',
         'http://localhost:3000',
         'http://localhost:3000/api',
+        'https://journal-collectif.vercel.app',
       ];
       if (!origin || allowedOrigins.indexOf(origin) !== -1) {
         callback(null, true);
