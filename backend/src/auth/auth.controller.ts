@@ -35,10 +35,12 @@ export class AuthController {
    * Retourne la configuration stricte des cookies (HTTPOnly, SameSite, Secure).
    */
   private get cookieOptions() {
+    const isProduction = process.env.NODE_ENV === 'production';
     return {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax' as const,
+      secure: isProduction,
+      // 'none' est obligatoire pour que Vercel puisse envoyer le cookie à Render
+      sameSite: isProduction ? ('none' as const) : ('lax' as const),
       path: '/',
     };
   }
