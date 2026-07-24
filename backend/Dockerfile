@@ -20,4 +20,4 @@ COPY --from=prod-deps /app/node_modules ./node_modules
 
 ENV NODE_ENV=production
 EXPOSE 3000
-CMD ["dist/main.js"]
+CMD ["dist/src/main.js"]
