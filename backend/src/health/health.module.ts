@@ -1,25 +1,61 @@
-import { Module } from '@nestjs/common';
-import { TerminusModule } from '@nestjs/terminus';
-import { HealthController } from './health.controller';
+import {
+  Controller,
+  Get,
+  Inject,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import { DataSource } from 'typeorm';
 import Redis from 'ioredis';
 
-@Module({
-  imports: [TerminusModule],
-  controllers: [HealthController],
-  providers: [
-    {
-      provide: 'REDIS_CLIENT',
-      useFactory: () => {
-        return new Redis({
-          host: process.env.REDIS_HOST || 'localhost',
-          port: parseInt(process.env.REDIS_PORT || '6379', 10),
-          // Empêche ioredis de saturer les logs et de crasher si le service est absent
-          maxRetriesPerRequest: 1,
-          lazyConnect: true,
-          retryStrategy: () => null, // Désactive les essais en boucle
-        });
-      },
-    },
-  ],
-})
-export class HealthModule {}
+@Controller('health')
+export class HealthController {
+  private readonly logger = new Logger(HealthController.name);
+
+  constructor(
+    private readonly dataSource: DataSource,
+    @Inject('REDIS_CLIENT') private readonly redis: Redis,
+  ) {}
+
+  @Get()
+  async checkHealth() {
+    const health = {
+      status: 'healthy',
+      database: 'connected',
+      cache: 'connected',
+      uptime: Math.floor(process.uptime()),
+      version: process.env.npm_package_version || '1.0.0',
+      timestamp: new Date().toISOString(),
+    };
+
+    // Vérifie PostgreSQL (critique pour l'application)
+    try {
+      await this.dataSource.query('SELECT 1');
+    } catch (error) {
+      this.logger.error(
+        'Échec de la connexion PostgreSQL lors du HealthCheck',
+        error instanceof Error ? error.stack : error,
+      );
+
+      throw new ServiceUnavailableException({
+        ...health,
+        status: 'unhealthy',
+        database: 'disconnected',
+      });
+    }
+
+    // Vérifie Redis (optionnel / non bloquant sur les environnements sans cache managé)
+    try {
+      await this.redis.ping();
+    } catch {
+      this.logger.warn(
+        'Redis non disponible, ignoré pour le healthcheck en production.',
+      );
+      health.cache = 'disconnected (optional)';
+    }
+
+    this.logger.log('HealthCheck exécuté avec succès');
+
+    return health;
+  }
+}
