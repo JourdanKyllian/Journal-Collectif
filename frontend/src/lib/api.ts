@@ -1,4 +1,7 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+// En production, on cible le proxy Vercel (/api). En développement, on garde le backend local.
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? '/api' 
+  : 'http://localhost:4000/api';
 
 /**
  * Wrapper asynchrone pour l'API Fetch.
@@ -19,7 +22,7 @@ export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): 
   const config: RequestInit = { 
     ...options, 
     headers,
-    credentials: 'include'
+    credentials: 'include' // Indispensable pour envoyer et recevoir les cookies
   };
   
   const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
