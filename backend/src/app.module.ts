@@ -8,7 +8,7 @@ import { dataSourceOptions } from './common/database/data-source';
 import { Users } from './users/entities/user.entity';
 import { Role } from './roles/entities/roles.entity';
 import { Categorie } from './categorie/entities/categorie.entity'; // <-- Ajout
-import { Article } from './article/entities/article.entity';         // <-- Ajout
+import { Article } from './article/entities/article.entity'; // <-- Ajout
 
 import { UsersModule } from './users/users.module';
 import { RoleModule } from './roles/roles.module';
