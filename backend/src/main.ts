@@ -7,12 +7,18 @@ import { Logger } from 'nestjs-pino';
 import cookieParser from 'cookie-parser';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
+// Import des outils de base de données
+import { DataSource } from 'typeorm';
+import { TableSeedService } from './common/database/seed/table.seed';
+import { AdminSeedService } from './common/database/seed/admin.seed';
+
 /**
  * Initialise et démarre l'application backend NestJS.
  *
  * Configure la sécurité (Helmet, CORS), le journaliseur (Pino),
  * le versionnage de l'API (URI), la validation globale des données,
  * le filtre global d'exceptions, et génère la documentation Swagger.
+ * Exécute également les migrations et le seeding automatiquement.
  *
  * @async
  * @returns {Promise<void>} Une promesse qui se résout lorsque l'application est en écoute.
@@ -20,7 +26,9 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
-  app.useLogger(app.get(Logger));
+  // On récupère le logger tout de suite pour l'utiliser dans le bootstrap
+  const logger = app.get(Logger);
+  app.useLogger(logger);
   app.use(cookieParser());
 
   app.use(
@@ -82,10 +90,35 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
+  // --- 1. EXÉCUTION DES MIGRATIONS TYPEORM ---
+  try {
+    logger.log('Initialisation et vérification des migrations...');
+    const dataSource = app.get(DataSource);
+    if (!dataSource.isInitialized) {
+      await dataSource.initialize();
+    }
+    await dataSource.runMigrations();
+    logger.log('Migrations exécutées et à jour.');
+  } catch (error) {
+    logger.error('Erreur critique lors des migrations :', error);
+  }
+
+  // --- 2. EXÉCUTION DU SEEDING ---
+  try {
+    logger.log('Vérification et exécution du seeding...');
+    const tableSeedService = app.get(TableSeedService);
+    const adminSeedService = app.get(AdminSeedService);
+
+    await tableSeedService.seed();
+    await adminSeedService.seed();
+    logger.log('Seeding terminé avec succès.');
+  } catch (error) {
+    logger.error('Erreur lors du seeding :', error);
+  }
+
   const port = process.env.PORT ?? 3000;
   await app.listen(port, '0.0.0.0');
 
-  const logger = app.get(Logger);
   logger.log(`Serveur lancé sur : http://localhost:${port}/api/v1`);
   logger.log(`Documentation API sur : http://localhost:${port}/api/docs`);
 }
