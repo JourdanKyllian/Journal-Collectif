@@ -83,7 +83,9 @@ export class ArticleService {
     if (!article) throw new NotFoundException('Article introuvable');
 
     if (article.is_delete || article.deleted_at) {
-      throw new GoneException(`L'article #${id} a été retiré de la plateforme.`);
+      throw new GoneException(
+        `L'article #${id} a été retiré de la plateforme.`,
+      );
     }
 
     return article;
