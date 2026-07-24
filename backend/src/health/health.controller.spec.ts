@@ -68,12 +68,16 @@ describe('HealthController', () => {
     );
   });
 
-  it('devrait jeter une erreur 503 (ServiceUnavailable) si Redis crash', async () => {
+  it('devrait gérer gracieusement l échec de Redis sans bloquer le healthcheck', async () => {
     mockDataSource.query.mockResolvedValue([{ '?column?': 1 }]);
     mockRedis.ping.mockRejectedValue(new Error('Redis timeout'));
 
-    await expect(controller.checkHealth()).rejects.toThrow(
-      ServiceUnavailableException,
+    const result = await controller.checkHealth();
+    expect(result).toEqual(
+      expect.objectContaining({
+        status: 'healthy',
+        cache: 'disconnected (optional)',
+      }),
     );
   });
 });
