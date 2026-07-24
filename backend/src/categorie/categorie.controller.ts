@@ -8,7 +8,7 @@ import {
   Delete,
   UseGuards,
 } from '@nestjs/common';
-import { CategoryService } from './categorie.service';
+import { CategorieService } from './categorie.service';
 import { CreateCategoryDto } from './dto/create-categorie.dto';
 import { UpdateCategoryDto } from './dto/update-categorie.dto';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -24,13 +24,13 @@ import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 @ApiTags('Categories')
 @ApiBearerAuth()
 @Controller('category')
-export class CategoryController {
+export class CategorieController {
   /**
    * Initialise le CategoryController.
    *
-   * @param {CategoryService} categoryService - Le service gérant la logique métier des catégories.
+   * @param {CategorieService} categoryService - Le service gérant la logique métier des catégories.
    */
-  constructor(private readonly categoryService: CategoryService) {}
+  constructor(private readonly categoryService: CategorieService) {}
 
   /**
    * Récupère la liste de toutes les catégories.

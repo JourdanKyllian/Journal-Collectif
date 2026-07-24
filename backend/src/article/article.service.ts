@@ -10,7 +10,7 @@ import { Article, ArticleStatus } from './entities/article.entity';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
 import { Users } from '../users/entities/user.entity';
-import { Category } from '../categorie/entities/categorie.entity';
+import { Categorie } from '../categorie/entities/categorie.entity';
 import { AuteurArticle } from '../auteur-article/entities/auteur-article.entity/auteur-article.entity';
 
 /**
@@ -24,8 +24,8 @@ export class ArticleService {
     private readonly articleRepository: Repository<Article>,
     @InjectRepository(Users)
     private readonly usersRepository: Repository<Users>,
-    @InjectRepository(Category)
-    private readonly categoryRepository: Repository<Category>,
+    @InjectRepository(Categorie)
+    private readonly categoryRepository: Repository<Categorie>,
     @InjectRepository(AuteurArticle)
     private readonly auteurArticleRepository: Repository<AuteurArticle>,
   ) {}

@@ -4,9 +4,9 @@
  * et la conformité de la stratégie de réponses HTTP (404, 410) pour l'optimisation SEO.
  */
 import { Test, TestingModule } from '@nestjs/testing';
-import { CategoryService } from './categorie.service';
+import { CategorieService } from './categorie.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Category } from './entities/categorie.entity';
+import { Categorie } from './entities/categorie.entity';
 import {
   ConflictException,
   NotFoundException,
@@ -40,11 +40,11 @@ type MockRepository = {
 /**
  * Extraction des types DTO depuis la signature des méthodes du service.
  */
-type CreateDto = Parameters<CategoryService['create']>[0];
-type UpdateDto = Parameters<CategoryService['update']>[1];
+type CreateDto = Parameters<CategorieService['create']>[0];
+type UpdateDto = Parameters<CategorieService['update']>[1];
 
 describe('CategoryService', () => {
-  let service: CategoryService;
+  let service: CategorieService;
   let repository: MockRepository;
 
   const mockCategoryRepository = {
@@ -62,16 +62,16 @@ describe('CategoryService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        CategoryService,
+        CategorieService,
         {
-          provide: getRepositoryToken(Category),
+          provide: getRepositoryToken(Categorie),
           useValue: mockCategoryRepository,
         },
       ],
     }).compile();
 
-    service = module.get<CategoryService>(CategoryService);
-    repository = module.get(getRepositoryToken(Category));
+    service = module.get<CategorieService>(CategorieService);
+    repository = module.get(getRepositoryToken(Categorie));
   });
 
   afterEach(() => {

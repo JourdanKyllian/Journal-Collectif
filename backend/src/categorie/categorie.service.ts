@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Category } from './entities/categorie.entity';
+import { Categorie } from './entities/categorie.entity';
 import { CreateCategoryDto } from './dto/create-categorie.dto';
 import { UpdateCategoryDto } from './dto/update-categorie.dto';
 
@@ -15,10 +15,10 @@ import { UpdateCategoryDto } from './dto/update-categorie.dto';
  * Implémente la validation centralisée et la stratégie de réponses SEO (HTTP 410).
  */
 @Injectable()
-export class CategoryService {
+export class CategorieService {
   constructor(
-    @InjectRepository(Category)
-    private readonly categoryRepository: Repository<Category>,
+    @InjectRepository(Categorie)
+    private readonly categoryRepository: Repository<Categorie>,
   ) {}
 
   /**
@@ -28,7 +28,7 @@ export class CategoryService {
    * @returns L'entité sauvegardée en base.
    * @throws {ConflictException} En cas de doublon sur le libellé (inclut les entités supprimées logiquement).
    */
-  async create(createCategoryDto: CreateCategoryDto): Promise<Category> {
+  async create(createCategoryDto: CreateCategoryDto): Promise<Categorie> {
     const existing = await this.categoryRepository.findOne({
       where: { libelle: createCategoryDto.libelle },
       withDeleted: true,
@@ -50,7 +50,7 @@ export class CategoryService {
    *
    * @returns Liste des catégories triées par date de création décroissante.
    */
-  findAll(): Promise<Category[]> {
+  findAll(): Promise<Categorie[]> {
     return this.categoryRepository.find({
       order: { created_at: 'DESC' },
     });
@@ -65,7 +65,7 @@ export class CategoryService {
    * @throws {NotFoundException} Si l'entité est inexistante.
    * @throws {GoneException} Si l'entité a fait l'objet d'une suppression logique (Soft Delete).
    */
-  async findOne(id: number): Promise<Category> {
+  async findOne(id: number): Promise<Categorie> {
     const category = await this.categoryRepository.findOne({
       where: { id },
       withDeleted: true,
@@ -94,7 +94,7 @@ export class CategoryService {
   async update(
     id: number,
     updateCategoryDto: UpdateCategoryDto,
-  ): Promise<Category> {
+  ): Promise<Categorie> {
     const category = await this.findOne(id);
 
     Object.assign(category, updateCategoryDto);
@@ -108,7 +108,7 @@ export class CategoryService {
    * @param id - Identifiant de la catégorie.
    * @returns Objet de confirmation contenant l'entité altérée.
    */
-  async remove(id: number): Promise<{ message: string; category: Category }> {
+  async remove(id: number): Promise<{ message: string; category: Categorie }> {
     const category = await this.findOne(id);
     const removedCategory = await this.categoryRepository.softRemove(category);
 

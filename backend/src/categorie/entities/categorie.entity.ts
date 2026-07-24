@@ -4,7 +4,7 @@ import { FavorisCategorie } from 'src/favoris-categorie/entities/favoris-categor
 import { Entity, Column, OneToMany } from 'typeorm';
 
 @Entity('category')
-export class Category extends CustomBaseEntity {
+export class Categorie extends CustomBaseEntity {
   @Column({ type: 'varchar', length: 100 })
   libelle!: string;
 

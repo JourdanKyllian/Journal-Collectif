@@ -9,7 +9,7 @@ import {
   OneToMany,
 } from 'typeorm';
 import { Users } from '../../../users/entities/user.entity';
-import { Category } from '../../../categorie/entities/categorie.entity';
+import { Categorie } from '../../../categorie/entities/categorie.entity';
 
 @Entity('favoris_categorie')
 export class FavorisCategorie {
@@ -33,11 +33,11 @@ export class FavorisCategorie {
   @JoinColumn({ name: 'user_id' })
   user!: Users;
 
-  @ManyToOne(() => Category, (category) => category.favorisCategories, {
+  @ManyToOne(() => Categorie, (category) => category.favorisCategories, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'category_id' })
-  category!: Category;
+  category!: Categorie;
 
   @OneToMany(() => FavorisCategorie, (fc) => fc.category)
   favorisCategories!: FavorisCategorie[];

@@ -3,29 +3,29 @@
  * Vérifie l'instanciation correcte du contrôleur et la résolution de ses dépendances (CategoryService et Repository).
  */
 import { Test, TestingModule } from '@nestjs/testing';
-import { CategoryController } from './categorie.controller';
-import { CategoryService } from './categorie.service';
+import { CategorieController } from './categorie.controller';
+import { CategorieService } from './categorie.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Category } from './entities/categorie.entity';
+import { Categorie } from './entities/categorie.entity';
 
 describe('CategoryController', () => {
-  let controller: CategoryController;
+  let controller: CategorieController;
 
   beforeEach(async () => {
     // Configuration du module de test avec les dépendances minimales requises.
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [CategoryController],
+      controllers: [CategorieController],
       providers: [
-        CategoryService,
+        CategorieService,
         {
           // Bouchon (mock) basique du repository suffisant pour l'initialisation du service sous-jacent.
-          provide: getRepositoryToken(Category),
+          provide: getRepositoryToken(Categorie),
           useValue: {},
         },
       ],
     }).compile();
 
-    controller = module.get<CategoryController>(CategoryController);
+    controller = module.get<CategorieController>(CategorieController);
   });
 
   it('devrait être défini', () => {

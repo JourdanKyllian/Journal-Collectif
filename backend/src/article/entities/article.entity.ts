@@ -1,5 +1,5 @@
 import { Entity, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
-import { Category } from '../../categorie/entities/categorie.entity';
+import { Categorie } from '../../categorie/entities/categorie.entity';
 import { ImageArticle } from '../../image-article/entities/image-article.entity';
 import { VueStatistique } from '../../vue-statistique/entities/vue-statistique.entity';
 import { AuteurArticle } from '../../auteur-article/entities/auteur-article.entity/auteur-article.entity';
@@ -38,9 +38,9 @@ export class Article extends CustomBaseEntity {
 
   // --- RELATIONS ---
 
-  @ManyToOne(() => Category, (category) => category.articles)
+  @ManyToOne(() => Categorie, (category) => category.articles)
   @JoinColumn({ name: 'category_id' })
-  category!: Category;
+  category!: Categorie;
 
   @OneToMany(() => ImageArticle, (image) => image.article)
   images!: ImageArticle[];

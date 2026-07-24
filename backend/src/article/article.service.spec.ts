@@ -3,7 +3,7 @@ import { ArticleService } from './article.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Article, ArticleStatus } from './entities/article.entity';
 import { Users } from '../users/entities/user.entity';
-import { Category } from '../categorie/entities/categorie.entity';
+import { Categorie } from '../categorie/entities/categorie.entity';
 import { AuteurArticle } from '../auteur-article/entities/auteur-article.entity/auteur-article.entity';
 import {
   ForbiddenException,
@@ -58,7 +58,7 @@ describe('ArticleService - Gestion du contenu et règles SEO', () => {
           useValue: mockArticleRepository,
         },
         {
-          provide: getRepositoryToken(Category),
+          provide: getRepositoryToken(Categorie),
           useValue: mockCategoryRepository,
         },
         {
