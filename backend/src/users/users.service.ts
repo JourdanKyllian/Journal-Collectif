@@ -25,7 +25,6 @@ export class UsersService {
     });
     if (userExists) throw new ConflictException('Cet email est déjà utilisé');
 
-    // Force la recherche du rôle Admin
     const adminRole = await this.roleRepository.findOne({
       where: { libelle: 'Admin' },
     });
@@ -34,26 +33,29 @@ export class UsersService {
 
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
 
+    // CRÉATION SÉPARÉE : Le User d'un côté, le Profile de l'autre
     const newUser = this.usersRepository.create({
-      lastname: createUserDto.lastname,
-      firstname: createUserDto.firstname,
       email: createUserDto.email,
       password: hashedPassword,
-      tel: createUserDto.tel || null,
       role: adminRole, // LE RÔLE EST VERROUILLÉ
       is_phone_verified: false,
+      profile: {
+        lastname: createUserDto.lastname,
+        firstname: createUserDto.firstname,
+        tel: createUserDto.tel || null,
+      },
     });
 
     const savedUser = await this.usersRepository.save(newUser);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userWithoutPassword } = savedUser;
 
-    return savedUser;
+    return userWithoutPassword;
   }
 
   async findAll() {
     const users = await this.usersRepository.find({
-      relations: ['role'],
+      relations: ['role', 'profile'], // On charge le profil pour l'affichage Admin
     });
     return users.map((user) => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars

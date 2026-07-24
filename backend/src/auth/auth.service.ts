@@ -72,13 +72,17 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
 
+    // CRÉATION SÉPARÉE : Le User d'un côté, le Profile de l'autre
     const newUser = this.usersRepository.create({
       email: registerDto.email,
       password: hashedPassword,
-      lastname: registerDto.lastname || null,
-      firstname: registerDto.firstname || null,
-      tel: registerDto.tel || null,
       role: userRole,
+      profile: {
+        lastname: registerDto.lastname || null,
+        firstname: registerDto.firstname || null,
+        tel: registerDto.tel || null,
+        // bio et avatar_ref prendront leurs valeurs par défaut via TypeORM
+      },
     });
 
     const savedUser = await this.usersRepository.save(newUser);
@@ -91,7 +95,6 @@ export class AuthService {
 
   async refreshToken(refreshToken: string) {
     try {
-      // 💡 TYPAGE FORT ICI : On dit à verifyAsync ce qu'il va nous renvoyer
       const payload = await this.jwtService.verifyAsync<{
         sub: number;
         email: string;

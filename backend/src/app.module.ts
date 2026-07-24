@@ -18,6 +18,7 @@ import { AuthModule } from './auth/auth.module';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { TableSeedService } from './common/database/seed/table.seed';
 import { HealthModule } from './health/health.module';
+import { ProfileModule } from './profile/profile.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { HealthModule } from './health/health.module';
     CategoryModule,
     AuthModule,
     HealthModule,
+    ProfileModule,
   ],
   providers: [AdminSeedService, TableSeedService],
 })
