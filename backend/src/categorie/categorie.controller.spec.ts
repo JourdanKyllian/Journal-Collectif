@@ -1,6 +1,6 @@
 /**
- * Suite de tests unitaires pour le contrôleur CategoryController.
- * Vérifie l'instanciation correcte du contrôleur et la résolution de ses dépendances (CategoryService et Repository).
+ * Suite de tests unitaires pour le contrôleur CategorieController.
+ * Vérifie l'instanciation correcte du contrôleur et la résolution de ses dépendances (CategorieService et Repository).
  */
 import { Test, TestingModule } from '@nestjs/testing';
 import { CategorieController } from './categorie.controller';
@@ -8,7 +8,7 @@ import { CategorieService } from './categorie.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Categorie } from './entities/categorie.entity';
 
-describe('CategoryController', () => {
+describe('CategorieController', () => {
   let controller: CategorieController;
 
   beforeEach(async () => {

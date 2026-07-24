@@ -38,9 +38,9 @@ export class Article extends CustomBaseEntity {
 
   // --- RELATIONS ---
 
-  @ManyToOne(() => Categorie, (category) => category.articles)
-  @JoinColumn({ name: 'category_id' })
-  category!: Categorie;
+  @ManyToOne(() => Categorie, (categorie) => categorie.articles)
+  @JoinColumn({ name: 'categorie_id' })
+  categorie!: Categorie;
 
   @OneToMany(() => ImageArticle, (image) => image.article)
   images!: ImageArticle[];

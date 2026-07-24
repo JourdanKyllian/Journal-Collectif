@@ -17,10 +17,10 @@ export class InitialPGSchema1784547599727 implements MigrationInterface {
       `CREATE TABLE "users" ("id" SERIAL NOT NULL, "is_delete" boolean NOT NULL DEFAULT false, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "deleted_at" TIMESTAMP, "lastname" character varying(100), "firstname" character varying(100), "email" character varying(255) NOT NULL, "password" character varying(255) NOT NULL, "tel" character varying(20), "is_phone_verified" boolean NOT NULL DEFAULT false, "token_auth" character varying(255), "token_notification" character varying(255), "role_id" integer, CONSTRAINT "UQ_97672ac88f789774dd47f7c8be3" UNIQUE ("email"), CONSTRAINT "PK_a3ffb1c0c8416b9fc6f907b7433" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
-      `CREATE TABLE "favoris_categorie" ("user_id" integer NOT NULL, "category_id" integer NOT NULL, "wants_notifications" boolean NOT NULL DEFAULT true, "created_at" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_eced567ae62fc80d8caa9259cde" PRIMARY KEY ("user_id", "category_id"))`,
+      `CREATE TABLE "favoris_categorie" ("user_id" integer NOT NULL, "categorie_id" integer NOT NULL, "wants_notifications" boolean NOT NULL DEFAULT true, "created_at" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_eced567ae62fc80d8caa9259cde" PRIMARY KEY ("user_id", "categorie_id"))`,
     );
     await queryRunner.query(
-      `CREATE TABLE "category" ("id" SERIAL NOT NULL, "is_delete" boolean NOT NULL DEFAULT false, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "deleted_at" TIMESTAMP, "libelle" character varying(100) NOT NULL, "description" text, "icon" character varying(10) NOT NULL, "image_bandeau_url" character varying(255) NOT NULL, CONSTRAINT "PK_9c4e4a89e3674fc9f382d733f03" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "categorie" ("id" SERIAL NOT NULL, "is_delete" boolean NOT NULL DEFAULT false, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "deleted_at" TIMESTAMP, "libelle" character varying(100) NOT NULL, "description" text, "icon" character varying(10) NOT NULL, "image_bandeau_url" character varying(255) NOT NULL, CONSTRAINT "PK_9c4e4a89e3674fc9f382d733f03" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TABLE "image_article" ("id" SERIAL NOT NULL, "url_image" character varying(255) NOT NULL, "legend" character varying(255) NOT NULL, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "article_id" integer, CONSTRAINT "PK_6ab057143620cf637e0c7a0ee72" PRIMARY KEY ("id"))`,
@@ -29,7 +29,7 @@ export class InitialPGSchema1784547599727 implements MigrationInterface {
       `CREATE TYPE "public"."article_statut_enum" AS ENUM('brouillon', 'en_attente', 'publie', 'corbeille')`,
     );
     await queryRunner.query(
-      `CREATE TABLE "article" ("id" SERIAL NOT NULL, "is_delete" boolean NOT NULL DEFAULT false, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "deleted_at" TIMESTAMP, "titre" character varying(255) NOT NULL, "contenu" text NOT NULL, "image_couverture" character varying(255), "source_link" character varying(255), "statut" "public"."article_statut_enum" NOT NULL DEFAULT 'brouillon', "published_at" TIMESTAMP, "category_id" integer, CONSTRAINT "PK_40808690eb7b915046558c0f81b" PRIMARY KEY ("id"))`,
+      `CREATE TABLE "article" ("id" SERIAL NOT NULL, "is_delete" boolean NOT NULL DEFAULT false, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "deleted_at" TIMESTAMP, "titre" character varying(255) NOT NULL, "contenu" text NOT NULL, "image_couverture" character varying(255), "source_link" character varying(255), "statut" "public"."article_statut_enum" NOT NULL DEFAULT 'brouillon', "published_at" TIMESTAMP, "categorie_id" integer, CONSTRAINT "PK_40808690eb7b915046558c0f81b" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TABLE "vue_statistique" ("id" SERIAL NOT NULL, "session_anonyme" character varying(255), "occured_at" TIMESTAMP NOT NULL DEFAULT now(), "article_id" integer, "user_id" integer, CONSTRAINT "PK_ea426fb6f58ebb1b52295a8b40d" PRIMARY KEY ("id"))`,
@@ -50,13 +50,13 @@ export class InitialPGSchema1784547599727 implements MigrationInterface {
       `ALTER TABLE "favoris_categorie" ADD CONSTRAINT "FK_92e92b1eabd4bdb5d6fc203b69f" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "favoris_categorie" ADD CONSTRAINT "FK_bb461f09e7eb7e66ec8f1acbdcd" FOREIGN KEY ("category_id") REFERENCES "category"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
+      `ALTER TABLE "favoris_categorie" ADD CONSTRAINT "FK_bb461f09e7eb7e66ec8f1acbdcd" FOREIGN KEY ("categorie_id") REFERENCES "categorie"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "image_article" ADD CONSTRAINT "FK_9b1dc91da0a7bb0a2e109a501b3" FOREIGN KEY ("article_id") REFERENCES "article"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "article" ADD CONSTRAINT "FK_cdd234ef147c8552a8abd42bd29" FOREIGN KEY ("category_id") REFERENCES "category"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+      `ALTER TABLE "article" ADD CONSTRAINT "FK_cdd234ef147c8552a8abd42bd29" FOREIGN KEY ("categorie_id") REFERENCES "categorie"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "vue_statistique" ADD CONSTRAINT "FK_927515d747571dec8fac9740056" FOREIGN KEY ("article_id") REFERENCES "article"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
@@ -101,7 +101,7 @@ export class InitialPGSchema1784547599727 implements MigrationInterface {
     await queryRunner.query(`DROP TABLE "article"`);
     await queryRunner.query(`DROP TYPE "public"."article_statut_enum"`);
     await queryRunner.query(`DROP TABLE "image_article"`);
-    await queryRunner.query(`DROP TABLE "category"`);
+    await queryRunner.query(`DROP TABLE "categorie"`);
     await queryRunner.query(`DROP TABLE "favoris_categorie"`);
     await queryRunner.query(`DROP TABLE "users"`);
     await queryRunner.query(`DROP TABLE "auteur_article"`);

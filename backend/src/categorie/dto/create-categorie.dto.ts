@@ -1,7 +1,7 @@
 import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
-export class CreateCategoryDto {
+export class CreateCategorieDto {
   @ApiProperty({ description: 'Libellé de la catégorie', example: 'Culture' })
   @IsString()
   @IsNotEmpty({ message: 'Le libellé de la catégorie est obligatoire' })

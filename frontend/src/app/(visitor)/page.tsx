@@ -16,11 +16,11 @@ import { fetchApi } from "@/lib/api";
 /**
  * Détermine l'icône appropriée pour un nom de catégorie donné.
  *
- * @param {string} categoryName - Le nom de la catégorie.
+ * @param {string} categorieName - Le nom de la catégorie.
  * @returns {LucideIcon} Le composant d'icône Lucide React correspondant.
  */
-const getCategoryIcon = (categoryName: string): LucideIcon => {
-  const normalized = categoryName?.toLowerCase() || "";
+const getCategorieIcon = (categorieName: string): LucideIcon => {
+  const normalized = categorieName?.toLowerCase() || "";
   if (normalized.includes('culture')) return Palette;
   if (normalized.includes('sport')) return Trophy;
   if (normalized.includes('travaux')) return HardHat;
@@ -82,7 +82,7 @@ interface BackendArticle {
   titre: string;
   contenu: string;
   published_at: string;
-  category?: {
+  categorie?: {
     libelle: string;
   };
 }
@@ -90,7 +90,7 @@ interface BackendArticle {
 /**
  * Interface représentant la structure d'une catégorie en base de données.
  */
-interface BackendCategory {
+interface BackendCategorie {
   id: number;
   libelle: string;
 }
@@ -102,7 +102,7 @@ interface ArticlePreview {
   id: number;
   title: string;
   excerpt: string;
-  category: string;
+  categorie: string;
   date: string;
   dateIso: string;
   readTime: string;
@@ -136,18 +136,18 @@ export default function Home() {
       try {
         const [articlesRes, categoriesRes] = await Promise.all([
           fetchApi<BackendArticle[]>('/v1/article/published').catch(() => []),
-          fetchApi<BackendCategory[]>('/v1/category').catch(() => [])
+          fetchApi<BackendCategorie[]>('/v1/categorie').catch(() => [])
         ]);
 
         const formattedArticles = articlesRes.slice(0, 6).map((article, index) => ({
           id: article.id,
           title: article.titre,
           excerpt: article.contenu ? article.contenu.substring(0, 100) + '...' : 'Pas de résumé disponible...',
-          category: article.category?.libelle || 'Général',
+          categorie: article.categorie?.libelle || 'Général',
           date: formatDate(article.published_at),
           dateIso: article.published_at,
           readTime: calculateReadTime(article.contenu),
-          icon: getCategoryIcon(article.category?.libelle || ''),
+          icon: getCategorieIcon(article.categorie?.libelle || ''),
           gradientClass: getGradientClass(index),
         }));
 
@@ -245,7 +245,7 @@ export default function Home() {
               <div className="flex gap-4 text-xs text-champagne font-montserrat">
                 <span className="flex items-center gap-1">
                   <featuredArticle.icon size={14} aria-hidden="true" />
-                  {featuredArticle.category}
+                  {featuredArticle.categorie}
                 </span>
                 <span>📅 {featuredArticle.date}</span>
                 <span>📖 {featuredArticle.readTime}</span>

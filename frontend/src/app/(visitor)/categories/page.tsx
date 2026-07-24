@@ -12,14 +12,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { fetchApi } from "@/lib/api";
 
 // ── Types pour l'API et l'UI ────────────────────────────────
-interface BackendCategory {
+interface BackendCategorie {
   id: number;
   libelle: string;
   description: string | null;
   icon: string; // Emoji stocké en base
 }
 
-interface UICategory {
+interface UICategorie {
   id: number;
   slug: string;
   name: string;
@@ -29,7 +29,7 @@ interface UICategory {
 }
 
 // ── Mapping dynamique (Catégorie BDD -> Icône/Slug Front) ──
-const mapCategoryToUI = (libelle: string): { slug: string, icon: LucideIcon } => {
+const mapCategorieToUI = (libelle: string): { slug: string, icon: LucideIcon } => {
   const normalized = libelle.toLowerCase().trim();
   if (normalized.includes("culture")) return { slug: "culture", icon: Palette };
   if (normalized.includes("sport")) return { slug: "sport", icon: Trophy };
@@ -80,18 +80,18 @@ export default function CategoriesPage() {
   const toast = useToast();
   
   // États de chargement et de données
-  const [categories, setCategories] = useState<UICategory[]>([]);
+  const [categories, setCategories] = useState<UICategorie[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Récupération dynamique depuis la base de données
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        const data = await fetchApi<BackendCategory[]>('/v1/category');
+        const data = await fetchApi<BackendCategorie[]>('/v1/categorie');
         
         // On formate les données de la BDD pour notre affichage Front
-        const mappedData: UICategory[] = data.map(cat => {
-          const uiStyles = mapCategoryToUI(cat.libelle);
+        const mappedData: UICategorie[] = data.map(cat => {
+          const uiStyles = mapCategorieToUI(cat.libelle);
           return {
             id: cat.id,
             slug: uiStyles.slug,
@@ -113,9 +113,9 @@ export default function CategoriesPage() {
     loadCategories();
   }, []);
 
-  function handleSubscribe(type: "email" | "push", categoryName: string) {
+  function handleSubscribe(type: "email" | "push", categorieName: string) {
     const label = type === "email" ? "email" : "notifications push";
-    toast.show(`✅ Abonnement ${label} enregistré pour « ${categoryName} »`);
+    toast.show(`✅ Abonnement ${label} enregistré pour « ${categorieName} »`);
   }
 
   return (
@@ -177,7 +177,7 @@ export default function CategoriesPage() {
                   className="group bg-blanc border border-champagne/30 rounded-2xl overflow-hidden transition-all hover:-translate-y-1 hover:shadow-xl hover:border-or/50"
                 >
                   <Link
-                    href={`/articles?category=${cat.slug}`}
+                    href={`/articles?categorie=${cat.slug}`}
                     className="flex items-center gap-4 p-6 pb-4"
                     aria-label={`Voir les articles de la catégorie ${cat.name}`}
                   >

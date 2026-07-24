@@ -3,7 +3,7 @@ import { CustomBaseEntity } from 'src/common/base/base.entity';
 import { FavorisCategorie } from 'src/favoris-categorie/entities/favoris-categorie.entity/favoris-categorie.entity';
 import { Entity, Column, OneToMany } from 'typeorm';
 
-@Entity('category')
+@Entity('categorie')
 export class Categorie extends CustomBaseEntity {
   @Column({ type: 'varchar', length: 100 })
   libelle!: string;
@@ -20,9 +20,9 @@ export class Categorie extends CustomBaseEntity {
 
   // --- RELATIONS ---
 
-  @OneToMany(() => Article, (article) => article.category)
+  @OneToMany(() => Article, (article) => article.categorie)
   articles!: Article[];
 
-  @OneToMany(() => FavorisCategorie, (fc) => fc.category)
+  @OneToMany(() => FavorisCategorie, (fc) => fc.categorie)
   favorisCategories!: FavorisCategorie[];
 }

@@ -16,8 +16,8 @@ export class FavorisCategorie {
   @PrimaryColumn({ name: 'user_id' })
   userId!: number;
 
-  @PrimaryColumn({ name: 'category_id' })
-  categoryId!: number;
+  @PrimaryColumn({ name: 'categorie_id' })
+  categorieId!: number;
 
   @Column({ type: 'boolean', default: true })
   wants_notifications!: boolean;
@@ -33,12 +33,12 @@ export class FavorisCategorie {
   @JoinColumn({ name: 'user_id' })
   user!: Users;
 
-  @ManyToOne(() => Categorie, (category) => category.favorisCategories, {
+  @ManyToOne(() => Categorie, (categorie) => categorie.favorisCategories, {
     onDelete: 'CASCADE',
   })
-  @JoinColumn({ name: 'category_id' })
-  category!: Categorie;
+  @JoinColumn({ name: 'categorie_id' })
+  categorie!: Categorie;
 
-  @OneToMany(() => FavorisCategorie, (fc) => fc.category)
+  @OneToMany(() => FavorisCategorie, (fc) => fc.categorie)
   favorisCategories!: FavorisCategorie[];
 }

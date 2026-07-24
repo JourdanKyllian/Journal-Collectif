@@ -70,5 +70,5 @@ export class CreateArticleDto {
   })
   @IsInt({ message: "L'ID de la catégorie doit être un nombre entier" })
   @IsNotEmpty({ message: "L'article doit appartenir à une catégorie" })
-  categoryId!: number;
+  categorieId!: number;
 }

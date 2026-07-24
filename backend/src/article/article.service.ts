@@ -25,7 +25,7 @@ export class ArticleService {
     @InjectRepository(Users)
     private readonly usersRepository: Repository<Users>,
     @InjectRepository(Categorie)
-    private readonly categoryRepository: Repository<Categorie>,
+    private readonly categorieRepository: Repository<Categorie>,
     @InjectRepository(AuteurArticle)
     private readonly auteurArticleRepository: Repository<AuteurArticle>,
   ) {}
@@ -64,10 +64,10 @@ export class ArticleService {
       );
     }
 
-    const category = await this.categoryRepository.findOne({
-      where: { id: createArticleDto.categoryId },
+    const categorie = await this.categorieRepository.findOne({
+      where: { id: createArticleDto.categorieId },
     });
-    if (!category) throw new NotFoundException('Catégorie introuvable');
+    if (!categorie) throw new NotFoundException('Catégorie introuvable');
 
     let statutFinal =
       (createArticleDto.statut as ArticleStatus) || ArticleStatus.BROUILLON;
@@ -81,7 +81,7 @@ export class ArticleService {
     const newArticle = this.articleRepository.create({
       ...createArticleDto,
       statut: statutFinal,
-      category: category,
+      categorie: categorie,
       published_at: statutFinal === ArticleStatus.PUBLIE ? new Date() : null,
     });
 
@@ -109,7 +109,7 @@ export class ArticleService {
   async findOne(id: number) {
     const article = await this.articleRepository.findOne({
       where: { id },
-      relations: ['category', 'auteursArticles', 'auteursArticles.user'],
+      relations: ['categorie', 'auteursArticles', 'auteursArticles.user'],
       withDeleted: true,
     });
 
@@ -189,7 +189,7 @@ export class ArticleService {
   findAllPublished() {
     return this.articleRepository.find({
       where: { statut: ArticleStatus.PUBLIE },
-      relations: ['category', 'auteursArticles', 'auteursArticles.user'],
+      relations: ['categorie', 'auteursArticles', 'auteursArticles.user'],
       order: { published_at: 'DESC' },
     });
   }
@@ -201,7 +201,7 @@ export class ArticleService {
    */
   findAllAdmin() {
     return this.articleRepository.find({
-      relations: ['category', 'auteursArticles', 'auteursArticles.user'],
+      relations: ['categorie', 'auteursArticles', 'auteursArticles.user'],
       order: { created_at: 'DESC' },
     });
   }

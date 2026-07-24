@@ -9,8 +9,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CategorieService } from './categorie.service';
-import { CreateCategoryDto } from './dto/create-categorie.dto';
-import { UpdateCategoryDto } from './dto/update-categorie.dto';
+import { CreateCategorieDto as CreateCategorieDto } from './dto/create-categorie.dto';
+import { UpdateCategorieDto as UpdateCategorieDto } from './dto/update-categorie.dto';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -23,14 +23,14 @@ import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
  */
 @ApiTags('Categories')
 @ApiBearerAuth()
-@Controller('category')
+@Controller('categorie')
 export class CategorieController {
   /**
-   * Initialise le CategoryController.
+   * Initialise le CategorieController.
    *
-   * @param {CategorieService} categoryService - Le service gérant la logique métier des catégories.
+   * @param {CategorieService} categorieService - Le service gérant la logique métier des catégories.
    */
-  constructor(private readonly categoryService: CategorieService) {}
+  constructor(private readonly categorieService: CategorieService) {}
 
   /**
    * Récupère la liste de toutes les catégories.
@@ -40,7 +40,7 @@ export class CategorieController {
    */
   @Get()
   findAll() {
-    return this.categoryService.findAll();
+    return this.categorieService.findAll();
   }
 
   /**
@@ -52,21 +52,21 @@ export class CategorieController {
    */
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.categoryService.findOne(+id);
+    return this.categorieService.findOne(+id);
   }
 
   /**
    * Crée une nouvelle catégorie.
    * Réservé aux utilisateurs ayant le rôle 'Admin' ou 'moderateur'.
    *
-   * @param {CreateCategoryDto} createCategoryDto - L'objet de transfert de données contenant les détails de la catégorie à créer.
+   * @param {CreateCategorieDto} createCategorieDto - L'objet de transfert de données contenant les détails de la catégorie à créer.
    * @returns {Promise<any>} La catégorie nouvellement créée.
    */
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('Admin', 'moderateur')
-  create(@Body() createCategoryDto: CreateCategoryDto) {
-    return this.categoryService.create(createCategoryDto);
+  create(@Body() createCategorieDto: CreateCategorieDto) {
+    return this.categorieService.create(createCategorieDto);
   }
 
   /**
@@ -74,7 +74,7 @@ export class CategorieController {
    * Réservé aux utilisateurs ayant le rôle 'Admin' ou 'moderateur'.
    *
    * @param {string} id - L'identifiant unique de la catégorie à modifier.
-   * @param {UpdateCategoryDto} updateCategoryDto - L'objet de transfert de données contenant les champs à mettre à jour.
+   * @param {UpdateCategorieDto} updateCategorieDto - L'objet de transfert de données contenant les champs à mettre à jour.
    * @returns {Promise<any>} La catégorie mise à jour.
    */
   @Patch(':id')
@@ -82,9 +82,9 @@ export class CategorieController {
   @Roles('Admin', 'moderateur')
   update(
     @Param('id') id: string,
-    @Body() updateCategoryDto: UpdateCategoryDto,
+    @Body() updateCategorieDto: UpdateCategorieDto,
   ) {
-    return this.categoryService.update(+id, updateCategoryDto);
+    return this.categorieService.update(+id, updateCategorieDto);
   }
 
   /**
@@ -98,6 +98,6 @@ export class CategorieController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('Admin', 'moderateur')
   remove(@Param('id') id: string) {
-    return this.categoryService.remove(+id);
+    return this.categorieService.remove(+id);
   }
 }

@@ -38,13 +38,13 @@ interface RawArticle {
   excerpt?: string;
   content?: string;
   contenu?: string;
-  category?: string | { libelle?: string };
+  categorie?: string | { libelle?: string };
   publishedAt?: string;
   published_at?: string;
   createdAt?: string;
 }
 
-interface BackendCategory {
+interface BackendCategorie {
   id: number;
   libelle: string;
   icon: string; // Emoji
@@ -54,8 +54,8 @@ interface ArticleUI {
   id:            number;
   title:         string;
   excerpt:       string;
-  category:      string;
-  categorySlug:  string;
+  categorie:      string;
+  categorieSlug:  string;
   date:          string;
   dateIso:       string;
   readTime:      string;
@@ -63,7 +63,7 @@ interface ArticleUI {
   gradientClass: string;
 }
 
-interface FilterCategory {
+interface FilterCategorie {
   id: string;
   label: string;
 }
@@ -74,8 +74,8 @@ interface FilterCategory {
  * Déduit l'icône Lucide et le dégradé Tailwind en fonction du nom de la catégorie.
  * Si l'Admin crée une catégorie non reconnue, on lui assigne un style par défaut élégant.
  */
-const mapCategoryToUI = (categoryName: string): { icon: LucideIcon, gradient: string } => {
-  const normalized = categoryName.toLowerCase().trim();
+const mapCategorieToUI = (categorieName: string): { icon: LucideIcon, gradient: string } => {
+  const normalized = categorieName.toLowerCase().trim();
   
   if (normalized.includes("culture")) return { icon: Palette, gradient: "bg-linear-to-br from-vert to-noir" };
   if (normalized.includes("travaux")) return { icon: HardHat, gradient: "bg-linear-to-br from-vert/80 to-vert" };
@@ -143,11 +143,11 @@ function DateRangePicker({
 
 export default function ArticlesPage() {
   const [articles, setArticles] = useState<ArticleUI[]>([]);
-  const [categoryFilters, setCategoryFilters] = useState<FilterCategory[]>([]);
+  const [categorieFilters, setCategorieFilters] = useState<FilterCategorie[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   const [search,      setSearch]      = useState("");
-  const [category,    setCategory]    = useState<string>("all");
+  const [categorie,    setCategorie]    = useState<string>("all");
   const [dateFrom,    setDateFrom]    = useState("");
   const [dateTo,      setDateTo]      = useState("");
 
@@ -158,27 +158,27 @@ export default function ArticlesPage() {
         // On récupère TOUT en même temps avec Promise.all pour optimiser le temps de chargement
         const [rawArticles, rawCategories] = await Promise.all([
           fetchApi<RawArticle[]>('/v1/article/published'),
-          fetchApi<BackendCategory[]>('/v1/category')
+          fetchApi<BackendCategorie[]>('/v1/categorie')
         ]);
 
         // 1. Formatage des Catégories pour les filtres
-        const formattedCategories: FilterCategory[] = [
+        const formattedCategories: FilterCategorie[] = [
           { id: "all", label: "Tous" }, // On garde toujours l'option "Tous"
           ...rawCategories.map(cat => ({
             id: generateSlug(cat.libelle),
             label: `${cat.icon} ${cat.libelle}`
           }))
         ];
-        setCategoryFilters(formattedCategories);
+        setCategorieFilters(formattedCategories);
 
         // 2. Formatage des Articles
         const formattedArticles: ArticleUI[] = rawArticles.map((item) => {
-          const categoryName = typeof item.category === 'object' && item.category !== null 
-            ? (item.category as { libelle?: string }).libelle || 'Annonces' 
-            : item.category || 'Annonces';
+          const categorieName = typeof item.categorie === 'object' && item.categorie !== null 
+            ? (item.categorie as { libelle?: string }).libelle || 'Annonces' 
+            : item.categorie || 'Annonces';
           
-          const uiStyles = mapCategoryToUI(categoryName);
-          const slug = generateSlug(categoryName); // Le slug permet de lier avec les boutons filtres
+          const uiStyles = mapCategorieToUI(categorieName);
+          const slug = generateSlug(categorieName); // Le slug permet de lier avec les boutons filtres
           const rawDate = item.publishedAt || item.published_at || item.createdAt || Date.now();
           const pubDate = new Date(rawDate);
 
@@ -189,8 +189,8 @@ export default function ArticlesPage() {
             id: item.id,
             title: titleText,
             excerpt: bodyText.length > 100 ? bodyText.substring(0, 100) + '...' : bodyText, 
-            category: categoryName,
-            categorySlug: slug,
+            categorie: categorieName,
+            categorieSlug: slug,
             date: pubDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }),
             dateIso: pubDate.toISOString().split('T')[0],
             readTime: "3 min", // Calcul réel à implémenter si besoin
@@ -217,7 +217,7 @@ export default function ArticlesPage() {
 
     return sorted.filter((article) => {
       // Filtrage par slug dynamique
-      if (category !== "all" && article.categorySlug !== category) return false;
+      if (categorie !== "all" && article.categorieSlug !== categorie) return false;
 
       if (search.trim()) {
         const q = search.trim().toLowerCase();
@@ -232,13 +232,13 @@ export default function ArticlesPage() {
 
       return true;
     });
-  }, [articles, search, category, dateFrom, dateTo]);
+  }, [articles, search, categorie, dateFrom, dateTo]);
 
   const clearAll = useCallback(() => {
-    setSearch(""); setCategory("all"); setDateFrom(""); setDateTo("");
+    setSearch(""); setCategorie("all"); setDateFrom(""); setDateTo("");
   }, []);
 
-  const hasActiveFilter = search || category !== "all" || dateFrom || dateTo;
+  const hasActiveFilter = search || categorie !== "all" || dateFrom || dateTo;
 
   return (
     <div className="w-full">
@@ -292,14 +292,14 @@ export default function ArticlesPage() {
                   <Skeleton key={i} className="h-9 w-24 rounded-full" />
                 ))
               ) : (
-                categoryFilters.map((cat) => (
+                categorieFilters.map((cat) => (
                   <button
                     key={cat.id}
-                    onClick={() => setCategory(cat.id)}
-                    aria-pressed={category === cat.id}
+                    onClick={() => setCategorie(cat.id)}
+                    aria-pressed={categorie === cat.id}
                     className={`
                       font-montserrat font-bold text-sm px-5 py-2 rounded-full transition-all
-                      ${category === cat.id
+                      ${categorie === cat.id
                         ? "bg-or text-noir shadow-md"
                         : "bg-champagne/20 text-noir hover:bg-or/70 hover:text-noir"}
                     `}

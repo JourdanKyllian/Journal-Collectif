@@ -6,7 +6,7 @@
  * @property {string} title - Titre de l'article.
  * @property {string} excerpt - Résumé ou court extrait de l'article.
  * @property {string} content - Contenu complet de l'article.
- * @property {string} category - Catégorie de l'article.
+ * @property {string} categorie - Catégorie de l'article.
  * @property {string} publishedAt - Date de publication.
  * @property {string} readTime - Temps de lecture estimé.
  */
@@ -15,7 +15,7 @@ export interface Article {
   title: string;
   excerpt: string;
   content: string;
-  category: string;
+  categorie: string;
   publishedAt: string;
   readTime: string;
 }

@@ -28,7 +28,7 @@ describe('ArticleService - Gestion du contenu et règles SEO', () => {
     findOne: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
   };
 
-  const mockCategoryRepository = {
+  const mockCategorieRepository = {
     findOne: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
   };
 
@@ -59,7 +59,7 @@ describe('ArticleService - Gestion du contenu et règles SEO', () => {
         },
         {
           provide: getRepositoryToken(Categorie),
-          useValue: mockCategoryRepository,
+          useValue: mockCategorieRepository,
         },
         {
           provide: getRepositoryToken(AuteurArticle),
@@ -83,7 +83,7 @@ describe('ArticleService - Gestion du contenu et règles SEO', () => {
         is_phone_verified: false,
       });
 
-      const dto = { titre: 'Titre', categoryId: 1 } as unknown as CreateDto;
+      const dto = { titre: 'Titre', categorieId: 1 } as unknown as CreateDto;
 
       await expect(service.create(dto, 2, 'journaliste')).rejects.toThrow(
         ForbiddenException,
@@ -97,14 +97,14 @@ describe('ArticleService - Gestion du contenu et règles SEO', () => {
         profile: { firstname: 'K', lastname: 'L' },
       });
 
-      mockCategoryRepository.findOne.mockResolvedValue({
+      mockCategorieRepository.findOne.mockResolvedValue({
         id: 1,
         libelle: 'Tech',
       });
 
       const dto = {
         titre: 'Scoop',
-        categoryId: 1,
+        categorieId: 1,
         statut: ArticleStatus.PUBLIE,
       } as unknown as CreateDto;
 
@@ -121,14 +121,14 @@ describe('ArticleService - Gestion du contenu et règles SEO', () => {
         profile: { firstname: 'Admin', lastname: 'Boss' },
       });
 
-      mockCategoryRepository.findOne.mockResolvedValue({
+      mockCategorieRepository.findOne.mockResolvedValue({
         id: 1,
         libelle: 'Tech',
       });
 
       const dto = {
         titre: 'Article pas fini',
-        categoryId: 1,
+        categorieId: 1,
         statut: ArticleStatus.BROUILLON,
       } as unknown as CreateDto;
 
@@ -145,14 +145,14 @@ describe('ArticleService - Gestion du contenu et règles SEO', () => {
         profile: { firstname: 'Admin', lastname: 'Boss' },
       });
 
-      mockCategoryRepository.findOne.mockResolvedValue({
+      mockCategorieRepository.findOne.mockResolvedValue({
         id: 1,
         libelle: 'Tech',
       });
 
       const dto = {
         titre: 'Annonce importante',
-        categoryId: 1,
+        categorieId: 1,
         statut: ArticleStatus.PUBLIE,
       } as unknown as CreateDto;
 

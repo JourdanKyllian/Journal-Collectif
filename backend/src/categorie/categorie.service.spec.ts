@@ -1,5 +1,5 @@
 /**
- * Suite de tests unitaires pour le service CategoryService.
+ * Suite de tests unitaires pour le service CategorieService.
  * Valide le cycle de vie des catégories (création, gestion des doublons, suppression)
  * et la conformité de la stratégie de réponses HTTP (404, 410) pour l'optimisation SEO.
  */
@@ -43,11 +43,11 @@ type MockRepository = {
 type CreateDto = Parameters<CategorieService['create']>[0];
 type UpdateDto = Parameters<CategorieService['update']>[1];
 
-describe('CategoryService', () => {
+describe('CategorieService', () => {
   let service: CategorieService;
   let repository: MockRepository;
 
-  const mockCategoryRepository = {
+  const mockCategorieRepository = {
     find: jest.fn(),
     findOne: jest.fn(),
     create: jest.fn().mockImplementation((dto: unknown) => dto),
@@ -65,7 +65,7 @@ describe('CategoryService', () => {
         CategorieService,
         {
           provide: getRepositoryToken(Categorie),
-          useValue: mockCategoryRepository,
+          useValue: mockCategorieRepository,
         },
       ],
     }).compile();
@@ -136,26 +136,26 @@ describe('CategoryService', () => {
     });
 
     it("devrait retourner la catégorie si elle existe et n'est pas supprimée", async () => {
-      const validCategory = {
+      const validCategorie = {
         id: 1,
         libelle: 'Active',
         is_delete: false,
         deleted_at: null,
       };
-      repository.findOne.mockResolvedValue(validCategory);
+      repository.findOne.mockResolvedValue(validCategorie);
 
       const result = await service.findOne(1);
 
-      expect(result).toEqual(validCategory);
+      expect(result).toEqual(validCategorie);
     });
   });
 
   describe('update', () => {
     it('devrait mettre à jour une catégorie existante', async () => {
-      const validCategory = { id: 1, libelle: 'Tech' };
+      const validCategorie = { id: 1, libelle: 'Tech' };
       const updateDto = { libelle: 'Nouvelle Tech' } as unknown as UpdateDto;
 
-      repository.findOne.mockResolvedValue(validCategory);
+      repository.findOne.mockResolvedValue(validCategorie);
 
       await service.update(1, updateDto);
 
@@ -168,14 +168,14 @@ describe('CategoryService', () => {
 
   describe('remove', () => {
     it('devrait supprimer logiquement (Soft Delete) une catégorie', async () => {
-      const validCategory = { id: 1, libelle: 'Tech' };
+      const validCategorie = { id: 1, libelle: 'Tech' };
 
-      repository.findOne.mockResolvedValue(validCategory);
-      repository.softRemove.mockResolvedValue(validCategory);
+      repository.findOne.mockResolvedValue(validCategorie);
+      repository.softRemove.mockResolvedValue(validCategorie);
 
       await service.remove(1);
 
-      expect(repository.softRemove).toHaveBeenCalledWith(validCategory);
+      expect(repository.softRemove).toHaveBeenCalledWith(validCategorie);
     });
   });
 });

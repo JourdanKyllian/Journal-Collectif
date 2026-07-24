@@ -7,7 +7,7 @@ import { LucideIcon, CalendarDays, BookOpen } from "lucide-react";
  * @interface ArticleCardProps
  * @property {string} title - Le titre de l'article.
  * @property {string} excerpt - Le résumé ou extrait de l'article.
- * @property {string} category - La catégorie à laquelle appartient l'article.
+ * @property {string} categorie - La catégorie à laquelle appartient l'article.
  * @property {string} date - La date formatée de publication.
  * @property {string} readTime - Le temps de lecture estimé.
  * @property {LucideIcon} icon - L'icône Lucide représentant la catégorie.
@@ -17,7 +17,7 @@ import { LucideIcon, CalendarDays, BookOpen } from "lucide-react";
 interface ArticleCardProps {
   title: string;
   excerpt: string;
-  category: string;
+  categorie: string;
   date: string;
   readTime: string;
   icon: LucideIcon;
@@ -32,7 +32,7 @@ interface ArticleCardProps {
  * @returns {JSX.Element} La carte d'article rendue.
  */
 export default function ArticleCard({ 
-  title, excerpt, category, date, readTime, icon: Icon, gradientClass, href = "#" 
+  title, excerpt, categorie: categorie, date, readTime, icon: Icon, gradientClass, href = "#" 
 }: ArticleCardProps) {
   return (
     <Link 
@@ -42,7 +42,7 @@ export default function ArticleCard({
       <div className={`h-44 flex items-center justify-center relative ${gradientClass}`}>
         <Icon size={48} className="text-blanc opacity-90 group-hover:scale-110 transition-transform duration-300" />
         <span className="absolute bottom-3 left-3 bg-or text-noir font-poppins font-black text-xs px-3 py-1 rounded-full shadow-sm">
-          {category}
+          {categorie}
         </span>
       </div>
       <div className="p-5">
