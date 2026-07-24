@@ -110,25 +110,46 @@ export class AdminSeedService {
         this.logger.log(`Auteur Complet créé : auteur@journal.fr`);
       }
 
-      // 4. Création des 4 Catégories
+      // 4. Création des 4 Catégories avec TOUS les champs requis
       this.logger.log('Vérification et création des catégories...');
-      const categorieNames = [
-        'Actualités',
-        'Culture',
-        'Environnement',
-        'Vie Locale',
+      const categoriesData = [
+        {
+          libelle: 'Actualités',
+          description: "Toute l'actualité brûlante de la région.",
+          icon: '📰',
+          image_bandeau_url: 'https://fakeimg.pl/800x400/282828/eae0d0/?text=Actualites',
+        },
+        {
+          libelle: 'Culture',
+          description: 'Actualités culturelles de la ville et ses environs.',
+          icon: '🎭',
+          image_bandeau_url: 'https://fakeimg.pl/800x400/282828/eae0d0/?text=Culture',
+        },
+        {
+          libelle: 'Environnement',
+          description: 'Écologie, nature et développement durable.',
+          icon: '🌱',
+          image_bandeau_url: 'https://fakeimg.pl/800x400/282828/eae0d0/?text=Environnement',
+        },
+        {
+          libelle: 'Vie Locale',
+          description: 'Ce qui se passe près de chez vous au quotidien.',
+          icon: '🏘️',
+          image_bandeau_url: 'https://fakeimg.pl/800x400/282828/eae0d0/?text=Vie+Locale',
+        },
       ];
+
       const createdCategories: Categorie[] = [];
 
-      for (const libelle of categorieNames) {
+      for (const catData of categoriesData) {
         let cat = await this.categorieRepository.findOne({
-          where: { libelle },
+          where: { libelle: catData.libelle },
         });
         if (!cat) {
           cat = await this.categorieRepository.save(
-            this.categorieRepository.create({ libelle }),
+            this.categorieRepository.create(catData),
           );
-          this.logger.log(`Catégorie créée : ${libelle}`);
+          this.logger.log(`Catégorie créée : ${catData.libelle}`);
         }
         createdCategories.push(cat);
       }

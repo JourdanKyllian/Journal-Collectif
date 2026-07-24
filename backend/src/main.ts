@@ -98,9 +98,9 @@ async function bootstrap() {
       await dataSource.initialize();
     }
     await dataSource.runMigrations();
-    logger.log('Migrations exécutées et à jour.');
+    logger.log('✅ Migrations exécutées et à jour.');
   } catch (error) {
-    logger.error('Erreur critique lors des migrations :', error);
+    logger.error('❌ Erreur critique lors des migrations :', error);
   }
 
   // --- 2. EXÉCUTION DU SEEDING ---
@@ -111,16 +111,16 @@ async function bootstrap() {
 
     await tableSeedService.seed();
     await adminSeedService.seed();
-    logger.log('Seeding terminé avec succès.');
+    logger.log('✅ Seeding terminé avec succès.');
   } catch (error) {
-    logger.error('Erreur lors du seeding :', error);
+    logger.error('❌ Erreur lors du seeding :', error);
   }
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port, '0.0.0.0');
 
-  logger.log(`Serveur lancé sur : http://localhost:${port}/api/v1`);
-  logger.log(`Documentation API sur : http://localhost:${port}/api/docs`);
+  logger.log(`🚀 Serveur lancé sur : http://localhost:${port}/api/v1`);
+  logger.log(`📄 Documentation API sur : http://localhost:${port}/api/docs`);
 }
 
 bootstrap().catch((err) => {
