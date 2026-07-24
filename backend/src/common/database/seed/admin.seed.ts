@@ -5,7 +5,10 @@ import * as bcrypt from 'bcrypt';
 import { Users } from '../../../users/entities/user.entity';
 import { Role } from '../../../roles/entities/roles.entity';
 import { Categorie } from '../../../categorie/entities/categorie.entity';
-import { Article, ArticleStatus } from '../../../article/entities/article.entity';
+import {
+  Article,
+  ArticleStatus,
+} from '../../../article/entities/article.entity';
 
 @Injectable()
 export class AdminSeedService {
@@ -85,7 +88,7 @@ export class AdminSeedService {
       }
 
       // 3. Compte VISITEUR COMPLET (Auteur)
-      let auteurUser = await this.usersRepository.findOne({
+      const auteurUser = await this.usersRepository.findOne({
         where: { email: 'auteur@journal.fr' },
       });
       if (!auteurUser) {
@@ -109,11 +112,18 @@ export class AdminSeedService {
 
       // 4. Création des 4 Catégories
       this.logger.log('Vérification et création des catégories...');
-      const categorieNames = ['Actualités', 'Culture', 'Environnement', 'Vie Locale'];
+      const categorieNames = [
+        'Actualités',
+        'Culture',
+        'Environnement',
+        'Vie Locale',
+      ];
       const createdCategories: Categorie[] = [];
 
       for (const libelle of categorieNames) {
-        let cat = await this.categorieRepository.findOne({ where: { libelle } }); 
+        let cat = await this.categorieRepository.findOne({
+          where: { libelle },
+        });
         if (!cat) {
           cat = await this.categorieRepository.save(
             this.categorieRepository.create({ libelle }),
@@ -127,24 +137,29 @@ export class AdminSeedService {
       this.logger.log("Vérification et création des articles d'exemple...");
       const sampleArticles = [
         {
-          titre: "Lancement du nouveau marché bio au centre-ville",
-          contenu: "Le centre-ville s'anime avec l'arrivée d'un nouveau marché bio tous les samedis matin. Producteurs locaux et habitants se sont réunis en nombre pour cette première édition.",
+          titre: 'Lancement du nouveau marché bio au centre-ville',
+          contenu:
+            "Le centre-ville s'anime avec l'arrivée d'un nouveau marché bio tous les samedis matin. Producteurs locaux et habitants se sont réunis en nombre pour cette première édition.",
           categorie: createdCategories[3], // Vie Locale
         },
         {
-          titre: "Exposition de peintures modernes à la bibliothèque",
-          contenu: "Une rétrospective exceptionnelle des œuvres de peintres de la région est à découvrir gratuitement tout au long du mois dans le grand hall de la bibliothèque municipale.",
+          titre: 'Exposition de peintures modernes à la bibliothèque',
+          contenu:
+            'Une rétrospective exceptionnelle des œuvres de peintres de la région est à découvrir gratuitement tout au long du mois dans le grand hall de la bibliothèque municipale.',
           categorie: createdCategories[1], // Culture
         },
         {
           titre: "Nouveau plan vélo : les pistes cyclables s'agrandissent",
-          contenu: "La municipalité annonce la création de 5 kilomètres de pistes cyclables supplémentaires pour encourager les mobilités douces et sécuriser les déplacements urbains.",
+          contenu:
+            'La municipalité annonce la création de 5 kilomètres de pistes cyclables supplémentaires pour encourager les mobilités douces et sécuriser les déplacements urbains.',
           categorie: createdCategories[2], // Environnement
         },
       ];
 
       for (const artData of sampleArticles) {
-        const articleExists = await this.articleRepository.findOne({ where: { titre: artData.titre } });
+        const articleExists = await this.articleRepository.findOne({
+          where: { titre: artData.titre },
+        });
         if (!articleExists) {
           await this.articleRepository.save(
             this.articleRepository.create({
@@ -157,7 +172,6 @@ export class AdminSeedService {
           this.logger.log(`Article créé : "${artData.titre}"`);
         }
       }
-
     } catch (error) {
       this.logger.error(
         `Erreur lors du seed :`,
