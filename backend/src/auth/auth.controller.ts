@@ -105,11 +105,6 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get('me')
   getProfile(@Request() req: RequestWithUser) {
-    const roleName = req.user.role;
-    return {
-      name: roleName === 'Admin' ? 'Admin Chalonnais' : 'Citoyen',
-      email: req.user.email,
-      role: roleName === 'Admin' ? 'admin' : 'user',
-    };
+    return this.authService.getMe(req.user.userId);
   }
 }

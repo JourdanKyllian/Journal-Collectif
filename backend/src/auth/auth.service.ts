@@ -156,4 +156,28 @@ export class AuthService {
         'Le frontend doit maintenant supprimer les tokens de son stockage local.',
     };
   }
+
+  // Retourne les infos de l'utilisateur connecté
+  async getMe(userId: number) {
+    const user = await this.usersRepository.findOne({
+      where: { id: userId },
+      relations: ['role', 'profile'],
+    });
+
+    if (!user) {
+      throw new NotFoundException('Utilisateur introuvable.');
+    }
+
+    // On formate un objet parfait et sécurisé pour le Front-end
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role?.libelle === 'Admin' ? 'admin' : 'user',
+      firstname: user.profile?.firstname || null,
+      lastname: user.profile?.lastname || null,
+      avatar_ref: user.profile?.avatar_ref || 'default_01',
+      bio: user.profile?.bio || null,
+      tel: user.profile?.tel || null,
+    };
+  }
 }

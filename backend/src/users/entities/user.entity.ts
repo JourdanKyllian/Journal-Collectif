@@ -1,4 +1,11 @@
-import { Entity, Column, ManyToOne, JoinColumn, OneToMany, OneToOne } from 'typeorm';
+import {
+  Entity,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+  OneToOne,
+} from 'typeorm';
 import { Role } from '../../roles/entities/roles.entity';
 import { DeclarationObjet } from '../../declaration-objet/entities/declaration-objet.entity';
 import { VueStatistique } from '../../vue-statistique/entities/vue-statistique.entity';
