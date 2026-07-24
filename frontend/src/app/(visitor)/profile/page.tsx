@@ -133,8 +133,8 @@ export default function ProfilePage() {
     return (
       <div className="w-full min-h-[calc(100vh-70px)] bg-blanc py-12 px-6 flex justify-center">
         <div className="max-w-6xl w-full grid grid-cols-1 md:grid-cols-4 gap-8">
-          <Skeleton className="h-[250px] md:h-[350px] rounded-2xl md:col-span-1" />
-          <Skeleton className="h-[450px] rounded-2xl md:col-span-3" />
+          <Skeleton className="h-62.5 md:h-87.5 rounded-2xl md:col-span-1" />
+          <Skeleton className="h-112.5 rounded-2xl md:col-span-3" />
         </div>
       </div>
     );
