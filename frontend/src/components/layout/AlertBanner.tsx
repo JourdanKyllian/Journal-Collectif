@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { AlertTriangle, Info, X, ChevronLeft, ChevronRight } from "lucide-react";
 
 // ── Données des alertes ──────────────────────────────────────
@@ -25,6 +26,7 @@ const ALERTS = [
  * @returns {JSX.Element | null} Le composant de bannière rendu ou null si fermé.
  */
 export default function AlertBanner() {
+  const pathname = usePathname();
   const [currentIdx, setCurrentIdx]   = useState(0);
   const [visible, setVisible]         = useState(true);
   const [dismissed, setDismissed]     = useState(false);
@@ -63,7 +65,9 @@ export default function AlertBanner() {
     triggerTransition(next);
   }
 
-  if (dismissed || ALERTS.length === 0) return null;
+  // --- RÈGLE D'AFFICHAGE ---
+  // Si on est sur la page profil, ou si l'utilisateur a fermé la bannière, ou s'il n'y a pas d'alerte : on ne retourne rien.
+  if (pathname === '/profile' || dismissed || ALERTS.length === 0) return null;
 
   const alert = ALERTS[currentIdx];
   const isUrgent = alert.type === "urgent";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Landmark, Crown, User, ArrowRight } from "lucide-react";
+import { Landmark, Crown, User, ArrowRight, PenTool } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,25 +45,30 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModal
     setIsLoading(true);
 
     try {
-      // Le backend pose les cookies HTTP-Only automatiquement
+      // 1. Authentification (le backend pose les cookies HTTP-Only)
       await fetchApi('/v1/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       });
 
-      // Déduction du rôle selon l'email de démo ou la structure
-      const isAdmin = email.includes('admin');
+      // 2. Récupération de l'identité en base de données
+      const userData: any = await fetchApi('/v1/auth/me');
+      
+      // 3. Formatage pour la Navbar
+      const fullName = userData.firstname && userData.lastname 
+        ? `${userData.firstname} ${userData.lastname}` 
+        : "Citoyen Anonyme";
 
       onLoginSuccess({
-        name: isAdmin ? "Admin Chalonnais" : "Citoyen",
-        email: email,
-        role: isAdmin ? 'admin' : 'user'
+        name: fullName,
+        email: userData.email,
+        role: userData.role
       });
 
       onClose();
     } catch (err: unknown) {
       const errObj = err as Error;
-      setError(errObj.message || "Erreur de connexion");
+      setError(errObj.message || "Erreur de connexion. Vérifiez vos identifiants.");
     } finally {
       setIsLoading(false);
     }
@@ -162,15 +167,27 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModal
                 </span>
                 <Badge className="bg-or text-noir font-poppins font-black text-[10px] border-0">Admin</Badge>
               </button>
+
+              <button 
+                type="button"
+                onClick={() => fillDemo('auteur@journal.fr', 'auteur123')}
+                className="w-full flex items-center justify-between px-4 py-3 bg-blanc border border-champagne/20 rounded-xl hover:border-or transition-all group"
+              >
+                <span className="font-montserrat font-bold flex items-center gap-2.5 text-noir text-sm">
+                  <PenTool size={16} className="text-vert" /> auteur@journal.fr
+                </span>
+                <Badge className="bg-champagne/30 text-vert font-poppins font-black text-[10px] border-0">Auteur</Badge>
+              </button>
+
               <button 
                 type="button"
                 onClick={() => fillDemo('jean@exemple.fr', 'user123')}
                 className="w-full flex items-center justify-between px-4 py-3 bg-blanc border border-champagne/20 rounded-xl hover:border-or transition-all group"
               >
                 <span className="font-montserrat font-bold flex items-center gap-2.5 text-noir text-sm">
-                  <User size={16} className="text-vert" /> jean@exemple.fr
+                  <User size={16} className="text-champagne" /> jean@exemple.fr
                 </span>
-                <Badge className="bg-champagne/30 text-vert font-poppins font-black text-[10px] border-0">Citoyen</Badge>
+                <Badge className="bg-champagne/10 text-champagne font-poppins font-black text-[10px] border-0">Nouveau</Badge>
               </button>
             </div>
           </TabsContent>

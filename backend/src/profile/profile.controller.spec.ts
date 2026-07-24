@@ -47,7 +47,9 @@ describe('ProfileController', () => {
 
   describe('update (PATCH /profile/me)', () => {
     it('devrait extraire le userId de la requête et appeler le service avec le bon DTO', async () => {
-      const mockRequest = { user: { userId: 42 } } as unknown as RequestWithUser;
+      const mockRequest = {
+        user: { userId: 42 },
+      } as unknown as RequestWithUser;
       const updateDto = { lastname: 'Dupont' };
       const expectedResult = { id: 1, lastname: 'Dupont' };
 
