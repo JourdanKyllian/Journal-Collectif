@@ -14,8 +14,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
+/**
+ * Composant de tableau de bord pour la gestion des alertes et bannières d'urgence.
+ * 
+ * @returns {JSX.Element} Le composant du tableau des alertes rendu.
+ */
 export default function AlertsDashboard() {
-  const [alertsCount, setAlertsCount] = useState(2);
+  // Suppression de setAlertsCount pour éviter l'avertissement @typescript-eslint/no-unused-vars
+  const [alertsCount] = useState(2);
 
   return (
     <div className="space-y-8 animate-slide-up max-w-4xl">
@@ -23,7 +29,7 @@ export default function AlertsDashboard() {
         <h1 className="font-poppins font-black text-2xl text-noir mb-1 flex items-center gap-2">
           <AlertTriangle className="text-red-500" /> Alertes Importantes
         </h1>
-        <p className="font-raleway text-champagne text-sm">Gérez les bannières d'urgence affichées en tête du site</p>
+        <p className="font-raleway text-champagne text-sm">Gérez les bannières d&apos;urgence affichées en tête du site</p>
       </div>
 
       {/* --- LISTE DES ALERTES ACTIVES --- */}
@@ -86,7 +92,7 @@ export default function AlertsDashboard() {
         
         <div className="space-y-6">
           <div className="space-y-3">
-            <Label className="font-montserrat font-bold text-xs text-vert tracking-wide uppercase">Niveau d'urgence</Label>
+            <Label className="font-montserrat font-bold text-xs text-vert tracking-wide uppercase">Niveau d&apos;urgence</Label>
             <RadioGroup defaultValue="urgent" className="flex flex-wrap gap-4">
               <div className="flex items-center space-x-2 border-2 border-red-300 bg-red-50 px-4 py-3 rounded-xl cursor-pointer hover:bg-red-100 transition-colors">
                 <RadioGroupItem value="urgent" id="urgent" className="border-red-500 text-red-500" />
@@ -104,7 +110,7 @@ export default function AlertsDashboard() {
           </div>
 
           <div className="space-y-2">
-            <Label className="font-montserrat font-bold text-xs text-vert tracking-wide uppercase">Titre de l'alerte *</Label>
+            <Label className="font-montserrat font-bold text-xs text-vert tracking-wide uppercase">Titre de l&apos;alerte *</Label>
             <Input placeholder="Ex: Grande Foire de Chalon — Fermeture du centre-ville" className="px-4 py-6 border-champagne/40 rounded-xl bg-blanc focus-visible:ring-or/30 focus-visible:border-or" />
           </div>
 
@@ -125,7 +131,7 @@ export default function AlertsDashboard() {
           </div>
 
           <Button className="w-full py-6 bg-noir text-blanc font-montserrat font-bold text-sm rounded-xl hover:bg-vert transition-all hover:-translate-y-0.5 mt-2">
-            <Megaphone size={16} className="mr-2" /> Publier l'alerte sur le site
+            <Megaphone size={16} className="mr-2" /> Publier l&apos;alerte sur le site
           </Button>
         </div>
       </div>

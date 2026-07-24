@@ -1,6 +1,19 @@
 import Link from "next/link";
 import { LucideIcon, CalendarDays, BookOpen } from "lucide-react";
 
+/**
+ * Interface représentant les propriétés du composant ArticleCard.
+ * 
+ * @interface ArticleCardProps
+ * @property {string} title - Le titre de l'article.
+ * @property {string} excerpt - Le résumé ou extrait de l'article.
+ * @property {string} category - La catégorie à laquelle appartient l'article.
+ * @property {string} date - La date formatée de publication.
+ * @property {string} readTime - Le temps de lecture estimé.
+ * @property {LucideIcon} icon - L'icône Lucide représentant la catégorie.
+ * @property {string} gradientClass - Les classes Tailwind CSS pour le dégradé de la carte.
+ * @property {string} [href] - Le lien de redirection vers l'article complet.
+ */
 interface ArticleCardProps {
   title: string;
   excerpt: string;
@@ -12,6 +25,12 @@ interface ArticleCardProps {
   href?: string;
 }
 
+/**
+ * Composant de carte d'article affichant un aperçu visuel, textuel et métadonnées d'un article.
+ * 
+ * @param {ArticleCardProps} props - Les propriétés du composant.
+ * @returns {JSX.Element} La carte d'article rendue.
+ */
 export default function ArticleCard({ 
   title, excerpt, category, date, readTime, icon: Icon, gradientClass, href = "#" 
 }: ArticleCardProps) {

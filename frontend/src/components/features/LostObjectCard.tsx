@@ -1,8 +1,23 @@
 import { LucideIcon, MapPin, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+/**
+ * Type représentant les différents statuts possibles d'un objet perdu ou trouvé.
+ */
 export type ObjectStatus = "perdu" | "trouve" | "reclame";
 
+/**
+ * Interface représentant les propriétés du composant LostObjectCard.
+ * 
+ * @interface LostObjectCardProps
+ * @property {string} reference - La référence unique de l'objet (ex: #OBJ-0042).
+ * @property {string} title - Le titre ou la description courte de l'objet.
+ * @property {string} location - Le lieu où l'objet a été perdu ou trouvé.
+ * @property {string} date - La date de la déclaration.
+ * @property {ObjectStatus} status - Le statut actuel de l'objet.
+ * @property {LucideIcon} icon - L'icône Lucide représentant le type d'objet.
+ * @property {() => void} [onClickAction] - Fonction appelée lors du clic sur le bouton d'action.
+ */
 interface LostObjectCardProps {
   reference: string;
   title: string;
@@ -13,6 +28,12 @@ interface LostObjectCardProps {
   onClickAction?: () => void;
 }
 
+/**
+ * Composant de carte affichant les détails d'un objet perdu ou trouvé avec son statut et ses actions.
+ * 
+ * @param {LostObjectCardProps} props - Les propriétés du composant.
+ * @returns {JSX.Element} La carte d'objet rendu.
+ */
 export default function LostObjectCard({
   reference, title, location, date, status, icon: Icon, onClickAction
 }: LostObjectCardProps) {

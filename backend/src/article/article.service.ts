@@ -2,6 +2,7 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  GoneException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -12,6 +13,10 @@ import { Users } from '../users/entities/user.entity';
 import { Category } from '../categorie/entities/categorie.entity';
 import { AuteurArticle } from '../auteur-article/entities/auteur-article.entity/auteur-article.entity';
 
+/**
+ * Service gérant la logique métier des articles.
+ * Assure la gestion des permissions, la validation des profils auteurs et intègre les règles SEO (HTTP 410).
+ */
 @Injectable()
 export class ArticleService {
   constructor(
@@ -25,6 +30,16 @@ export class ArticleService {
     private readonly auteurArticleRepository: Repository<AuteurArticle>,
   ) {}
 
+  /**
+   * Crée un nouvel article et l'associe à son auteur.
+   *
+   * @param createArticleDto - Les données de création de l'article.
+   * @param userId - L'identifiant de l'utilisateur créant l'article.
+   * @param userRole - Le rôle de l'utilisateur.
+   * @returns {Promise<Article>} L'article sauvegardé en base de données.
+   * @throws {ForbiddenException} Si l'utilisateur n'est pas authentifié ou si son profil est incomplet.
+   * @throws {NotFoundException} Si la catégorie spécifiée n'existe pas.
+   */
   async create(
     createArticleDto: CreateArticleDto,
     userId: number,
@@ -32,32 +47,37 @@ export class ArticleService {
   ) {
     if (!userId) throw new ForbiddenException('Authentification invalide.');
 
-    // Vérification profil complet
-    const user = await this.usersRepository.findOne({ where: { id: userId } });
-    if (!user || !user.is_phone_verified || !user.firstname || !user.lastname) {
+    // Chargement de la relation 'profile' pour lire le prénom et le nom
+    const user = await this.usersRepository.findOne({
+      where: { id: userId },
+      relations: ['profile'],
+    });
+
+    if (
+      !user ||
+      !user.is_phone_verified ||
+      !user.profile?.firstname ||
+      !user.profile?.lastname
+    ) {
       throw new ForbiddenException(
-        'Profil incomplet (téléphone, nom, prénom requis).',
+        'Profil incomplet (téléphone vérifié, nom et prénom requis).',
       );
     }
 
-    // Vérification catégorie
     const category = await this.categoryRepository.findOne({
       where: { id: createArticleDto.categoryId },
     });
     if (!category) throw new NotFoundException('Catégorie introuvable');
 
-    // Gestion intelligente du statut
     let statutFinal =
       (createArticleDto.statut as ArticleStatus) || ArticleStatus.BROUILLON;
 
     if (['utilisateur', 'journaliste'].includes(userRole)) {
-      // Un journaliste ne peut pas publier direct : s'il essaie, ça passe "en attente"
       if (statutFinal === ArticleStatus.PUBLIE) {
         statutFinal = ArticleStatus.EN_ATTENTE;
       }
     }
 
-    // Création
     const newArticle = this.articleRepository.create({
       ...createArticleDto,
       statut: statutFinal,
@@ -67,7 +87,6 @@ export class ArticleService {
 
     const savedArticle = await this.articleRepository.save(newArticle);
 
-    // Liaison Auteur
     await this.auteurArticleRepository.save(
       this.auteurArticleRepository.create({
         article: savedArticle,
@@ -78,20 +97,52 @@ export class ArticleService {
     return savedArticle;
   }
 
+  /**
+   * Récupère un article par son identifiant avec ses relations.
+   * Valide le statut de l'article pour appliquer la stratégie SEO.
+   *
+   * @param id - L'identifiant de l'article.
+   * @returns {Promise<Article>} L'article demandé.
+   * @throws {NotFoundException} Si l'article n'a jamais existé.
+   * @throws {GoneException} Si l'article a été supprimé logiquement (Soft Delete).
+   */
+  async findOne(id: number) {
+    const article = await this.articleRepository.findOne({
+      where: { id },
+      relations: ['category', 'auteursArticles', 'auteursArticles.user'],
+      withDeleted: true,
+    });
+
+    if (!article) throw new NotFoundException('Article introuvable');
+
+    if (article.is_delete || article.deleted_at) {
+      throw new GoneException(
+        `L'article #${id} a été retiré de la plateforme.`,
+      );
+    }
+
+    return article;
+  }
+
+  /**
+   * Met à jour un article existant.
+   * Vérifie les permissions de modification et gère les transitions de statut sécurisées.
+   *
+   * @param id - L'identifiant de l'article à modifier.
+   * @param updateArticleDto - Les données à mettre à jour.
+   * @param userId - L'identifiant de l'utilisateur effectuant la requête.
+   * @param userRole - Le rôle de l'utilisateur.
+   * @returns {Promise<Article>} L'article mis à jour.
+   * @throws {ForbiddenException} Si l'utilisateur n'a pas les droits nécessaires de modification.
+   */
   async update(
     id: number,
     updateArticleDto: UpdateArticleDto,
     userId: number,
     userRole: string,
   ) {
-    const article = await this.articleRepository.findOne({
-      where: { id },
-      relations: ['auteursArticles', 'auteursArticles.user'],
-    });
+    const article = await this.findOne(id);
 
-    if (!article) throw new NotFoundException('Article introuvable');
-
-    // Seul l'auteur ou un Admin/Modo peut modifier
     const isAuthor = article.auteursArticles.some((a) => a.user.id === userId);
     const isManagement = ['Admin', 'moderateur'].includes(userRole);
 
@@ -99,14 +150,12 @@ export class ArticleService {
       throw new ForbiddenException('Modification interdite.');
     }
 
-    // Un journaliste ne peut pas publier direct
     if (updateArticleDto.statut && !isManagement) {
-      if ((updateArticleDto.statut as ArticleStatus) === ArticleStatus.PUBLIE) {
+      if (updateArticleDto.statut === ArticleStatus.PUBLIE) {
         updateArticleDto.statut = ArticleStatus.EN_ATTENTE;
       }
     }
 
-    // Si on passe en publié, on met la date
     if (
       (updateArticleDto.statut as ArticleStatus) === ArticleStatus.PUBLIE &&
       article.statut !== ArticleStatus.PUBLIE
@@ -118,21 +167,69 @@ export class ArticleService {
     return this.articleRepository.save(article);
   }
 
+  /**
+   * Force la publication immédiate d'un article.
+   *
+   * @param id - L'identifiant de l'article à publier.
+   * @returns {Promise<Article>} L'article publié avec sa date de publication mise à jour.
+   */
   async publishArticle(id: number) {
-    const article = await this.articleRepository.findOne({ where: { id } });
-    if (!article) throw new NotFoundException('Article introuvable');
+    const article = await this.findOne(id);
 
     article.statut = ArticleStatus.PUBLIE;
     article.published_at = new Date();
     return this.articleRepository.save(article);
   }
 
-  // Pour le site public (uniquement les publiés)
+  /**
+   * Récupère tous les articles ayant le statut PUBLIE.
+   *
+   * @returns {Promise<Article[]>} La liste des articles publiés triés par date de publication (décroissante).
+   */
   findAllPublished() {
     return this.articleRepository.find({
       where: { statut: ArticleStatus.PUBLIE },
       relations: ['category', 'auteursArticles', 'auteursArticles.user'],
       order: { published_at: 'DESC' },
     });
+  }
+
+  /**
+   * Récupère l'intégralité des articles pour les interfaces d'administration.
+   *
+   * @returns {Promise<Article[]>} La liste complète des articles triés par date de création (décroissante).
+   */
+  findAllAdmin() {
+    return this.articleRepository.find({
+      relations: ['category', 'auteursArticles', 'auteursArticles.user'],
+      order: { created_at: 'DESC' },
+    });
+  }
+
+  /**
+   * Supprime logiquement un article (Soft Delete).
+   * Restreint l'action aux auteurs de l'article ou au personnel d'administration.
+   *
+   * @param id - L'identifiant de l'article à supprimer.
+   * @param userId - L'identifiant de l'utilisateur effectuant la suppression.
+   * @param userRole - Le rôle de l'utilisateur.
+   * @returns {Promise<{ message: string; article: Article }>} Un objet contenant un message de confirmation et l'entité supprimée.
+   * @throws {ForbiddenException} Si l'utilisateur n'a pas les droits nécessaires.
+   */
+  async remove(id: number, userId: number, userRole: string) {
+    const article = await this.findOne(id);
+
+    const isAuthor = article.auteursArticles.some((a) => a.user.id === userId);
+    const isManagement = ['Admin', 'moderateur'].includes(userRole);
+
+    if (!isAuthor && !isManagement) {
+      throw new ForbiddenException('Suppression interdite.');
+    }
+
+    const removedArticle = await this.articleRepository.softRemove(article);
+    return {
+      message: `L'article #${id} a été supprimé avec succès.`,
+      article: removedArticle,
+    };
   }
 }

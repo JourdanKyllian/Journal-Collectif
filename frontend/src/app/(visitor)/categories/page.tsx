@@ -1,69 +1,46 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link   from "next/link";
 import {
   Palette, Trophy, HardHat, Siren,
-  PartyPopper, Megaphone, Building2,
-  ArrowRight, Bell, Mail, Smartphone, X,
+  PartyPopper, Megaphone, Building2, BookOpen,
+  ArrowRight, Bell, Mail, Smartphone, X, LucideIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { fetchApi } from "@/lib/api";
 
-// ── Catégories (incluant la nouvelle "Politique & Mairie") ──
-const CATEGORIES = [
-  {
-    id:          "culture",
-    name:        "Culture",
-    count:       42,
-    icon:        Palette,
-    description: "Expositions, spectacles, patrimoine et vie culturelle",
-  },
-  {
-    id:          "sport",
-    name:        "Sport",
-    count:       28,
-    icon:        Trophy,
-    description: "Résultats, compétitions et clubs locaux",
-  },
-  {
-    id:          "travaux",
-    name:        "Travaux",
-    count:       34,
-    icon:        HardHat,
-    description: "Chantiers, fermetures et aménagements urbains",
-  },
-  {
-    id:          "faits-divers",
-    name:        "Faits divers",
-    count:       15,
-    icon:        Siren,
-    description: "Accidents, incidents et alertes de sécurité",
-  },
-  {
-    id:          "evenements",
-    name:        "Événements",
-    count:       56,
-    icon:        PartyPopper,
-    description: "Fêtes, marchés, concerts et animations",
-  },
-  {
-    id:          "annonces",
-    name:        "Annonces",
-    count:       23,
-    icon:        Megaphone,
-    description: "Communiqués officiels et appels à projets",
-  },
-  // ── Nouvelle catégorie ────────────────────────────────────
-  {
-    id:          "politique",
-    name:        "Politique & Mairie",
-    count:       18,
-    icon:        Building2,
-    description: "Conseil municipal, élections et décisions locales",
-  },
-] as const;
+// ── Types pour l'API et l'UI ────────────────────────────────
+interface BackendCategory {
+  id: number;
+  libelle: string;
+  description: string | null;
+  icon: string; // Emoji stocké en base
+}
 
-// ── Mini-Toast maison (pas de librairie externe) ─────────────
+interface UICategory {
+  id: number;
+  slug: string;
+  name: string;
+  description: string;
+  icon: LucideIcon;
+  dbIcon: string;
+}
+
+// ── Mapping dynamique (Catégorie BDD -> Icône/Slug Front) ──
+const mapCategoryToUI = (libelle: string): { slug: string, icon: LucideIcon } => {
+  const normalized = libelle.toLowerCase().trim();
+  if (normalized.includes("culture")) return { slug: "culture", icon: Palette };
+  if (normalized.includes("sport")) return { slug: "sport", icon: Trophy };
+  if (normalized.includes("travaux")) return { slug: "travaux", icon: HardHat };
+  if (normalized.includes("divers") || normalized.includes("alerte")) return { slug: "faits-divers", icon: Siren };
+  if (normalized.includes("evénement") || normalized.includes("evenement")) return { slug: "evenements", icon: PartyPopper };
+  if (normalized.includes("politique") || normalized.includes("mairie")) return { slug: "politique", icon: Building2 };
+  return { slug: "annonces", icon: BookOpen };
+};
+
+// ── Mini-Toast maison ────────────────────────────────────────
 function useToast() {
   const [message, setMessage] = useState<string | null>(null);
 
@@ -75,7 +52,6 @@ function useToast() {
   return { message, show };
 }
 
-// ── Composant Toast inline ────────────────────────────────────
 function Toast({ message, onClose }: { message: string; onClose: () => void }) {
   return (
     <div
@@ -96,9 +72,46 @@ function Toast({ message, onClose }: { message: string; onClose: () => void }) {
   );
 }
 
-// ── Page Catégories ──────────────────────────────────────────
+/**
+ * Composant de la page des catégories d'articles.
+ * Affiche la grille des thématiques récupérées depuis l'API et permet de s'abonner.
+ */
 export default function CategoriesPage() {
   const toast = useToast();
+  
+  // États de chargement et de données
+  const [categories, setCategories] = useState<UICategory[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Récupération dynamique depuis la base de données
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const data = await fetchApi<BackendCategory[]>('/v1/category');
+        
+        // On formate les données de la BDD pour notre affichage Front
+        const mappedData: UICategory[] = data.map(cat => {
+          const uiStyles = mapCategoryToUI(cat.libelle);
+          return {
+            id: cat.id,
+            slug: uiStyles.slug,
+            name: cat.libelle,
+            description: cat.description || "Consultez les articles de cette thématique.",
+            icon: uiStyles.icon,
+            dbIcon: cat.icon
+          };
+        });
+        
+        setCategories(mappedData);
+      } catch (error) {
+        console.error("Erreur lors du chargement des catégories:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadCategories();
+  }, []);
 
   function handleSubscribe(type: "email" | "push", categoryName: string) {
     const label = type === "email" ? "email" : "notifications push";
@@ -107,23 +120,20 @@ export default function CategoriesPage() {
 
   return (
     <>
-      {/* ── Toast ──────────────────────────────────────────── */}
       {toast.message && (
         <Toast message={toast.message} onClose={() => {}} />
       )}
 
       <div className="w-full">
-        {/* ── En-tête ──────────────────────────────────────── */}
         <header className="bg-linear-to-br from-vert to-noir py-16 px-6 text-center">
           <h1 className="font-poppins font-black text-4xl text-blanc mb-3">
             Toutes les <span className="text-or">Catégories</span>
           </h1>
           <p className="font-raleway text-blanc/70 text-lg">
-            Filtrez les actualités selon vos centres d'intérêt — abonnez-vous pour ne rien manquer
+            Filtrez les actualités selon vos centres d&apos;intérêt — abonnez-vous pour ne rien manquer
           </p>
         </header>
 
-        {/* ── Grille catégories ────────────────────────────── */}
         <div className="max-w-7xl mx-auto px-6 py-14">
           <h2 className="font-montserrat font-black text-2xl mb-2">
             Choisissez une catégorie
@@ -132,75 +142,94 @@ export default function CategoriesPage() {
             Cliquez sur une catégorie pour consulter ses articles, ou abonnez-vous pour recevoir les nouveautés.
           </p>
 
-          <div
-            className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5"
-            role="list"
-            aria-label="Liste des catégories"
-          >
-            {CATEGORIES.map((cat) => (
-              <article
-                key={cat.id}
-                role="listitem"
-                className="group bg-blanc border border-champagne/30 rounded-2xl overflow-hidden transition-all hover:-translate-y-1 hover:shadow-xl hover:border-or/50"
-              >
-                {/* ── Ligne principale : lien vers les articles ── */}
-                {/*
-                  ↓ Utilise /articles?category=X pour bénéficier du
-                  prefetching Next.js et des filtres avancés de la page Presse.
-                */}
-                <Link
-                  href={`/articles?category=${cat.id}`}
-                  className="flex items-center gap-4 p-6 pb-4"
-                  aria-label={`Voir les articles de la catégorie ${cat.name}`}
+          {/* ── AFFICHAGE (SKELETON OU GRILLE BDD) ── */}
+          {isLoading ? (
+            // Skeleton Loader Vercel-style
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="bg-blanc border border-champagne/30 rounded-2xl overflow-hidden shadow-sm">
+                  <div className="flex items-center gap-4 p-6 pb-4">
+                    <Skeleton className="w-14 h-14 rounded-2xl shrink-0" />
+                    <div className="flex-1 space-y-2.5">
+                      <Skeleton className="h-5 w-24" />
+                      <Skeleton className="h-3 w-16" />
+                      <Skeleton className="h-3 w-full" />
+                    </div>
+                  </div>
+                  <div className="px-6 pb-5 pt-2 border-t border-champagne/15 flex items-center gap-2">
+                    <Skeleton className="h-8 w-20 rounded-lg ml-auto" />
+                    <Skeleton className="h-8 w-20 rounded-lg" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : categories.length > 0 ? (
+            // Grille des catégories récupérées depuis NestJS
+            <div
+              className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5"
+              role="list"
+              aria-label="Liste des catégories"
+            >
+              {categories.map((cat) => (
+                <article
+                  key={cat.id}
+                  role="listitem"
+                  className="group bg-blanc border border-champagne/30 rounded-2xl overflow-hidden transition-all hover:-translate-y-1 hover:shadow-xl hover:border-or/50"
                 >
-                  <div className="w-14 h-14 bg-or/10 border-2 border-or/20 rounded-2xl flex items-center justify-center shrink-0 group-hover:bg-or/20 group-hover:border-or/40 transition-all">
-                    <cat.icon
-                      size={24}
-                      className="text-or"
+                  <Link
+                    href={`/articles?category=${cat.slug}`}
+                    className="flex items-center gap-4 p-6 pb-4"
+                    aria-label={`Voir les articles de la catégorie ${cat.name}`}
+                  >
+                    <div className="w-14 h-14 bg-or/10 border-2 border-or/20 rounded-2xl flex items-center justify-center shrink-0 group-hover:bg-or/20 group-hover:border-or/40 transition-all text-xl">
+                      {/* Affichage de l'icône Lucide */}
+                      <cat.icon size={24} className="text-or" aria-hidden="true" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-montserrat font-bold text-noir group-hover:text-vert transition-colors">
+                        {cat.name}
+                      </div>
+                      <div className="font-montserrat text-xs text-champagne mt-0.5 flex items-center gap-1">
+                        {cat.dbIcon} Section officielle
+                      </div>
+                      <div className="font-raleway text-xs text-champagne/80 mt-1 line-clamp-1">
+                        {cat.description}
+                      </div>
+                    </div>
+                    <ArrowRight
+                      size={20}
+                      className="text-champagne group-hover:text-or group-hover:translate-x-1 transition-all shrink-0"
                       aria-hidden="true"
                     />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-montserrat font-bold text-noir group-hover:text-vert transition-colors">
-                      {cat.name}
-                    </div>
-                    <div className="font-montserrat text-xs text-champagne mt-0.5">
-                      {cat.count} articles
-                    </div>
-                    <div className="font-raleway text-xs text-champagne/80 mt-1 line-clamp-1">
-                      {cat.description}
-                    </div>
-                  </div>
-                  <ArrowRight
-                    size={20}
-                    className="text-champagne group-hover:text-or group-hover:translate-x-1 transition-all shrink-0"
-                    aria-hidden="true"
-                  />
-                </Link>
+                  </Link>
 
-                {/* ── Boutons d'abonnement ──────────────────── */}
-                <div className="px-6 pb-5 pt-2 border-t border-champagne/15 flex items-center gap-2">
-                  <span className="font-montserrat text-xs text-champagne mr-auto">
-                    S'abonner :
-                  </span>
-                  <button
-                    onClick={() => handleSubscribe("email", cat.name)}
-                    aria-label={`S'abonner par email à la catégorie ${cat.name}`}
-                    className="flex items-center gap-1.5 font-montserrat font-bold text-xs px-3 py-1.5 rounded-lg bg-champagne/15 text-vert hover:bg-or hover:text-noir transition-all"
-                  >
-                    <Mail size={13} aria-hidden="true" /> Email
-                  </button>
-                  <button
-                    onClick={() => handleSubscribe("push", cat.name)}
-                    aria-label={`S'abonner aux notifications push pour la catégorie ${cat.name}`}
-                    className="flex items-center gap-1.5 font-montserrat font-bold text-xs px-3 py-1.5 rounded-lg bg-champagne/15 text-vert hover:bg-or hover:text-noir transition-all"
-                  >
-                    <Smartphone size={13} aria-hidden="true" /> Push
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
+                  <div className="px-6 pb-5 pt-2 border-t border-champagne/15 flex items-center gap-2">
+                    <span className="font-montserrat text-xs text-champagne mr-auto">
+                      S&apos;abonner :
+                    </span>
+                    <button
+                      onClick={() => handleSubscribe("email", cat.name)}
+                      aria-label={`S'abonner par email à la catégorie ${cat.name}`}
+                      className="flex items-center gap-1.5 font-montserrat font-bold text-xs px-3 py-1.5 rounded-lg bg-champagne/15 text-vert hover:bg-or hover:text-noir transition-all"
+                    >
+                      <Mail size={13} aria-hidden="true" /> Email
+                    </button>
+                    <button
+                      onClick={() => handleSubscribe("push", cat.name)}
+                      aria-label={`S'abonner aux notifications push pour la catégorie ${cat.name}`}
+                      className="flex items-center gap-1.5 font-montserrat font-bold text-xs px-3 py-1.5 rounded-lg bg-champagne/15 text-vert hover:bg-or hover:text-noir transition-all"
+                    >
+                      <Smartphone size={13} aria-hidden="true" /> Push
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-20 bg-champagne/5 rounded-2xl border border-champagne/20">
+              <p className="font-montserrat font-semibold text-champagne">Aucune catégorie n&apos;a été créée pour le moment.</p>
+            </div>
+          )}
 
           {/* ── CTA global ───────────────────────────────────── */}
           <div className="mt-12 bg-linear-to-br from-vert to-noir rounded-2xl p-8 flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">

@@ -1,25 +1,69 @@
-import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
-import { Request as ExpressRequest } from 'express';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Request,
+  Res,
+  Get,
+  Patch,
+} from '@nestjs/common';
+import type { Response, Request as ExpressRequest } from 'express';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RefreshDto } from './dto/refresh.dto';
+import { UpdateSecurityDto } from './dto/update-security.dto';
 
 interface RequestWithUser extends ExpressRequest {
   user: {
     userId: number;
-    // Peut ajouter email ou role ici au besoins
+    email: string;
+    role: string;
   };
 }
 
+/**
+ * Contrôleur exposant les endpoints liés à l'authentification et à la gestion de session.
+ */
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  /**
+   * Retourne la configuration stricte des cookies (HTTPOnly, SameSite, Secure).
+   */
+  private get cookieOptions() {
+    return {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax' as const,
+      path: '/',
+    };
+  }
+
   @Post('login')
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto.email, loginDto.password);
+  async login(
+    @Body() loginDto: LoginDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const tokens = await this.authService.login(
+      loginDto.email,
+      loginDto.password,
+    );
+
+    res.cookie('access_token', tokens.access_token, {
+      ...this.cookieOptions,
+      maxAge: 1000 * 60 * 60,
+    });
+
+    res.cookie('refresh_token', tokens.refresh_token, {
+      ...this.cookieOptions,
+      maxAge: 1000 * 60 * 60 * 24 * 7,
+    });
+
+    return { message: 'Connexion réussie' };
   }
 
   @Post('register')
@@ -28,14 +72,56 @@ export class AuthController {
   }
 
   @Post('refresh')
-  async refresh(@Body() refreshDto: RefreshDto) {
-    return this.authService.refreshToken(refreshDto.refresh_token);
+  async refresh(
+    @Body() refreshDto: RefreshDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const tokens = await this.authService.refreshToken(
+      refreshDto.refresh_token,
+    );
+
+    res.cookie('access_token', tokens.access_token, {
+      ...this.cookieOptions,
+      maxAge: 1000 * 60 * 60,
+    });
+
+    res.cookie('refresh_token', tokens.refresh_token, {
+      ...this.cookieOptions,
+      maxAge: 1000 * 60 * 60 * 24 * 7,
+    });
+
+    return { message: 'Session renouvelée avec succès' };
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('logout')
-  // 👈 3. On applique notre nouveau type fort sur le paramètre req !
-  async logout(@Request() req: RequestWithUser) {
-    return this.authService.logout(req.user.userId);
+  async logout(
+    @Request() req: RequestWithUser,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    await this.authService.logout(req.user.userId);
+
+    res.cookie('access_token', '', { ...this.cookieOptions, maxAge: 0 });
+    res.cookie('refresh_token', '', { ...this.cookieOptions, maxAge: 0 });
+
+    return { message: 'Déconnexion réussie' };
+  }
+
+  /**
+   * Endpoint de validation de session renvoyant les informations de profil agrégées.
+   */
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  getProfile(@Request() req: RequestWithUser) {
+    return this.authService.getMe(req.user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('security')
+  updateSecurity(
+    @Request() req: RequestWithUser,
+    @Body() updateSecurityDto: UpdateSecurityDto,
+  ) {
+    return this.authService.updateSecurity(req.user.userId, updateSecurityDto);
   }
 }

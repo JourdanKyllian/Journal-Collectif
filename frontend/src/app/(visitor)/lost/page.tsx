@@ -5,6 +5,12 @@ import { Search, Plus, Backpack, Key, Smartphone, Dog, Glasses, Gem } from "luci
 import LostObjectCard, { ObjectStatus } from "@/components/features/LostObjectCard";
 import { Button } from "@/components/ui/button";
 
+/**
+ * Composant de la page publique des objets perdus ou trouvés.
+ * Permet de filtrer par statut et de consulter la liste des objets déclarés.
+ * 
+ * @returns {JSX.Element} La page des objets perdus rendue.
+ */
 export default function LostObjectsPage() {
   const [activeFilter, setActiveFilter] = useState("all");
 

@@ -1,54 +1,36 @@
-import { ApiErrorResponse } from "./types";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
-// Classe d'erreur personnalisée pour attraper facilement les codes HTTP
-export class ApiError extends Error {
-  public status: number;
-  public data?: any;
-
-  constructor(status: number, message: string, data?: any) {
-    super(message);
-    this.status = status;
-    this.data = data;
-    this.name = "ApiError";
+/**
+ * Wrapper asynchrone pour l'API Fetch.
+ * Gère automatiquement l'injection des en-têtes par défaut et la transmission des cookies sécurisés cross-origin.
+ *
+ * @param {string} endpoint - Le chemin de l'API à interroger (doit commencer par un slash).
+ * @param {RequestInit} [options={}] - Options natives de configuration de la requête Fetch.
+ * @returns {Promise<T>} Une promesse résolue avec le corps de la réponse formaté en JSON.
+ * @throws {Error} Lève une exception explicite si la réponse HTTP indique une erreur (ex: 401 Unauthorized).
+ */
+export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const headers = new Headers(options.headers || {});
+  
+  if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
+    headers.set('Content-Type', 'application/json');
   }
-}
 
-// L'URL de ton backend NestJS (à définir dans ton .env)
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
-
-type FetchOptions = RequestInit & {
-  // Types spécifiques à Next.js 15+ pour le cache
-  next?: {
-    revalidate?: number | false;
-    tags?: string[];
+  const config: RequestInit = { 
+    ...options, 
+    headers,
+    credentials: 'include'
   };
-};
+  
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
 
-export async function fetchApi<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
-
-  const config: RequestInit = {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  };
-
-  const response = await fetch(url, config);
+  if (response.status === 401) {
+       throw new Error("Session expirée ou non autorisée.");
+  }
 
   if (!response.ok) {
-    let errorData: ApiErrorResponse | string = response.statusText;
-    try {
-      errorData = await response.json();
-    } catch (e) {
-      // Le body n'est pas du JSON
-    }
-
-    const errorMessage = typeof errorData === 'string' ? errorData : errorData.message || 'Une erreur est survenue';
-    
-    // On lève notre erreur personnalisée
-    throw new ApiError(response.status, errorMessage, errorData);
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || `Erreur API: ${response.status}`);
   }
 
   return response.json();

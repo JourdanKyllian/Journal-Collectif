@@ -4,17 +4,25 @@ import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
+import cookieParser from 'cookie-parser';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 
+/**
+ * Initialise et démarre l'application backend NestJS.
+ *
+ * Configure la sécurité (Helmet, CORS), le journaliseur (Pino),
+ * le versionnage de l'API (URI), la validation globale des données,
+ * le filtre global d'exceptions, et génère la documentation Swagger.
+ *
+ * @async
+ * @returns {Promise<void>} Une promesse qui se résout lorsque l'application est en écoute.
+ */
 async function bootstrap() {
-  // BufferLogs en true permet à Pino de capturer les logs de démarrage de NestJS
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
-  // Confier les clés du camion à Pino
   app.useLogger(app.get(Logger));
+  app.use(cookieParser());
 
-  // --- SÉCURITÉ ---
-
-  // Protection des en-têtes HTTP
   app.use(
     helmet({
       crossOriginResourcePolicy: false,
@@ -29,19 +37,27 @@ async function bootstrap() {
     }),
   );
 
-  // CORS : Autoriser ton Frontend
   app.enableCors({
-    origin: [
-      'http://localhost:4200',
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'http://localhost:3000/api',
-    ],
+    origin: function (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) {
+      const allowedOrigins = [
+        'http://localhost',
+        'http://localhost:4200',
+        'http://localhost:5173',
+        'http://localhost:3000',
+        'http://localhost:3000/api',
+      ];
+      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
-
-  // --- CONFIGURATION GLOBALE ---
 
   app.setGlobalPrefix('api');
 
@@ -51,8 +67,7 @@ async function bootstrap() {
   });
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-
-  // --- SWAGGER ---
+  app.useGlobalFilters(new GlobalExceptionFilter());
 
   const config = new DocumentBuilder()
     .setTitle('Journal API')
@@ -64,20 +79,16 @@ async function bootstrap() {
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api-docs', app, document);
-
-  // --- DÉMARRAGE ---
+  SwaggerModule.setup('api/docs', app, document);
 
   const port = process.env.PORT ?? 3000;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 
-  // Vrai Logger au lieu de console.log pour formater en JSON
   const logger = app.get(Logger);
   logger.log(`Serveur lancé sur : http://localhost:${port}/api/v1`);
-  logger.log(`Documentation API sur : http://localhost:${port}/api-docs`);
+  logger.log(`Documentation API sur : http://localhost:${port}/api/docs`);
 }
 
 bootstrap().catch((err) => {
-  // Garder un console.error en dernier recours en cas de crash fatal avant l'init
   console.error('Erreur fatale lors du démarrage :', err);
 });

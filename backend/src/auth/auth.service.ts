@@ -75,10 +75,12 @@ export class AuthService {
     const newUser = this.usersRepository.create({
       email: registerDto.email,
       password: hashedPassword,
-      lastname: registerDto.lastname || null,
-      firstname: registerDto.firstname || null,
-      tel: registerDto.tel || null,
       role: userRole,
+      profile: {
+        lastname: registerDto.lastname || null,
+        firstname: registerDto.firstname || null,
+        tel: registerDto.tel || null,
+      },
     });
 
     const savedUser = await this.usersRepository.save(newUser);
@@ -91,7 +93,6 @@ export class AuthService {
 
   async refreshToken(refreshToken: string) {
     try {
-      // 💡 TYPAGE FORT ICI : On dit à verifyAsync ce qu'il va nous renvoyer
       const payload = await this.jwtService.verifyAsync<{
         sub: number;
         email: string;
@@ -152,5 +153,78 @@ export class AuthService {
       instruction:
         'Le frontend doit maintenant supprimer les tokens de son stockage local.',
     };
+  }
+
+  /**
+   * Récupère les données agrégées de l'utilisateur connecté (Auth + Profile).
+   *
+   * @param {number} userId - L'identifiant de l'utilisateur.
+   * @returns Les informations de profil formatées pour le client.
+   * @throws {NotFoundException} Si l'utilisateur est introuvable.
+   */
+  async getMe(userId: number) {
+    const user = await this.usersRepository.findOne({
+      where: { id: userId },
+      relations: ['role', 'profile'],
+    });
+
+    if (!user) {
+      throw new NotFoundException('Utilisateur introuvable.');
+    }
+
+    return {
+      id: user.id,
+      email: user.email,
+      role: user.role?.libelle === 'Admin' ? 'admin' : 'user',
+      firstname: user.profile?.firstname || null,
+      lastname: user.profile?.lastname || null,
+      avatar_ref: user.profile?.avatar_ref || 'default_01',
+      bio: user.profile?.bio || null,
+      tel: user.profile?.tel || null,
+    };
+  }
+
+  /**
+   * Met à jour les informations de sécurité sensibles (Email / Mot de passe).
+   * Exige le mot de passe actuel pour validation.
+   */
+  async updateSecurity(
+    userId: number,
+    dto: import('./dto/update-security.dto').UpdateSecurityDto,
+  ) {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Utilisateur introuvable.');
+
+    // 1. Vérification stricte de l'ancien mot de passe
+    const isMatch = await bcrypt.compare(dto.currentPassword, user.password);
+    if (!isMatch)
+      throw new UnauthorizedException('Le mot de passe actuel est incorrect.');
+
+    let hasChanges = false;
+
+    // 2. Traitement du nouvel email
+    if (dto.newEmail && dto.newEmail !== user.email) {
+      const emailExists = await this.usersRepository.findOne({
+        where: { email: dto.newEmail },
+      });
+      if (emailExists)
+        throw new ConflictException(
+          'Cet email est déjà utilisé par un autre compte.',
+        );
+      user.email = dto.newEmail;
+      hasChanges = true;
+    }
+
+    // 3. Traitement du nouveau mot de passe
+    if (dto.newPassword) {
+      user.password = await bcrypt.hash(dto.newPassword, 10);
+      hasChanges = true;
+    }
+
+    if (hasChanges) {
+      await this.usersRepository.save(user);
+    }
+
+    return { message: 'Paramètres de sécurité mis à jour avec succès.' };
   }
 }
