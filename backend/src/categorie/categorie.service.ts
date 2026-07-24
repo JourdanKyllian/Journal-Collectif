@@ -110,7 +110,8 @@ export class CategorieService {
    */
   async remove(id: number): Promise<{ message: string; categorie: Categorie }> {
     const categorie = await this.findOne(id);
-    const removedCategorie = await this.categorieRepository.softRemove(categorie);
+    const removedCategorie =
+      await this.categorieRepository.softRemove(categorie);
 
     return {
       message: `La catégorie #${id} a été supprimée avec succès.`,
