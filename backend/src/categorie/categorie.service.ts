@@ -11,8 +11,8 @@ import { CreateCategoryDto } from './dto/create-categorie.dto';
 import { UpdateCategoryDto } from './dto/update-categorie.dto';
 
 /**
- * Service gérant la logique métier des catégories.
- * Intègre les règles strictes de référencement (SEO) via les codes HTTP.
+ * Service de gestion des catégories.
+ * Implémente la validation centralisée et la stratégie de réponses SEO (HTTP 410).
  */
 @Injectable()
 export class CategoryService {
@@ -24,9 +24,9 @@ export class CategoryService {
   /**
    * Crée une nouvelle catégorie.
    *
-   * @param {CreateCategoryDto} createCategoryDto - Données de création.
-   * @returns {Promise<Category>} L'entité créée.
-   * @throws {ConflictException} Si le libellé existe déjà.
+   * @param createCategoryDto - Payload de création de la catégorie.
+   * @returns L'entité sauvegardée en base.
+   * @throws {ConflictException} En cas de doublon sur le libellé (inclut les entités supprimées logiquement).
    */
   async create(createCategoryDto: CreateCategoryDto): Promise<Category> {
     const existing = await this.categoryRepository.findOne({
@@ -45,9 +45,10 @@ export class CategoryService {
   }
 
   /**
-   * Récupère toutes les catégories actives.
+   * Récupère la liste des catégories actives.
+   * Exclut automatiquement les entités supprimées logiquement.
    *
-   * @returns {Promise<Category[]>} Liste des catégories.
+   * @returns Liste des catégories triées par date de création décroissante.
    */
   findAll(): Promise<Category[]> {
     return this.categoryRepository.find({
@@ -57,11 +58,12 @@ export class CategoryService {
 
   /**
    * Récupère une catégorie par son identifiant.
+   * Point d'entrée de validation pour les opérations de mutation (update, remove).
    *
-   * @param {number} id - L'identifiant de la catégorie.
-   * @returns {Promise<Category>} L'entité correspondante.
-   * @throws {NotFoundException} Si la catégorie n'a jamais existé.
-   * @throws {GoneException} Si la catégorie a été supprimée (Soft Delete).
+   * @param id - Identifiant unique de la catégorie.
+   * @returns L'entité correspondante.
+   * @throws {NotFoundException} Si l'entité est inexistante.
+   * @throws {GoneException} Si l'entité a fait l'objet d'une suppression logique (Soft Delete).
    */
   async findOne(id: number): Promise<Category> {
     const category = await this.categoryRepository.findOne({
@@ -83,26 +85,28 @@ export class CategoryService {
   }
 
   /**
-   * Met à jour une catégorie existante.
+   * Met à jour partiellement ou totalement une catégorie.
    *
-   * @param {number} id - L'identifiant de la catégorie.
-   * @param {UpdateCategoryDto} updateCategoryDto - Données de mise à jour.
-   * @returns {Promise<Category>} La catégorie mise à jour.
+   * @param id - Identifiant de la catégorie.
+   * @param updateCategoryDto - Payload de mise à jour.
+   * @returns L'entité mise à jour.
    */
   async update(
     id: number,
     updateCategoryDto: UpdateCategoryDto,
   ): Promise<Category> {
     const category = await this.findOne(id);
+    
     Object.assign(category, updateCategoryDto);
     return this.categoryRepository.save(category);
   }
 
   /**
-   * Effectue une suppression logique (Soft Delete) de la catégorie.
+   * Effectue une suppression logique (Soft Delete).
+   * Maintient l'intégrité référentielle en base de données.
    *
-   * @param {number} id - L'identifiant de la catégorie à supprimer.
-   * @returns {Promise<{ message: string; category: Category }>} Confirmation de suppression.
+   * @param id - Identifiant de la catégorie.
+   * @returns Objet de confirmation contenant l'entité altérée.
    */
   async remove(id: number): Promise<{ message: string; category: Category }> {
     const category = await this.findOne(id);

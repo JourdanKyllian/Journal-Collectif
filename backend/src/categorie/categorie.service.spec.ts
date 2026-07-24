@@ -1,3 +1,8 @@
+/**
+ * Suite de tests unitaires pour le service CategoryService.
+ * Valide le cycle de vie des catégories (création, gestion des doublons, suppression)
+ * et la conformité de la stratégie de réponses HTTP (404, 410) pour l'optimisation SEO.
+ */
 import { Test, TestingModule } from '@nestjs/testing';
 import { CategoryService } from './categorie.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
@@ -16,8 +21,14 @@ import {
   afterEach,
 } from '@jest/globals';
 
+/**
+ * Type générique unifié représentant une fonction simulée par Jest.
+ */
 type MockFunction = jest.Mock<(...args: any[]) => any>;
 
+/**
+ * Interface des méthodes du repository TypeORM simulées pour les tests.
+ */
 type MockRepository = {
   find: MockFunction;
   findOne: MockFunction;
@@ -26,6 +37,9 @@ type MockRepository = {
   softRemove: MockFunction;
 };
 
+/**
+ * Extraction des types DTO depuis la signature des méthodes du service.
+ */
 type CreateDto = Parameters<CategoryService['create']>[0];
 type UpdateDto = Parameters<CategoryService['update']>[1];
 
@@ -97,6 +111,7 @@ describe('CategoryService', () => {
       ]);
 
       const result = await service.findAll();
+      
       expect(result).toHaveLength(2);
       expect(result[0].libelle).toBe('Politique');
     });
@@ -105,6 +120,7 @@ describe('CategoryService', () => {
   describe('findOne - Stratégie SEO HTTP 410', () => {
     it("devrait lever une NotFoundException (404) si la catégorie n'existe pas", async () => {
       repository.findOne.mockResolvedValue(null);
+      
       await expect(service.findOne(999)).rejects.toThrow(NotFoundException);
     });
 
@@ -115,6 +131,7 @@ describe('CategoryService', () => {
         is_delete: true,
         deleted_at: new Date(),
       });
+      
       await expect(service.findOne(1)).rejects.toThrow(GoneException);
     });
 
@@ -128,6 +145,7 @@ describe('CategoryService', () => {
       repository.findOne.mockResolvedValue(validCategory);
 
       const result = await service.findOne(1);
+      
       expect(result).toEqual(validCategory);
     });
   });
@@ -140,6 +158,7 @@ describe('CategoryService', () => {
       repository.findOne.mockResolvedValue(validCategory);
 
       await service.update(1, updateDto);
+      
       expect(repository.save).toHaveBeenCalledWith({
         id: 1,
         libelle: 'Nouvelle Tech',
@@ -150,10 +169,12 @@ describe('CategoryService', () => {
   describe('remove', () => {
     it('devrait supprimer logiquement (Soft Delete) une catégorie', async () => {
       const validCategory = { id: 1, libelle: 'Tech' };
+      
       repository.findOne.mockResolvedValue(validCategory);
       repository.softRemove.mockResolvedValue(validCategory);
 
       await service.remove(1);
+      
       expect(repository.softRemove).toHaveBeenCalledWith(validCategory);
     });
   });

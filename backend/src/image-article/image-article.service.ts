@@ -10,9 +10,8 @@ import { ImageArticle } from './entities/image-article.entity';
 import { CreateImageArticleDto } from './dto/create-image-article.dto';
 
 /**
- * Service gérant les entités ImageArticle.
- * Applique les règles de SEO (HTTP 410) lors des suppressions
- * et implémente l'optimisation du stockage par compression.
+ * Service de gestion des images liées aux articles.
+ * Intègre la stratégie de réponses SEO (HTTP 410) et l'optimisation du stockage par compression à froid.
  */
 @Injectable()
 export class ImageArticleService {
@@ -26,8 +25,8 @@ export class ImageArticleService {
   /**
    * Enregistre une nouvelle image en base de données.
    *
-   * @param {CreateImageArticleDto} dto - Données de création de l'image.
-   * @returns {Promise<ImageArticle>} L'image créée.
+   * @param dto - Payload de création de l'image.
+   * @returns L'entité sauvegardée en base.
    */
   async create(dto: CreateImageArticleDto): Promise<ImageArticle> {
     const newImage = this.imageRepository.create(dto);
@@ -36,11 +35,12 @@ export class ImageArticleService {
 
   /**
    * Récupère une image par son identifiant.
+   * Point d'entrée de validation pour le cycle de vie de l'image.
    *
-   * @param {number} id - Identifiant de l'image.
-   * @returns {Promise<ImageArticle>} L'entité image correspondante.
-   * @throws {NotFoundException} Si l'image n'a jamais existé.
-   * @throws {GoneException} Si l'image a existé mais a été supprimée.
+   * @param id - Identifiant unique de l'image.
+   * @returns L'entité correspondante.
+   * @throws {NotFoundException} Si l'entité est inexistante.
+   * @throws {GoneException} Si l'entité a fait l'objet d'une suppression logique (Soft Delete).
    */
   async findOne(id: number): Promise<ImageArticle> {
     const image = await this.imageRepository.findOne({
@@ -62,21 +62,23 @@ export class ImageArticleService {
   }
 
   /**
-   * Effectue une suppression logique (Soft Delete) de l'image.
+   * Effectue une suppression logique (Soft Delete).
+   * Maintient l'enregistrement pour préserver l'intégrité SEO (410 Gone).
    *
-   * @param {number} id - Identifiant de l'image à supprimer.
-   * @returns {Promise<void>}
+   * @param id - Identifiant de l'image à supprimer.
    */
   async remove(id: number): Promise<void> {
     const image = await this.findOne(id);
     await this.imageRepository.softRemove(image);
+    
     this.logger.log(`Image #${id} marquée comme supprimée (410 activé).`);
   }
 
   /**
-   * Compresse les images datant de plus de deux ans.
+   * Identifie et compresse les images créées il y a plus de deux ans.
+   * Processus d'optimisation de l'espace de stockage.
    *
-   * @returns {Promise<{ compressedCount: number; message: string }>} Résultat de la compression.
+   * @returns Bilan de l'opération de compression.
    */
   async compressAgingImages(): Promise<{
     compressedCount: number;

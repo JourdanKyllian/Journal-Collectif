@@ -19,11 +19,15 @@ import {
   afterEach,
 } from '@jest/globals';
 
+/**
+ * Extraction dynamique du type attendu pour le paramètre createArticleDto.
+ */
 type CreateDto = Parameters<ArticleService['create']>[0];
 
 describe('ArticleService - Gestion du contenu et règles SEO', () => {
   let service: ArticleService;
 
+  // Bouchons (mocks) des différents dépôts (repositories) pour isoler le service de la base de données.
   const mockUserRepository = {
     findOne: jest.fn<(...args: unknown[]) => Promise<unknown>>(),
   };
@@ -73,11 +77,13 @@ describe('ArticleService - Gestion du contenu et règles SEO', () => {
   });
 
   afterEach(() => {
+    // Réinitialisation des mocks entre chaque test pour éviter les fuites d'état.
     jest.clearAllMocks();
   });
 
   describe('create', () => {
     it('devrait rejeter la création si le profil est incomplet', async () => {
+      // Simulation d'un utilisateur dont le numéro de téléphone n'est pas vérifié.
       mockUserRepository.findOne.mockResolvedValue({
         id: 2,
         is_phone_verified: false,
@@ -91,6 +97,7 @@ describe('ArticleService - Gestion du contenu et règles SEO', () => {
     });
 
     it('devrait forcer le statut "en_attente" si un journaliste tente de publier en direct', async () => {
+      // Simulation d'un profil utilisateur complètement validé.
       mockUserRepository.findOne.mockResolvedValue({
         id: 2,
         is_phone_verified: true,
@@ -108,6 +115,7 @@ describe('ArticleService - Gestion du contenu et règles SEO', () => {
         categoryId: 1,
         statut: ArticleStatus.PUBLIE,
       } as unknown as CreateDto;
+      
       const result = await service.create(dto, 2, 'journaliste');
 
       expect(result.statut).toBe(ArticleStatus.EN_ATTENTE);
@@ -132,6 +140,7 @@ describe('ArticleService - Gestion du contenu et règles SEO', () => {
         categoryId: 1,
         statut: ArticleStatus.BROUILLON,
       } as unknown as CreateDto;
+      
       const result = await service.create(dto, 1, 'Admin');
 
       expect(result.statut).toBe(ArticleStatus.BROUILLON);
@@ -156,6 +165,7 @@ describe('ArticleService - Gestion du contenu et règles SEO', () => {
         categoryId: 1,
         statut: ArticleStatus.PUBLIE,
       } as unknown as CreateDto;
+      
       const result = await service.create(dto, 1, 'Admin');
 
       expect(result.statut).toBe(ArticleStatus.PUBLIE);
@@ -171,6 +181,7 @@ describe('ArticleService - Gestion du contenu et règles SEO', () => {
     });
 
     it("devrait lever une GoneException (410) si l'article a été supprimé (Soft Delete)", async () => {
+      // Simulation d'une entité marquée comme supprimée logiquement (Soft Delete) en base de données.
       mockArticleRepository.findOne.mockResolvedValue({
         id: 1,
         titre: 'Article archivé',
@@ -192,6 +203,7 @@ describe('ArticleService - Gestion du contenu et règles SEO', () => {
       mockArticleRepository.findOne.mockResolvedValue(validArticle);
 
       const result = await service.findOne(1);
+      
       expect(result).toEqual(validArticle);
     });
   });
