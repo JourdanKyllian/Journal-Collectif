@@ -183,4 +183,48 @@ export class AuthService {
       tel: user.profile?.tel || null,
     };
   }
+
+  /**
+   * Met à jour les informations de sécurité sensibles (Email / Mot de passe).
+   * Exige le mot de passe actuel pour validation.
+   */
+  async updateSecurity(
+    userId: number,
+    dto: import('./dto/update-security.dto').UpdateSecurityDto,
+  ) {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Utilisateur introuvable.');
+
+    // 1. Vérification stricte de l'ancien mot de passe
+    const isMatch = await bcrypt.compare(dto.currentPassword, user.password);
+    if (!isMatch)
+      throw new UnauthorizedException('Le mot de passe actuel est incorrect.');
+
+    let hasChanges = false;
+
+    // 2. Traitement du nouvel email
+    if (dto.newEmail && dto.newEmail !== user.email) {
+      const emailExists = await this.usersRepository.findOne({
+        where: { email: dto.newEmail },
+      });
+      if (emailExists)
+        throw new ConflictException(
+          'Cet email est déjà utilisé par un autre compte.',
+        );
+      user.email = dto.newEmail;
+      hasChanges = true;
+    }
+
+    // 3. Traitement du nouveau mot de passe
+    if (dto.newPassword) {
+      user.password = await bcrypt.hash(dto.newPassword, 10);
+      hasChanges = true;
+    }
+
+    if (hasChanges) {
+      await this.usersRepository.save(user);
+    }
+
+    return { message: 'Paramètres de sécurité mis à jour avec succès.' };
+  }
 }

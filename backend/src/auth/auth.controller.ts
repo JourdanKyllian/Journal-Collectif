@@ -6,6 +6,7 @@ import {
   Request,
   Res,
   Get,
+  Patch,
 } from '@nestjs/common';
 import type { Response, Request as ExpressRequest } from 'express';
 import { AuthService } from './auth.service';
@@ -13,6 +14,7 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { RefreshDto } from './dto/refresh.dto';
+import { UpdateSecurityDto } from './dto/update-security.dto';
 
 interface RequestWithUser extends ExpressRequest {
   user: {
@@ -112,5 +114,14 @@ export class AuthController {
   @Get('me')
   getProfile(@Request() req: RequestWithUser) {
     return this.authService.getMe(req.user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('security')
+  updateSecurity(
+    @Request() req: RequestWithUser,
+    @Body() updateSecurityDto: UpdateSecurityDto,
+  ) {
+    return this.authService.updateSecurity(req.user.userId, updateSecurityDto);
   }
 }

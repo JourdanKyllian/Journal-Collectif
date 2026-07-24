@@ -47,10 +47,20 @@ export class ArticleService {
   ) {
     if (!userId) throw new ForbiddenException('Authentification invalide.');
 
-    const user = await this.usersRepository.findOne({ where: { id: userId } });
-    if (!user || !user.is_phone_verified || !user.firstname || !user.lastname) {
+    // Chargement de la relation 'profile' pour lire le prénom et le nom
+    const user = await this.usersRepository.findOne({
+      where: { id: userId },
+      relations: ['profile'],
+    });
+
+    if (
+      !user ||
+      !user.is_phone_verified ||
+      !user.profile?.firstname ||
+      !user.profile?.lastname
+    ) {
       throw new ForbiddenException(
-        'Profil incomplet (téléphone, nom, prénom requis).',
+        'Profil incomplet (téléphone vérifié, nom et prénom requis).',
       );
     }
 
