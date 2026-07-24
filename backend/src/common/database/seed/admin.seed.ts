@@ -117,25 +117,29 @@ export class AdminSeedService {
           libelle: 'Actualités',
           description: "Toute l'actualité brûlante de la région.",
           icon: '📰',
-          image_bandeau_url: 'https://fakeimg.pl/800x400/282828/eae0d0/?text=Actualites',
+          image_bandeau_url:
+            'https://fakeimg.pl/800x400/282828/eae0d0/?text=Actualites',
         },
         {
           libelle: 'Culture',
           description: 'Actualités culturelles de la ville et ses environs.',
           icon: '🎭',
-          image_bandeau_url: 'https://fakeimg.pl/800x400/282828/eae0d0/?text=Culture',
+          image_bandeau_url:
+            'https://fakeimg.pl/800x400/282828/eae0d0/?text=Culture',
         },
         {
           libelle: 'Environnement',
           description: 'Écologie, nature et développement durable.',
           icon: '🌱',
-          image_bandeau_url: 'https://fakeimg.pl/800x400/282828/eae0d0/?text=Environnement',
+          image_bandeau_url:
+            'https://fakeimg.pl/800x400/282828/eae0d0/?text=Environnement',
         },
         {
           libelle: 'Vie Locale',
           description: 'Ce qui se passe près de chez vous au quotidien.',
           icon: '🏘️',
-          image_bandeau_url: 'https://fakeimg.pl/800x400/282828/eae0d0/?text=Vie+Locale',
+          image_bandeau_url:
+            'https://fakeimg.pl/800x400/282828/eae0d0/?text=Vie+Locale',
         },
       ];
 
