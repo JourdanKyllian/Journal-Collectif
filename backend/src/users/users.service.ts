@@ -10,6 +10,9 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { Users } from './entities/user.entity';
 import { Role } from '../roles/entities/roles.entity';
 
+/**
+ * Service gérant le cycle de vie des utilisateurs pour l'administration.
+ */
 @Injectable()
 export class UsersService {
   constructor(
@@ -19,6 +22,12 @@ export class UsersService {
     private readonly roleRepository: Repository<Role>,
   ) {}
 
+  /**
+   * Crée un compte utilisateur administrateur avec génération automatique du profil.
+   *
+   * @param {CreateUserDto} createUserDto - Les données de création.
+   * @returns L'entité utilisateur sans le mot de passe.
+   */
   async create(createUserDto: CreateUserDto) {
     const userExists = await this.usersRepository.findOne({
       where: { email: createUserDto.email },
@@ -33,11 +42,10 @@ export class UsersService {
 
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
 
-    // CRÉATION SÉPARÉE : Le User d'un côté, le Profile de l'autre
     const newUser = this.usersRepository.create({
       email: createUserDto.email,
       password: hashedPassword,
-      role: adminRole, // LE RÔLE EST VERROUILLÉ
+      role: adminRole,
       is_phone_verified: false,
       profile: {
         lastname: createUserDto.lastname,
@@ -53,9 +61,12 @@ export class UsersService {
     return userWithoutPassword;
   }
 
+  /**
+   * Récupère l'ensemble des utilisateurs et leurs profils associés.
+   */
   async findAll() {
     const users = await this.usersRepository.find({
-      relations: ['role', 'profile'], // On charge le profil pour l'affichage Admin
+      relations: ['role', 'profile'],
     });
     return users.map((user) => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars

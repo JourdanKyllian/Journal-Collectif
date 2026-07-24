@@ -22,17 +22,22 @@ interface RequestWithUser extends ExpressRequest {
   };
 }
 
+/**
+ * Contrôleur exposant les endpoints liés à l'authentification et à la gestion de session.
+ */
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  // Configuration centralisée pour la sécurité de nos cookies
+  /**
+   * Retourne la configuration stricte des cookies (HTTPOnly, SameSite, Secure).
+   */
   private get cookieOptions() {
     return {
-      httpOnly: true, // Invisible pour le JavaScript côté client
-      secure: process.env.NODE_ENV === 'production', // Uniquement sur HTTPS en production
-      sameSite: 'lax' as const, // Protection CSRF
-      path: '/', // Disponible sur tout le site
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax' as const,
+      path: '/',
     };
   }
 
@@ -46,15 +51,14 @@ export class AuthController {
       loginDto.password,
     );
 
-    // On injecte les cookies dans la réponse HTTP
     res.cookie('access_token', tokens.access_token, {
       ...this.cookieOptions,
-      maxAge: 1000 * 60 * 60, // 1 heure
+      maxAge: 1000 * 60 * 60,
     });
 
     res.cookie('refresh_token', tokens.refresh_token, {
       ...this.cookieOptions,
-      maxAge: 1000 * 60 * 60 * 24 * 7, // 7 jours
+      maxAge: 1000 * 60 * 60 * 24 * 7,
     });
 
     return { message: 'Connexion réussie' };
@@ -95,13 +99,15 @@ export class AuthController {
   ) {
     await this.authService.logout(req.user.userId);
 
-    // Pour déconnecter l'utilisateur, on écrase les cookies avec une date d'expiration à 0
     res.cookie('access_token', '', { ...this.cookieOptions, maxAge: 0 });
     res.cookie('refresh_token', '', { ...this.cookieOptions, maxAge: 0 });
 
     return { message: 'Déconnexion réussie' };
   }
 
+  /**
+   * Endpoint de validation de session renvoyant les informations de profil agrégées.
+   */
   @UseGuards(JwtAuthGuard)
   @Get('me')
   getProfile(@Request() req: RequestWithUser) {

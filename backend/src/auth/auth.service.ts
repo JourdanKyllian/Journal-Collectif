@@ -72,7 +72,6 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
 
-    // CRÉATION SÉPARÉE : Le User d'un côté, le Profile de l'autre
     const newUser = this.usersRepository.create({
       email: registerDto.email,
       password: hashedPassword,
@@ -81,7 +80,6 @@ export class AuthService {
         lastname: registerDto.lastname || null,
         firstname: registerDto.firstname || null,
         tel: registerDto.tel || null,
-        // bio et avatar_ref prendront leurs valeurs par défaut via TypeORM
       },
     });
 
@@ -157,7 +155,13 @@ export class AuthService {
     };
   }
 
-  // Retourne les infos de l'utilisateur connecté
+  /**
+   * Récupère les données agrégées de l'utilisateur connecté (Auth + Profile).
+   *
+   * @param {number} userId - L'identifiant de l'utilisateur.
+   * @returns Les informations de profil formatées pour le client.
+   * @throws {NotFoundException} Si l'utilisateur est introuvable.
+   */
   async getMe(userId: number) {
     const user = await this.usersRepository.findOne({
       where: { id: userId },
@@ -168,7 +172,6 @@ export class AuthService {
       throw new NotFoundException('Utilisateur introuvable.');
     }
 
-    // On formate un objet parfait et sécurisé pour le Front-end
     return {
       id: user.id,
       email: user.email,

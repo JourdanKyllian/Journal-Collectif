@@ -2,6 +2,9 @@ import { Entity, Column, OneToOne, JoinColumn } from 'typeorm';
 import { CustomBaseEntity } from '../../common/base/base.entity';
 import { Users } from '../../users/entities/user.entity';
 
+/**
+ * Entité représentant les données d'identité et les informations publiques d'un utilisateur.
+ */
 @Entity('profile')
 export class Profile extends CustomBaseEntity {
   @Column({ type: 'varchar', length: 100, nullable: true })
@@ -16,11 +19,8 @@ export class Profile extends CustomBaseEntity {
   @Column({ type: 'varchar', length: 250, nullable: true })
   bio!: string | null;
 
-  // L'astuce de l'avatar pré-enregistré : stocke juste une clé (ex: "avatar_01")
   @Column({ type: 'varchar', length: 50, default: 'default_01' })
   avatar_ref!: string;
-
-  // --- RELATIONS ---
 
   @OneToOne(() => Users, (user) => user.profile, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })

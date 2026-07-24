@@ -14,6 +14,9 @@ import { FavorisCategorie } from '../../favoris-categorie/entities/favoris-categ
 import { CustomBaseEntity } from '../../common/base/base.entity';
 import { Profile } from '../../profile/entities/profile.entity';
 
+/**
+ * Entité gérant le périmètre d'authentification et les habilitations de l'utilisateur.
+ */
 @Entity('users')
 export class Users extends CustomBaseEntity {
   @Column({ type: 'varchar', length: 255, unique: true })
@@ -37,7 +40,6 @@ export class Users extends CustomBaseEntity {
   @JoinColumn({ name: 'role_id' })
   role!: Role;
 
-  // Le cascade: true permet d'insérer automatiquement le Profile lié
   @OneToOne(() => Profile, (profile) => profile.user, { cascade: true })
   profile!: Profile;
 
