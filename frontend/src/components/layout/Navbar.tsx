@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { Landmark, User, Settings, LogOut, Menu, LayoutGrid, Search, Home, Book } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton"; // <-- Import du Skeleton
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,7 +35,7 @@ export default function Navbar() {
   
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [isCheckingSession, setIsCheckingSession] = useState(true); // <-- État de chargement initial
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
   
   // Auto-login sécurisé : interroge l'API via le cookie HTTP-Only au montage
   useEffect(() => {
@@ -88,7 +88,7 @@ export default function Navbar() {
             </div>
             <div className="text-left">
               <div className="font-poppins font-black text-sm text-noir leading-tight">Collectif Chalonnais</div>
-              <div className="font-raleway text-xs text-champagne font-semibold tracking-wide">06 · Journal Municipal</div>
+              <div className="font-raleway text-xs text-champagne font-semibold tracking-wide">· Journal Municipal</div>
             </div>
           </Link>
 

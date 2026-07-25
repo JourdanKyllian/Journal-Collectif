@@ -55,7 +55,7 @@ export default function Footer() {
       </div>
       
       <div className="border-t border-blanc/10 pt-6 flex justify-between items-center flex-col sm:flex-row gap-3 font-montserrat text-xs text-blanc/40 text-center">
-        <span>© {new Date().getFullYear()} Collectif Chalonnais 06 — Tous droits réservés</span>
+        <span>© {new Date().getFullYear()} Collectif Chalonnais — Tous droits réservés</span>
         <span>Fait avec le ❤️ pour la commune</span>
       </div>
     </footer>

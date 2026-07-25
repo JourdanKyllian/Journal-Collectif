@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Landmark, Crown, User, ArrowRight, PenTool } from "lucide-react";
+import { Landmark, Crown, Shield, User, ArrowRight, PenTool } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -156,39 +156,69 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModal
               </div>
             </div>
 
-            <div className="bg-or/10 border border-or/20 rounded-2xl p-4 space-y-2">
+            {/* --- NOUVELLE GRILLE 2x2 --- */}
+            <div className="bg-or/10 border border-or/20 rounded-2xl p-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              
+              {/* Super Admin */}
+              <button 
+                type="button"
+                onClick={() => fillDemo('superadmin@journal.fr', 'superadmin123')}
+                className="flex items-center justify-between p-3 bg-blanc border border-champagne/20 rounded-xl hover:border-or transition-all group"
+              >
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <Crown size={15} className="text-or shrink-0" />
+                  <span className="font-montserrat font-bold text-noir text-[11px] truncate">
+                    superadmin@journal.fr
+                  </span>
+                </div>
+                <Badge className="bg-or text-noir font-poppins font-black text-[9px] px-1.5 py-0 border-0 shrink-0 ml-2">Gérant</Badge>
+              </button>
+
+              {/* Admin */}
               <button 
                 type="button"
                 onClick={() => fillDemo('admin@journal.fr', 'admin123')}
-                className="w-full flex items-center justify-between px-4 py-3 bg-blanc border border-champagne/20 rounded-xl hover:border-or transition-all group"
+                className="flex items-center justify-between p-3 bg-blanc border border-champagne/20 rounded-xl hover:border-or transition-all group"
               >
-                <span className="font-montserrat font-bold flex items-center gap-2.5 text-noir text-sm">
-                  <Crown size={16} className="text-or" /> admin@journal.fr
-                </span>
-                <Badge className="bg-or text-noir font-poppins font-black text-[10px] border-0">Admin</Badge>
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <Shield size={15} className="text-or shrink-0" />
+                  <span className="font-montserrat font-bold text-noir text-[11px] truncate">
+                    admin@journal.fr
+                  </span>
+                </div>
+                <Badge className="bg-or/30 text-noir font-poppins font-black text-[9px] px-1.5 py-0 border-0 shrink-0 ml-2">Admin</Badge>
               </button>
 
+              {/* Rédacteur */}
               <button 
                 type="button"
-                onClick={() => fillDemo('auteur@journal.fr', 'auteur123')}
-                className="w-full flex items-center justify-between px-4 py-3 bg-blanc border border-champagne/20 rounded-xl hover:border-or transition-all group"
+                onClick={() => fillDemo('redacteur@journal.fr', 'redacteur123')}
+                className="flex items-center justify-between p-3 bg-blanc border border-champagne/20 rounded-xl hover:border-or transition-all group"
               >
-                <span className="font-montserrat font-bold flex items-center gap-2.5 text-noir text-sm">
-                  <PenTool size={16} className="text-vert" /> auteur@journal.fr
-                </span>
-                <Badge className="bg-champagne/30 text-vert font-poppins font-black text-[10px] border-0">Auteur</Badge>
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <PenTool size={15} className="text-vert shrink-0" />
+                  <span className="font-montserrat font-bold text-noir text-[11px] truncate">
+                    redacteur@journal.fr
+                  </span>
+                </div>
+                <Badge className="bg-champagne/30 text-vert font-poppins font-black text-[9px] px-1.5 py-0 border-0 shrink-0 ml-2">Auteur</Badge>
               </button>
 
+              {/* Visiteur Complet (Celui qui a un vrai profil dans la base) */}
               <button 
                 type="button"
-                onClick={() => fillDemo('jean@exemple.fr', 'user123')}
-                className="w-full flex items-center justify-between px-4 py-3 bg-blanc border border-champagne/20 rounded-xl hover:border-or transition-all group"
+                onClick={() => fillDemo('visiteur.complet@exemple.fr', 'user123')}
+                className="flex items-center justify-between p-3 bg-blanc border border-champagne/20 rounded-xl hover:border-or transition-all group"
               >
-                <span className="font-montserrat font-bold flex items-center gap-2.5 text-noir text-sm">
-                  <User size={16} className="text-champagne" /> jean@exemple.fr
-                </span>
-                <Badge className="bg-champagne/10 text-champagne font-poppins font-black text-[10px] border-0">Nouveau</Badge>
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <User size={15} className="text-champagne shrink-0" />
+                  <span className="font-montserrat font-bold text-noir text-[11px] truncate">
+                    visiteur.complet@exemple.fr
+                  </span>
+                </div>
+                <Badge className="bg-champagne/10 text-champagne font-poppins font-black text-[9px] px-1.5 py-0 border-0 shrink-0 ml-2">Citoyen</Badge>
               </button>
+
             </div>
           </TabsContent>
 
