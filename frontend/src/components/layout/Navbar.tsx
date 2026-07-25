@@ -37,6 +37,7 @@ export default function Navbar() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   
+  // Auto-login sécurisé : interroge l'API via le cookie HTTP-Only au montage
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -51,8 +52,10 @@ export default function Navbar() {
     checkSession();
   }, []);
   
+  // Vérification si l'utilisateur fait partie du staff (Gérant, Admin ou Rédacteur)
   const hasDashboardAccess = user ? ['super_admin', 'admin', 'redacteur'].includes(user.role) : false;
 
+  // Affichage du libellé du badge selon le rôle
   const getRoleBadge = (role: string) => {
     if (role === 'super_admin') return 'Gérant';
     if (role === 'admin') return 'Admin';
@@ -88,7 +91,6 @@ export default function Navbar() {
           
           {/* LOGO ISOLE */}
           <Link href="/" className="flex items-center shrink-0 cursor-pointer" aria-label="Accueil">
-             {/* Futur emplacement pour la balise <img /> dynamique gérée via le Dashboard */}
             <div className="w-10 h-10 bg-linear-to-br from-vert to-noir rounded-xl flex items-center justify-center text-or border-2 border-or shadow-sm hover:scale-105 transition-transform">
               <Landmark size={20} />
             </div>
@@ -190,6 +192,7 @@ export default function Navbar() {
                   ))}
                   <div className="h-px bg-champagne/30 my-2"></div>
                   
+                  {/* --- GESTION DU FLICKER MOBILE --- */}
                   {isCheckingSession ? (
                     <Skeleton className="w-full h-14 rounded-xl" />
                   ) : !user ? (
