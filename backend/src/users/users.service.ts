@@ -10,9 +10,6 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { Users } from './entities/user.entity';
 import { Role } from '../roles/entities/roles.entity';
 
-/**
- * Service gérant le cycle de vie des utilisateurs pour l'administration.
- */
 @Injectable()
 export class UsersService {
   constructor(
@@ -23,29 +20,52 @@ export class UsersService {
   ) {}
 
   /**
-   * Crée un compte utilisateur administrateur avec génération automatique du profil.
-   *
-   * @param {CreateUserDto} createUserDto - Les données de création.
-   * @returns L'entité utilisateur sans le mot de passe.
+   * Vérifie les limites de création pour chaque rôle spécifique.
    */
-  async create(createUserDto: CreateUserDto) {
+  private async checkRoleLimits(roleLibelle: string) {
+    const count = await this.usersRepository.count({
+      where: { role: { libelle: roleLibelle } },
+    });
+
+    if (roleLibelle === 'super_admin' && count >= 1) {
+      throw new ConflictException(
+        'Limite atteinte : 1 seul super administrateur autorisé.',
+      );
+    }
+    if (roleLibelle === 'admin' && count >= 5) {
+      throw new ConflictException(
+        'Limite atteinte : 5 administrateurs maximum.',
+      );
+    }
+    if (roleLibelle === 'redacteur' && count >= 10) {
+      throw new ConflictException('Limite atteinte : 10 rédacteurs maximum.');
+    }
+  }
+
+  /**
+   * Crée un utilisateur en vérifiant au préalable les limites du rôle.
+   */
+  async create(createUserDto: CreateUserDto, roleName: string = 'admin') {
     const userExists = await this.usersRepository.findOne({
       where: { email: createUserDto.email },
     });
     if (userExists) throw new ConflictException('Cet email est déjà utilisé');
 
-    const adminRole = await this.roleRepository.findOne({
-      where: { libelle: 'Admin' },
+    const role = await this.roleRepository.findOne({
+      where: { libelle: roleName },
     });
-    if (!adminRole)
-      throw new NotFoundException('Le rôle Admin est introuvable');
+    if (!role)
+      throw new NotFoundException(`Le rôle ${roleName} est introuvable`);
+
+    // 👉 Vérification stricte des limites avant l'insertion
+    await this.checkRoleLimits(role.libelle);
 
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
 
     const newUser = this.usersRepository.create({
       email: createUserDto.email,
       password: hashedPassword,
-      role: adminRole,
+      role: role,
       is_phone_verified: false,
       profile: {
         lastname: createUserDto.lastname,
@@ -55,15 +75,13 @@ export class UsersService {
     });
 
     const savedUser = await this.usersRepository.save(newUser);
+
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userWithoutPassword } = savedUser;
 
     return userWithoutPassword;
   }
 
-  /**
-   * Récupère l'ensemble des utilisateurs et leurs profils associés.
-   */
   async findAll() {
     const users = await this.usersRepository.find({
       relations: ['role', 'profile'],
@@ -73,5 +91,20 @@ export class UsersService {
       const { password, ...userWithoutPassword } = user;
       return userWithoutPassword;
     });
+  }
+
+  /**
+   * Récupère les infos de contact du super_admin pour le footer public.
+   */
+  async getSuperAdminContact() {
+    const superAdmin = await this.usersRepository.findOne({
+      where: { role: { libelle: 'super_admin' } },
+      relations: ['profile'],
+    });
+
+    return {
+      email: superAdmin?.email || 'contact@chalonnais.fr',
+      tel: superAdmin?.profile?.tel || 'Non renseigné',
+    };
   }
 }

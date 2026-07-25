@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { User, LogOut, Star, Bell, Save, ShieldAlert, CheckCircle2, AlertTriangle, Key, Shield, UserCog } from "lucide-react";
+import { User, LogOut, Star, Bell, Save, CheckCircle2, AlertTriangle, Key, Shield, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -76,8 +76,8 @@ export default function ProfilePage() {
       });
       setUser((prev) => prev ? { ...prev, ...profileForm } : null);
       showFeedback("success", "Profil public mis à jour avec succès.");
-    } catch (error: any) {
-      showFeedback("error", error.message || "Erreur lors de la mise à jour du profil.");
+    } catch (error: unknown) {
+      showFeedback("error", (error as Error).message || "Erreur lors de la mise à jour du profil.");
     } finally {
       setIsSaving(false);
     }
@@ -93,7 +93,7 @@ export default function ProfilePage() {
 
     setIsSaving(true);
     try {
-      const payload: any = { currentPassword: securityForm.currentPassword };
+      const payload: Record<string, string> = { currentPassword: securityForm.currentPassword };
       if (securityForm.newEmail) payload.newEmail = securityForm.newEmail;
       if (securityForm.newPassword) payload.newPassword = securityForm.newPassword;
 
@@ -107,8 +107,8 @@ export default function ProfilePage() {
       }
       setSecurityForm({ currentPassword: "", newEmail: "", newPassword: "", confirmPassword: "" });
       showFeedback("success", "Paramètres de sécurité mis à jour.");
-    } catch (error: any) {
-      showFeedback("error", error.message || "Erreur lors de la mise à jour de sécurité.");
+    } catch (error: unknown) {
+      showFeedback("error", (error as Error).message || "Erreur lors de la mise à jour de sécurité.");
     } finally {
       setIsSaving(false);
     }

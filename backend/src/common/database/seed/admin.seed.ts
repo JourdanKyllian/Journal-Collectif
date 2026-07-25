@@ -27,14 +27,21 @@ export class AdminSeedService {
 
   async seed(): Promise<void> {
     try {
+      // Récupération des nouveaux rôles
+      const superAdminRole = await this.roleRepository.findOne({
+        where: { libelle: 'super_admin' },
+      });
       const adminRole = await this.roleRepository.findOne({
-        where: { libelle: 'Admin' },
+        where: { libelle: 'admin' },
+      });
+      const redacteurRole = await this.roleRepository.findOne({
+        where: { libelle: 'redacteur' },
       });
       const userRole = await this.roleRepository.findOne({
         where: { libelle: 'utilisateur' },
       });
 
-      if (!adminRole || !userRole) {
+      if (!superAdminRole || !adminRole || !redacteurRole || !userRole) {
         throw new Error(
           "Les rôles n'existent pas ! Lancez d'abord le TableSeedService.",
         );
@@ -42,7 +49,30 @@ export class AdminSeedService {
 
       this.logger.log('Vérification et création des comptes de test...');
 
-      // 1. Compte ADMIN
+      // 1. Compte SUPER ADMIN (Le gérant)
+      let superAdminUser = await this.usersRepository.findOne({
+        where: { email: 'superadmin@journal.fr' },
+      });
+      if (!superAdminUser) {
+        superAdminUser = await this.usersRepository.save(
+          this.usersRepository.create({
+            email: 'superadmin@journal.fr',
+            password: await bcrypt.hash('superadmin123', 10),
+            role: superAdminRole,
+            is_phone_verified: true,
+            profile: {
+              firstname: 'Directeur',
+              lastname: 'Publication',
+              tel: '0600000001',
+              avatar_ref: 'default_02', // Or
+              bio: 'Gérant du Collectif Chalonnais et Super Administrateur.',
+            },
+          }),
+        );
+        this.logger.log(`Super Admin créé : superadmin@journal.fr`);
+      }
+
+      // 2. Compte ADMIN
       let adminUser = await this.usersRepository.findOne({
         where: { email: 'admin@journal.fr' },
       });
@@ -54,25 +84,48 @@ export class AdminSeedService {
             role: adminRole,
             is_phone_verified: true,
             profile: {
-              firstname: 'Super',
-              lastname: 'Admin',
-              tel: '0600000000',
-              avatar_ref: 'default_admin',
-              bio: 'Directeur de la publication du Collectif Chalonnais.',
+              firstname: 'Modérateur',
+              lastname: 'Chef',
+              tel: '0600000002',
+              avatar_ref: 'default_03', // Noir
+              bio: 'Administrateur de la plateforme et modérateur.',
             },
           }),
         );
         this.logger.log(`Admin créé : admin@journal.fr`);
       }
 
-      // 2. Compte VISITEUR INCOMPLET
+      // 3. Compte RÉDACTEUR
+      let redacteurUser = await this.usersRepository.findOne({
+        where: { email: 'redacteur@journal.fr' },
+      });
+      if (!redacteurUser) {
+        redacteurUser = await this.usersRepository.save(
+          this.usersRepository.create({
+            email: 'redacteur@journal.fr',
+            password: await bcrypt.hash('redacteur123', 10),
+            role: redacteurRole,
+            is_phone_verified: true,
+            profile: {
+              firstname: 'Plume',
+              lastname: 'Alerte',
+              tel: '0600000003',
+              avatar_ref: 'default_04', // Champagne
+              bio: 'Rédacteur officiel pour le journal municipal.',
+            },
+          }),
+        );
+        this.logger.log(`Rédacteur créé : redacteur@journal.fr`);
+      }
+
+      // 4. Compte VISITEUR INCOMPLET
       const userIncompletExists = await this.usersRepository.findOne({
-        where: { email: 'jean@exemple.fr' },
+        where: { email: 'visiteur.incomplet@exemple.fr' },
       });
       if (!userIncompletExists) {
         await this.usersRepository.save(
           this.usersRepository.create({
-            email: 'jean@exemple.fr',
+            email: 'visiteur.incomplet@exemple.fr',
             password: await bcrypt.hash('user123', 10),
             role: userRole,
             is_phone_verified: false,
@@ -80,37 +133,39 @@ export class AdminSeedService {
               firstname: null,
               lastname: null,
               tel: null,
-              avatar_ref: 'default_01',
+              avatar_ref: 'default_01', // Vert
             },
           }),
         );
-        this.logger.log(`Visiteur Incomplet créé : jean@exemple.fr`);
+        this.logger.log(
+          `Visiteur Incomplet créé : visiteur.incomplet@exemple.fr`,
+        );
       }
 
-      // 3. Compte VISITEUR COMPLET (Auteur)
-      const auteurUser = await this.usersRepository.findOne({
-        where: { email: 'auteur@journal.fr' },
+      // 5. Compte VISITEUR COMPLET
+      const visiteurCompletExists = await this.usersRepository.findOne({
+        where: { email: 'visiteur.complet@exemple.fr' },
       });
-      if (!auteurUser) {
+      if (!visiteurCompletExists) {
         await this.usersRepository.save(
           this.usersRepository.create({
-            email: 'auteur@journal.fr',
-            password: await bcrypt.hash('auteur123', 10),
+            email: 'visiteur.complet@exemple.fr',
+            password: await bcrypt.hash('user123', 10),
             role: userRole,
             is_phone_verified: true,
             profile: {
-              firstname: 'Marc',
-              lastname: 'Lumière',
+              firstname: 'Citoyen',
+              lastname: 'Engagé',
               tel: '0611223344',
-              avatar_ref: 'default_03',
-              bio: 'Photographe amateur. Je parcours la ville pour documenter la vie locale.',
+              avatar_ref: 'default_01',
+              bio: 'Lecteur régulier et participant de la commune.',
             },
           }),
         );
-        this.logger.log(`Auteur Complet créé : auteur@journal.fr`);
+        this.logger.log(`Visiteur Complet créé : visiteur.complet@exemple.fr`);
       }
 
-      // 4. Création des 4 Catégories avec TOUS les champs requis
+      // --- CRÉATION DES CATÉGORIES ET ARTICLES ---
       this.logger.log('Vérification et création des catégories...');
       const categoriesData = [
         {
@@ -158,26 +213,25 @@ export class AdminSeedService {
         createdCategories.push(cat);
       }
 
-      // 5. Création des 3 Articles d'exemple
       this.logger.log("Vérification et création des articles d'exemple...");
       const sampleArticles = [
         {
           titre: 'Lancement du nouveau marché bio au centre-ville',
           contenu:
             "Le centre-ville s'anime avec l'arrivée d'un nouveau marché bio tous les samedis matin. Producteurs locaux et habitants se sont réunis en nombre pour cette première édition.",
-          categorie: createdCategories[3], // Vie Locale
+          categorie: createdCategories[3],
         },
         {
           titre: 'Exposition de peintures modernes à la bibliothèque',
           contenu:
             'Une rétrospective exceptionnelle des œuvres de peintres de la région est à découvrir gratuitement tout au long du mois dans le grand hall de la bibliothèque municipale.',
-          categorie: createdCategories[1], // Culture
+          categorie: createdCategories[1],
         },
         {
           titre: "Nouveau plan vélo : les pistes cyclables s'agrandissent",
           contenu:
             'La municipalité annonce la création de 5 kilomètres de pistes cyclables supplémentaires pour encourager les mobilités douces et sécuriser les déplacements urbains.',
-          categorie: createdCategories[2], // Environnement
+          categorie: createdCategories[2],
         },
       ];
 

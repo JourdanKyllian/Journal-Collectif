@@ -42,7 +42,6 @@ export default function Navbar() {
     const checkSession = async () => {
       try {
         const userData = await fetchApi<AuthUser>('/v1/auth/me');
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         setUser(userData);
       } catch {
         setUser(null);

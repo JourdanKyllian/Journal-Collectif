@@ -14,7 +14,9 @@ export class TableSeedService {
 
   async seed(): Promise<void> {
     this.logger.log('Création des rôles...');
-    const rolesToCreate = ['Admin', 'utilisateur', 'journaliste', 'moderateur'];
+
+    // Nouveaux rôles stricts de l'application
+    const rolesToCreate = ['super_admin', 'admin', 'redacteur', 'utilisateur'];
 
     for (const libelle of rolesToCreate) {
       const roleExists = await this.roleRepository.findOne({

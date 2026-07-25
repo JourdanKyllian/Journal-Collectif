@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import Link   from "next/link";
 import {
   Palette, Trophy, HardHat, Siren,
-  PartyPopper, Megaphone, Building2, BookOpen,
+  PartyPopper, Building2, BookOpen,
   ArrowRight, Bell, Mail, Smartphone, X, LucideIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
