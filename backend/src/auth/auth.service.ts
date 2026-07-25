@@ -176,7 +176,7 @@ export class AuthService {
     return {
       id: user.id,
       email: user.email,
-      role: user.role?.libelle || 'utilisateur', // <-- On renvoie le vrai nom du rôle
+      role: user.role?.libelle || 'utilisateur', // <-- Renvoie directement le vrai libellé en base ('super_admin', 'admin', 'redacteur', etc.)
       firstname: user.profile?.firstname || null,
       lastname: user.profile?.lastname || null,
       avatar_ref: user.profile?.avatar_ref || 'default_01',
