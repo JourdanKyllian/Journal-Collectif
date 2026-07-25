@@ -15,7 +15,7 @@ import { fetchApi } from "@/lib/api";
 interface UserProfileData {
   id: number;
   email: string;
-  role: "admin" | "user";
+  role: string;
   firstname: string | null;
   lastname: string | null;
   avatar_ref: string;
@@ -143,6 +143,14 @@ export default function ProfilePage() {
   const userFullName = user.firstname && user.lastname ? `${user.firstname} ${user.lastname}` : "Citoyen Anonyme";
   const activeAvatar = avatars.find(a => a.id === user.avatar_ref)?.color || "bg-vert";
 
+  const isStaff = ['super_admin', 'admin', 'redacteur'].includes(user.role);
+  const getRoleBadge = (role: string) => {
+    if (role === 'super_admin') return 'Gérant';
+    if (role === 'admin') return 'Admin';
+    if (role === 'redacteur') return 'Rédacteur';
+    return '';
+  };
+
   return (
     <div className="w-full min-h-[calc(100vh-70px)] bg-blanc py-8 md:py-12 px-4 sm:px-6">
       <div className="max-w-6xl mx-auto animate-slide-up">
@@ -167,9 +175,9 @@ export default function ProfilePage() {
                 <h2 className="font-poppins font-black text-sm md:text-base text-noir truncate">{userFullName}</h2>
                 <p className="font-montserrat text-xs text-champagne mt-0.5 truncate">{user.email}</p>
                 
-                {user.role === "admin" && (
+                {isStaff && (
                   <Badge className="mt-2 bg-or text-noir font-poppins font-black text-[10px] px-2 py-0.5 border-0 inline-block">
-                    Admin
+                    {getRoleBadge(user.role)}
                   </Badge>
                 )}
               </div>

@@ -7,7 +7,7 @@ import { fetchApi } from "@/lib/api";
 interface AuthUser {
   name: string;
   email: string;
-  role: 'admin' | 'user';
+  role: string;
 }
 
 /**
@@ -29,8 +29,9 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
         // L'API va lire le cookie HTTP-Only automatiquement
         const user = await fetchApi<AuthUser>('/v1/auth/me');
 
-        // Vérification stricte du rôle retourné par le backend
-        if (user.role !== 'admin') {
+        // Vérification stricte des rôles autorisés
+        const allowedRoles = ['super_admin', 'admin', 'redacteur'];
+        if (!allowedRoles.includes(user.role)) {
           router.push("/");
         } else {
           setIsAuthorized(true);

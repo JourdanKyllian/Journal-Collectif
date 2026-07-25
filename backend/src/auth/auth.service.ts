@@ -35,9 +35,10 @@ export class AuthService {
     const roleName = user.role?.libelle;
     const payload = { sub: user.id, email: user.email, role: roleName };
 
-    const isUserAdmin = roleName === 'Admin';
-    const accessTokenExpiresIn = isUserAdmin ? '15m' : '1h';
-    const refreshTokenExpiresIn = isUserAdmin ? '8h' : '7d';
+    // Vérifie si l'utilisateur fait partie de l'administration
+    const isStaff = ['super_admin', 'admin', 'redacteur'].includes(roleName);
+    const accessTokenExpiresIn = isStaff ? '15m' : '1h';
+    const refreshTokenExpiresIn = isStaff ? '8h' : '7d';
 
     const accessToken = await this.jwtService.signAsync(payload, {
       expiresIn: accessTokenExpiresIn,
@@ -116,9 +117,9 @@ export class AuthService {
       const roleName = user.role?.libelle;
       const newPayload = { sub: user.id, email: user.email, role: roleName };
 
-      const isUserAdmin = roleName === 'Admin';
-      const accessTokenExpiresIn = isUserAdmin ? '15m' : '1h';
-      const refreshTokenExpiresIn = isUserAdmin ? '8h' : '7d';
+      const isStaff = ['super_admin', 'admin', 'redacteur'].includes(roleName);
+      const accessTokenExpiresIn = isStaff ? '15m' : '1h';
+      const refreshTokenExpiresIn = isStaff ? '8h' : '7d';
 
       const newAccessToken = await this.jwtService.signAsync(newPayload, {
         expiresIn: accessTokenExpiresIn,
@@ -175,7 +176,7 @@ export class AuthService {
     return {
       id: user.id,
       email: user.email,
-      role: user.role?.libelle === 'Admin' ? 'admin' : 'user',
+      role: user.role?.libelle || 'utilisateur', // <-- On renvoie le vrai nom du rôle
       firstname: user.profile?.firstname || null,
       lastname: user.profile?.lastname || null,
       avatar_ref: user.profile?.avatar_ref || 'default_01',

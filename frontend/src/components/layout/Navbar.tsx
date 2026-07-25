@@ -27,7 +27,7 @@ import { fetchApi } from "@/lib/api";
 interface AuthUser {
   name: string;
   email: string;
-  role: 'admin' | 'user';
+  role: string;
 }
 
 export default function Navbar() {
@@ -37,7 +37,6 @@ export default function Navbar() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   
-  // Auto-login sécurisé : interroge l'API via le cookie HTTP-Only au montage
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -46,14 +45,20 @@ export default function Navbar() {
       } catch {
         setUser(null);
       } finally {
-        // La vérification est terminée (succès ou échec), on retire le Skeleton
         setIsCheckingSession(false);
       }
     };
     checkSession();
   }, []);
   
-  const isAdmin = user?.role === "admin";
+  const hasDashboardAccess = user ? ['super_admin', 'admin', 'redacteur'].includes(user.role) : false;
+
+  const getRoleBadge = (role: string) => {
+    if (role === 'super_admin') return 'Gérant';
+    if (role === 'admin') return 'Admin';
+    if (role === 'redacteur') return 'Rédacteur';
+    return '';
+  };
 
   const handleLoginSuccess = (userData: AuthUser) => {
     setUser(userData);
@@ -81,14 +86,11 @@ export default function Navbar() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-blanc/90 backdrop-blur-xl border-b border-champagne/30 h-17.5 flex items-center">
         <div className="max-w-7xl mx-auto w-full px-6 flex items-center justify-between gap-8">
           
-          {/* LOGO */}
-          <Link href="/" className="flex items-center gap-3 shrink-0 cursor-pointer">
-            <div className="w-10 h-10 bg-linear-to-br from-vert to-noir rounded-xl flex items-center justify-center text-or border-2 border-or shadow-sm">
+          {/* LOGO ISOLE */}
+          <Link href="/" className="flex items-center shrink-0 cursor-pointer" aria-label="Accueil">
+             {/* Futur emplacement pour la balise <img /> dynamique gérée via le Dashboard */}
+            <div className="w-10 h-10 bg-linear-to-br from-vert to-noir rounded-xl flex items-center justify-center text-or border-2 border-or shadow-sm hover:scale-105 transition-transform">
               <Landmark size={20} />
-            </div>
-            <div className="text-left">
-              <div className="font-poppins font-black text-sm text-noir leading-tight">Collectif Chalonnais</div>
-              <div className="font-raleway text-xs text-champagne font-semibold tracking-wide">· Journal Municipal</div>
             </div>
           </Link>
 
@@ -116,7 +118,6 @@ export default function Navbar() {
             
             {/* --- GESTION DU FLICKER DESKTOP --- */}
             {isCheckingSession ? (
-              // Squelette Vercel-style imitant la taille exacte du bouton Connexion
               <Skeleton className="hidden md:block w-35 h-13 rounded-xl" />
             ) : !user ? (
               <Button 
@@ -137,8 +138,10 @@ export default function Navbar() {
                   <div className="px-3 py-3 border-b border-champagne/25 mb-1">
                     <div className="font-montserrat font-bold text-sm text-noir">{user.name}</div>
                     <div className="font-montserrat text-xs text-champagne mt-0.5">{user.email}</div>
-                    {isAdmin && (
-                      <span className="mt-1.5 inline-block bg-or text-noir font-poppins font-black text-xs px-2.5 py-0.5 rounded-full">Admin</span>
+                    {hasDashboardAccess && (
+                      <span className="mt-1.5 inline-block bg-or text-noir font-poppins font-black text-xs px-2.5 py-0.5 rounded-full">
+                        {getRoleBadge(user.role)}
+                      </span>
                     )}
                   </div>
                   <DropdownMenuItem asChild className="cursor-pointer font-semibold text-noir hover:bg-vert/8 rounded-xl px-3 py-2.5 mt-1 focus:bg-vert/8">
@@ -146,10 +149,10 @@ export default function Navbar() {
                       <User size={16} /> Mon Profil
                     </Link>
                   </DropdownMenuItem>
-                  {isAdmin && (
+                  {hasDashboardAccess && (
                     <DropdownMenuItem asChild className="cursor-pointer font-semibold text-noir hover:bg-vert/8 rounded-xl px-3 py-2.5 focus:bg-vert/8">
                       <Link href="/dashboard" className="flex items-center gap-2.5 w-full">
-                        <Settings size={16} /> Dashboard Admin
+                        <Settings size={16} /> Dashboard
                       </Link>
                     </DropdownMenuItem>
                   )}
@@ -187,9 +190,7 @@ export default function Navbar() {
                   ))}
                   <div className="h-px bg-champagne/30 my-2"></div>
                   
-                  {/* --- GESTION DU FLICKER MOBILE --- */}
                   {isCheckingSession ? (
-                    // Squelette Vercel-style imitant le bouton "Connexion" en pleine largeur
                     <Skeleton className="w-full h-14 rounded-xl" />
                   ) : !user ? (
                     <Button 
@@ -203,9 +204,9 @@ export default function Navbar() {
                       <Link href="/profile" className="flex items-center gap-3 w-full text-left font-semibold text-sm text-noir px-4 py-4 rounded-xl hover:bg-or/10 transition-all">
                         <User size={18} className="text-vert" /> Mon Profil
                       </Link>
-                      {isAdmin && (
+                      {hasDashboardAccess && (
                         <Link href="/dashboard" className="flex items-center gap-3 w-full text-left font-semibold text-sm text-noir px-4 py-4 rounded-xl hover:bg-or/10 transition-all">
-                          <Settings size={18} className="text-vert" /> Dashboard Admin
+                          <Settings size={18} className="text-vert" /> Dashboard
                         </Link>
                       )}
                       <button 

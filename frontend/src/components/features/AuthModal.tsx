@@ -24,7 +24,7 @@ import { fetchApi } from "@/lib/api";
 interface AuthUser {
   name: string;
   email: string;
-  role: 'admin' | 'user';
+  role: string;
 }
 
 interface AuthModalProps {
@@ -52,7 +52,7 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModal
       });
 
       // 2. Récupération de l'identité en base de données
-      const userData = await fetchApi<{ firstname: string | null; lastname: string | null; email: string; role: 'admin' | 'user' }>('/v1/auth/me');
+      const userData = await fetchApi<{ firstname: string | null; lastname: string | null; email: string; role: string }>('/v1/auth/me');
       
       // 3. Formatage pour la Navbar
       const fullName = userData.firstname && userData.lastname 
