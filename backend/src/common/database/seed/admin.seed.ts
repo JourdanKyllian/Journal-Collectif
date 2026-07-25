@@ -5,7 +5,10 @@ import * as bcrypt from 'bcrypt';
 import { Users } from '../../../users/entities/user.entity';
 import { Role } from '../../../roles/entities/roles.entity';
 import { Categorie } from '../../../categorie/entities/categorie.entity';
-import { Article, ArticleStatus } from '../../../article/entities/article.entity';
+import {
+  Article,
+  ArticleStatus,
+} from '../../../article/entities/article.entity';
 
 /**
  * Service chargé de peupler la base de données avec des comptes de test
