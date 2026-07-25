@@ -5,11 +5,12 @@ import * as bcrypt from 'bcrypt';
 import { Users } from '../../../users/entities/user.entity';
 import { Role } from '../../../roles/entities/roles.entity';
 import { Categorie } from '../../../categorie/entities/categorie.entity';
-import {
-  Article,
-  ArticleStatus,
-} from '../../../article/entities/article.entity';
+import { Article, ArticleStatus } from '../../../article/entities/article.entity';
 
+/**
+ * Service chargé de peupler la base de données avec des comptes de test
+ * et des articles initiaux.
+ */
 @Injectable()
 export class AdminSeedService {
   private readonly logger = new Logger(AdminSeedService.name);
@@ -25,9 +26,11 @@ export class AdminSeedService {
     private readonly articleRepository: Repository<Article>,
   ) {}
 
+  /**
+   * Exécute le processus d'insertion ou de mise à jour des données initiales.
+   */
   async seed(): Promise<void> {
     try {
-      // Récupération des nouveaux rôles
       const superAdminRole = await this.roleRepository.findOne({
         where: { libelle: 'super_admin' },
       });
@@ -49,121 +52,110 @@ export class AdminSeedService {
 
       this.logger.log('Vérification et création des comptes de test...');
 
-      // 1. Compte SUPER ADMIN (Le gérant)
+      // 1. Compte SUPER ADMIN
       let superAdminUser = await this.usersRepository.findOne({
         where: { email: 'superadmin@journal.fr' },
       });
       if (!superAdminUser) {
-        superAdminUser = await this.usersRepository.save(
-          this.usersRepository.create({
-            email: 'superadmin@journal.fr',
-            password: await bcrypt.hash('superadmin123', 10),
-            role: superAdminRole,
-            is_phone_verified: true,
-            profile: {
-              firstname: 'Directeur',
-              lastname: 'Publication',
-              tel: '+33 6 00 00 00 01', // <-- Format International Français
-              avatar_ref: 'default_02', // Or
-              bio: 'Gérant du Collectif Chalonnais et Super Administrateur.',
-            },
-          }),
-        );
-        this.logger.log(`Super Admin créé : superadmin@journal.fr`);
+        superAdminUser = this.usersRepository.create({
+          email: 'superadmin@journal.fr',
+        });
       }
+      superAdminUser.password = await bcrypt.hash('superadmin123', 10);
+      superAdminUser.role = superAdminRole;
+      superAdminUser.is_phone_verified = true;
+      superAdminUser.profile = Object.assign(superAdminUser.profile || {}, {
+        firstname: 'Directeur',
+        lastname: 'Publication',
+        tel: '+33 6 00 00 00 01',
+        avatar_ref: 'default_02',
+        bio: 'Gérant du Collectif Chalonnais et Super Administrateur.',
+      });
+      await this.usersRepository.save(superAdminUser);
+      this.logger.log(`Super Admin configuré : superadmin@journal.fr`);
 
       // 2. Compte ADMIN
       let adminUser = await this.usersRepository.findOne({
         where: { email: 'admin@journal.fr' },
       });
       if (!adminUser) {
-        adminUser = await this.usersRepository.save(
-          this.usersRepository.create({
-            email: 'admin@journal.fr',
-            password: await bcrypt.hash('admin123', 10),
-            role: adminRole,
-            is_phone_verified: true,
-            profile: {
-              firstname: 'Modérateur',
-              lastname: 'Chef',
-              tel: '06 00 00 00 02', // <-- Format local Français
-              avatar_ref: 'default_03', // Noir
-              bio: 'Administrateur de la plateforme et modérateur.',
-            },
-          }),
-        );
-        this.logger.log(`Admin créé : admin@journal.fr`);
+        adminUser = this.usersRepository.create({ email: 'admin@journal.fr' });
       }
+      adminUser.password = await bcrypt.hash('admin123', 10);
+      adminUser.role = adminRole;
+      adminUser.is_phone_verified = true;
+      adminUser.profile = Object.assign(adminUser.profile || {}, {
+        firstname: 'Modérateur',
+        lastname: 'Chef',
+        tel: '+33 6 00 00 00 02',
+        avatar_ref: 'default_03',
+        bio: 'Administrateur de la plateforme et modérateur.',
+      });
+      await this.usersRepository.save(adminUser);
+      this.logger.log(`Admin configuré : admin@journal.fr`);
 
       // 3. Compte RÉDACTEUR
       let redacteurUser = await this.usersRepository.findOne({
         where: { email: 'redacteur@journal.fr' },
       });
       if (!redacteurUser) {
-        redacteurUser = await this.usersRepository.save(
-          this.usersRepository.create({
-            email: 'redacteur@journal.fr',
-            password: await bcrypt.hash('redacteur123', 10),
-            role: redacteurRole,
-            is_phone_verified: true,
-            profile: {
-              firstname: 'Plume',
-              lastname: 'Alerte',
-              tel: '+41 78 123 45 67', // <-- Format International Suisse
-              avatar_ref: 'default_04', // Champagne
-              bio: 'Rédacteur officiel pour le journal municipal.',
-            },
-          }),
-        );
-        this.logger.log(`Rédacteur créé : redacteur@journal.fr`);
+        redacteurUser = this.usersRepository.create({
+          email: 'redacteur@journal.fr',
+        });
       }
+      redacteurUser.password = await bcrypt.hash('redacteur123', 10);
+      redacteurUser.role = redacteurRole;
+      redacteurUser.is_phone_verified = true;
+      redacteurUser.profile = Object.assign(redacteurUser.profile || {}, {
+        firstname: 'Plume',
+        lastname: 'Alerte',
+        tel: '+41 78 123 45 67',
+        avatar_ref: 'default_04',
+        bio: 'Rédacteur officiel pour le journal municipal.',
+      });
+      await this.usersRepository.save(redacteurUser);
+      this.logger.log(`Rédacteur configuré : redacteur@journal.fr`);
 
       // 4. Compte VISITEUR INCOMPLET
-      const userIncompletExists = await this.usersRepository.findOne({
+      let userIncomplet = await this.usersRepository.findOne({
         where: { email: 'visiteur.incomplet@exemple.fr' },
       });
-      if (!userIncompletExists) {
-        await this.usersRepository.save(
-          this.usersRepository.create({
-            email: 'visiteur.incomplet@exemple.fr',
-            password: await bcrypt.hash('user123', 10),
-            role: userRole,
-            is_phone_verified: false,
-            profile: {
-              firstname: null,
-              lastname: null,
-              tel: null,
-              avatar_ref: 'default_01', // Vert
-            },
-          }),
-        );
-        this.logger.log(
-          `Visiteur Incomplet créé : visiteur.incomplet@exemple.fr`,
-        );
+      if (!userIncomplet) {
+        userIncomplet = this.usersRepository.create({
+          email: 'visiteur.incomplet@exemple.fr',
+        });
       }
+      userIncomplet.password = await bcrypt.hash('user123', 10);
+      userIncomplet.role = userRole;
+      userIncomplet.is_phone_verified = false;
+      userIncomplet.profile = Object.assign(userIncomplet.profile || {}, {
+        firstname: null,
+        lastname: null,
+        tel: null,
+        avatar_ref: 'default_01',
+      });
+      await this.usersRepository.save(userIncomplet);
 
       // 5. Compte VISITEUR COMPLET
-      const visiteurCompletExists = await this.usersRepository.findOne({
+      let visiteurComplet = await this.usersRepository.findOne({
         where: { email: 'visiteur.complet@exemple.fr' },
       });
-      if (!visiteurCompletExists) {
-        await this.usersRepository.save(
-          this.usersRepository.create({
-            email: 'visiteur.complet@exemple.fr',
-            password: await bcrypt.hash('user123', 10),
-            role: userRole,
-            is_phone_verified: true,
-            profile: {
-              firstname: 'Citoyen',
-              lastname: 'Engagé',
-              tel: '06 11 22 33 44', // <-- Format local Français
-              avatar_ref: 'default_01',
-              bio: 'Lecteur régulier et participant de la commune.',
-            },
-          }),
-        );
-        this.logger.log(`Visiteur Complet créé : visiteur.complet@exemple.fr`);
+      if (!visiteurComplet) {
+        visiteurComplet = this.usersRepository.create({
+          email: 'visiteur.complet@exemple.fr',
+        });
       }
+      visiteurComplet.password = await bcrypt.hash('user123', 10);
+      visiteurComplet.role = userRole;
+      visiteurComplet.is_phone_verified = true;
+      visiteurComplet.profile = Object.assign(visiteurComplet.profile || {}, {
+        firstname: 'Citoyen',
+        lastname: 'Engagé',
+        tel: '06 11 22 33 44',
+        avatar_ref: 'default_01',
+        bio: 'Lecteur régulier et participant de la commune.',
+      });
+      await this.usersRepository.save(visiteurComplet);
 
       // --- CRÉATION DES CATÉGORIES ET ARTICLES ---
       this.logger.log('Vérification et création des catégories...');

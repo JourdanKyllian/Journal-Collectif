@@ -11,7 +11,12 @@ import * as bcrypt from 'bcrypt';
 import { Users } from '../users/entities/user.entity';
 import { RegisterDto } from './dto/register.dto';
 import { Role } from '../roles/entities/roles.entity';
+import { UpdateSecurityDto } from './dto/update-security.dto';
 
+/**
+ * Service gérant la logique métier liée à l'authentification,
+ * aux sessions et aux profils utilisateurs.
+ */
 @Injectable()
 export class AuthService {
   constructor(
@@ -22,6 +27,14 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
+  /**
+   * Authentifie un utilisateur via son email et son mot de passe.
+   *
+   * @param {string} email - L'adresse email de l'utilisateur.
+   * @param {string} pass - Le mot de passe en clair .
+   * @returns {Promise<{ access_token: string; refresh_token: string }>} Les jetons d'accès .
+   * @throws {UnauthorizedException} Si les identifiants sont invalides .
+   */
   async login(email: string, pass: string) {
     const user = await this.usersRepository.findOne({
       where: { email },
@@ -35,7 +48,6 @@ export class AuthService {
     const roleName = user.role?.libelle;
     const payload = { sub: user.id, email: user.email, role: roleName };
 
-    // Vérifie si l'utilisateur fait partie de l'administration
     const isStaff = ['super_admin', 'admin', 'redacteur'].includes(roleName);
     const accessTokenExpiresIn = isStaff ? '15m' : '1h';
     const refreshTokenExpiresIn = isStaff ? '8h' : '7d';
@@ -59,6 +71,12 @@ export class AuthService {
     };
   }
 
+  /**
+   * Enregistre un nouvel utilisateur standard .
+   *
+   * @param {RegisterDto} registerDto - Les données d'inscription .
+   * @returns {Promise<Partial<Users>>} L'utilisateur créé sans son mot de passe .
+   */
   async register(registerDto: RegisterDto) {
     const userExists = await this.usersRepository.findOne({
       where: { email: registerDto.email },
@@ -92,6 +110,12 @@ export class AuthService {
     return userWithoutPassword;
   }
 
+  /**
+   * Renouvelle les jetons d'authentification à l'aide d'un refresh token .
+   *
+   * @param {string} refreshToken - Le jeton de rafraîchissement .
+   * @returns {Promise<{ access_token: string; refresh_token: string }>} De nouveaux jetons .
+   */
   async refreshToken(refreshToken: string) {
     try {
       const payload = await this.jwtService.verifyAsync<{
@@ -144,6 +168,12 @@ export class AuthService {
     }
   }
 
+  /**
+   * Déconnecte l'utilisateur en invalidant son jeton en base .
+   *
+   * @param {number} userId - L'identifiant de l'utilisateur .
+   * @returns {Promise<object>} Un message de confirmation .
+   */
   async logout(userId: number) {
     await this.usersRepository.update(userId, {
       token_auth: null,
@@ -157,11 +187,11 @@ export class AuthService {
   }
 
   /**
-   * Récupère les données agrégées de l'utilisateur connecté (Auth + Profile).
+   * Récupère les données agrégées de l'utilisateur connecté (Auth + Profile) .
    *
-   * @param {number} userId - L'identifiant de l'utilisateur.
-   * @returns Les informations de profil formatées pour le client.
-   * @throws {NotFoundException} Si l'utilisateur est introuvable.
+   * @param {number} userId - L'identifiant unique de l'utilisateur .
+   * @returns {Promise<object>} Les informations de profil et le rôle exact .
+   * @throws {NotFoundException} Si l'utilisateur est introuvable .
    */
   async getMe(userId: number) {
     const user = await this.usersRepository.findOne({
@@ -176,7 +206,7 @@ export class AuthService {
     return {
       id: user.id,
       email: user.email,
-      role: user.role?.libelle || 'utilisateur', // <-- Renvoie directement le vrai libellé en base ('super_admin', 'admin', 'redacteur', etc.)
+      role: user.role?.libelle || 'utilisateur',
       firstname: user.profile?.firstname || null,
       lastname: user.profile?.lastname || null,
       avatar_ref: user.profile?.avatar_ref || 'default_01',
@@ -186,24 +216,22 @@ export class AuthService {
   }
 
   /**
-   * Met à jour les informations de sécurité sensibles (Email / Mot de passe).
-   * Exige le mot de passe actuel pour validation.
+   * Met à jour les paramètres de sécurité sensibles (email ou mot de passe) .
+   *
+   * @param {number} userId - L'identifiant de l'utilisateur .
+   * @param {UpdateSecurityDto} dto - Le DTO contenant le mot de passe actuel et les modifications .
+   * @returns {Promise<object>} Un message de succès .
    */
-  async updateSecurity(
-    userId: number,
-    dto: import('./dto/update-security.dto').UpdateSecurityDto,
-  ) {
+  async updateSecurity(userId: number, dto: UpdateSecurityDto) {
     const user = await this.usersRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('Utilisateur introuvable.');
 
-    // 1. Vérification stricte de l'ancien mot de passe
     const isMatch = await bcrypt.compare(dto.currentPassword, user.password);
     if (!isMatch)
       throw new UnauthorizedException('Le mot de passe actuel est incorrect.');
 
     let hasChanges = false;
 
-    // 2. Traitement du nouvel email
     if (dto.newEmail && dto.newEmail !== user.email) {
       const emailExists = await this.usersRepository.findOne({
         where: { email: dto.newEmail },
@@ -216,7 +244,6 @@ export class AuthService {
       hasChanges = true;
     }
 
-    // 3. Traitement du nouveau mot de passe
     if (dto.newPassword) {
       user.password = await bcrypt.hash(dto.newPassword, 10);
       hasChanges = true;

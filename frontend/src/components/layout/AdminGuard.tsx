@@ -7,7 +7,7 @@ import { fetchApi } from "@/lib/api";
 interface AuthUser {
   name: string;
   email: string;
-  role: 'super_admin' | 'admin' | 'redacteur' | 'utilisateur';
+  role: string;
 }
 
 interface AdminGuardProps {
@@ -16,8 +16,8 @@ interface AdminGuardProps {
 }
 
 /**
- * Composant de protection des routes (Guard).
- * Vérifie l'authentification et les habilitations précises.
+ * Composant de protection des routes d'administration (Guard) .
+ * Valide les habilitations de l'utilisateur connecté .
  */
 export default function AdminGuard({ 
   children, 
@@ -26,21 +26,20 @@ export default function AdminGuard({
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState(false);
 
-  // On convertit le tableau en chaîne pour éviter les boucles infinies du useEffect
   const rolesStr = allowedRoles.join(',');
 
   useEffect(() => {
     const checkAdminStatus = async () => {
       try {
         const user = await fetchApi<AuthUser>('/v1/auth/me');
-        const targetRoles = rolesStr.split(',');
+        const targetRoles = rolesStr.toLowerCase().split(',');
+        const userRole = user.role ? user.role.toLowerCase() : '';
 
-        if (!targetRoles.includes(user.role)) {
-          // Si l'utilisateur est déjà dans l'admin, on le renvoie à l'accueil du dashboard
+        if (!targetRoles.includes(userRole)) {
           if (window.location.pathname !== '/dashboard' && window.location.pathname.startsWith('/dashboard')) {
              router.push("/dashboard");
           } else {
-             router.push("/"); // Sinon, retour brutal au site public
+             router.push("/");
           }
         } else {
           setIsAuthorized(true);

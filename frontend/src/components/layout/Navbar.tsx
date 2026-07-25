@@ -30,6 +30,10 @@ interface AuthUser {
   role: string;
 }
 
+/**
+ * Barre de navigation principale du site .
+ * Gère l'affichage dynamique du menu, du profil et du lien vers le Dashboard .
+ */
 export default function Navbar() {
   const pathname = usePathname();
   
@@ -37,7 +41,6 @@ export default function Navbar() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   
-  // Auto-login sécurisé : interroge l'API via le cookie HTTP-Only au montage
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -52,14 +55,14 @@ export default function Navbar() {
     checkSession();
   }, []);
   
-  // Vérification si l'utilisateur fait partie du staff (Gérant, Admin ou Rédacteur)
-  const hasDashboardAccess = user ? ['super_admin', 'admin', 'redacteur'].includes(user.role) : false;
+  const userRoleLower = user?.role ? user.role.toLowerCase() : '';
+  const hasDashboardAccess = ['super_admin', 'admin', 'redacteur'].includes(userRoleLower);
 
-  // Affichage du libellé du badge selon le rôle
   const getRoleBadge = (role: string) => {
-    if (role === 'super_admin') return 'Gérant';
-    if (role === 'admin') return 'Admin';
-    if (role === 'redacteur') return 'Rédacteur';
+    const r = role.toLowerCase();
+    if (r === 'super_admin') return 'Gérant';
+    if (r === 'admin') return 'Admin';
+    if (r === 'redacteur') return 'Rédacteur';
     return '';
   };
 
@@ -89,14 +92,12 @@ export default function Navbar() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-blanc/90 backdrop-blur-xl border-b border-champagne/30 h-17.5 flex items-center">
         <div className="max-w-7xl mx-auto w-full px-6 flex items-center justify-between gap-8">
           
-          {/* LOGO ISOLE */}
           <Link href="/" className="flex items-center shrink-0 cursor-pointer" aria-label="Accueil">
             <div className="w-10 h-10 bg-linear-to-br from-vert to-noir rounded-xl flex items-center justify-center text-or border-2 border-or shadow-sm hover:scale-105 transition-transform">
               <Landmark size={20} />
             </div>
           </Link>
 
-          {/* LIENS DE NAVIGATION (DESKTOP) */}
           <ul className="hidden md:flex items-center gap-1 list-none">
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
@@ -115,10 +116,7 @@ export default function Navbar() {
             })}
           </ul>
 
-          {/* ACTIONS UTILISATEUR (DROITE) */}
           <div className="flex items-center gap-3 shrink-0">
-            
-            {/* --- GESTION DU FLICKER DESKTOP --- */}
             {isCheckingSession ? (
               <Skeleton className="hidden md:block w-35 h-13 rounded-xl" />
             ) : !user ? (
@@ -129,7 +127,6 @@ export default function Navbar() {
                 <User size={16} /> Connexion
               </Button>
             ) : (
-              // Utilisateur Connecté
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button className="hidden md:flex w-11 h-11 rounded-full bg-linear-to-br from-vert to-noir border-2 border-or items-center justify-center text-or transition-all hover:scale-105 hover:shadow-or/30 hover:shadow-md outline-none">
@@ -169,7 +166,6 @@ export default function Navbar() {
               </DropdownMenu>
             )}
 
-            {/* --- MENU MOBILE (SHEET) --- */}
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="md:hidden flex flex-col gap-1.5 p-2 rounded-lg hover:bg-or/10 h-auto">
@@ -192,7 +188,6 @@ export default function Navbar() {
                   ))}
                   <div className="h-px bg-champagne/30 my-2"></div>
                   
-                  {/* --- GESTION DU FLICKER MOBILE --- */}
                   {isCheckingSession ? (
                     <Skeleton className="w-full h-14 rounded-xl" />
                   ) : !user ? (
