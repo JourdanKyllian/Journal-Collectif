@@ -63,7 +63,7 @@ export class AdminSeedService {
             profile: {
               firstname: 'Directeur',
               lastname: 'Publication',
-              tel: '0600000001',
+              tel: '+33 6 00 00 00 01', // <-- Format International Français
               avatar_ref: 'default_02', // Or
               bio: 'Gérant du Collectif Chalonnais et Super Administrateur.',
             },
@@ -86,7 +86,7 @@ export class AdminSeedService {
             profile: {
               firstname: 'Modérateur',
               lastname: 'Chef',
-              tel: '0600000002',
+              tel: '06 00 00 00 02', // <-- Format local Français
               avatar_ref: 'default_03', // Noir
               bio: 'Administrateur de la plateforme et modérateur.',
             },
@@ -109,7 +109,7 @@ export class AdminSeedService {
             profile: {
               firstname: 'Plume',
               lastname: 'Alerte',
-              tel: '0600000003',
+              tel: '+41 78 123 45 67', // <-- Format International Suisse
               avatar_ref: 'default_04', // Champagne
               bio: 'Rédacteur officiel pour le journal municipal.',
             },
@@ -156,7 +156,7 @@ export class AdminSeedService {
             profile: {
               firstname: 'Citoyen',
               lastname: 'Engagé',
-              tel: '0611223344',
+              tel: '06 11 22 33 44', // <-- Format local Français
               avatar_ref: 'default_01',
               bio: 'Lecteur régulier et participant de la commune.',
             },
