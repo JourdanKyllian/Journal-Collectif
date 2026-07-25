@@ -2,32 +2,36 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { 
-  LayoutDashboard, 
-  Newspaper, 
-  Search, 
-  Bell, 
-  Users, 
-  Settings, 
-  ArrowLeft 
+  LayoutDashboard, Newspaper, Search, Bell, 
+  Users, Settings, ArrowLeft 
 } from "lucide-react";
 import AdminGuard from "@/components/layout/AdminGuard";
+import { fetchApi } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 
-interface DashboardLayoutProps {
-  children: React.ReactNode;
-}
-
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [role, setRole] = useState<string | null>(null);
 
-  const menuItems = [
-    { name: "Vue d'ensemble", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Articles", href: "/dashboard/articles", icon: Newspaper },
-    { name: "Objets perdus", href: "/dashboard/lost", icon: Search },
-    { name: "Alertes", href: "/dashboard/alerts", icon: Bell },
-    { name: "Utilisateurs", href: "/dashboard/users", icon: Users },
-    { name: "Paramètres", href: "/dashboard/settings", icon: Settings },
+  useEffect(() => {
+    fetchApi<{ role: string }>('/v1/auth/me')
+      .then(user => setRole(user.role))
+      .catch(() => {});
+  }, []);
+
+  // Définition centralisée des droits d'accès au menu
+  const allMenuItems = [
+    { name: "Vue d'ensemble", href: "/dashboard", icon: LayoutDashboard, roles: ['super_admin', 'admin', 'redacteur'] },
+    { name: "Articles", href: "/dashboard/articles", icon: Newspaper, roles: ['super_admin', 'admin', 'redacteur'] },
+    { name: "Objets perdus", href: "/dashboard/lost", icon: Search, roles: ['super_admin', 'admin'] },
+    { name: "Alertes", href: "/dashboard/alerts", icon: Bell, roles: ['super_admin', 'admin', 'redacteur'] },
+    { name: "Utilisateurs", href: "/dashboard/users", icon: Users, roles: ['super_admin', 'admin'] },
+    { name: "Paramètres", href: "/dashboard/settings", icon: Settings, roles: ['super_admin'] },
   ];
+
+  const menuItems = allMenuItems.filter(item => role && item.roles.includes(role));
 
   return (
     <AdminGuard>
@@ -41,23 +45,32 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
           
           <nav className="space-y-1.5 flex-1">
-            {menuItems.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-montserrat font-bold transition-all duration-200 ${
-                    isActive 
-                      ? "bg-or text-noir shadow-lg shadow-or/10" 
-                      : "text-blanc/60 hover:text-blanc hover:bg-white/5"
-                  }`}
-                >
-                  <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} />
-                  {item.name}
-                </Link>
-              );
-            })}
+            {!role ? (
+              // Animation fluide d'attente
+              <div className="space-y-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-11 w-full rounded-xl bg-white/5" />
+                ))}
+              </div>
+            ) : (
+              menuItems.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-montserrat font-bold transition-all duration-200 ${
+                      isActive 
+                        ? "bg-or text-noir shadow-lg shadow-or/10" 
+                        : "text-blanc/60 hover:text-blanc hover:bg-white/5"
+                    }`}
+                  >
+                    <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} />
+                    {item.name}
+                  </Link>
+                );
+              })
+            )}
           </nav>
 
           <div className="pt-6 border-t border-white/10 mt-auto">

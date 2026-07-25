@@ -1,47 +1,44 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { 
-  Newspaper, 
-  Clock, 
-  Search, 
-  AlertTriangle
-} from "lucide-react";
+import { fetchApi } from "@/lib/api";
+import { Newspaper, Clock, Search, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import Link from "next/link";
 
-/**
- * Composant de la page d'accueil du tableau de bord administrateur.
- * Affiche les statistiques globales et des raccourcis d'actions rapides.
- * 
- * @returns {JSX.Element} Le composant du tableau de bord rendu.
- */
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
+  const [role, setRole] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadDashboardStats = async () => {
+    const loadDashboardData = async () => {
       try {
         setIsLoading(true);
-        // L'appel API réel sera inséré ici :
-        // const data = await fetchApi('/v1/stats/dashboard');
+        // On récupère le rôle de l'utilisateur pour adapter l'interface
+        const user = await fetchApi<{ role: string }>('/v1/auth/me');
+        setRole(user.role);
+        // await fetchApi('/v1/stats/dashboard'); // Données réelles plus tard
       } catch (error) {
-        console.error("Erreur lors de la récupération des statistiques:", error);
+        console.error("Erreur de récupération :", error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadDashboardStats();
+    loadDashboardData();
   }, []);
 
   const stats = [
-    { title: "Articles publiés", value: "382", sub: "+12 ce mois", icon: Newspaper, color: "text-green-600", bg: "bg-green-50" },
-    { title: "En attente", value: "7", sub: "À valider", icon: Clock, color: "text-yellow-600", bg: "bg-yellow-50" },
-    { title: "Objets déclarés", value: "36", sub: "4 nouveaux", icon: Search, color: "text-blue-600", bg: "bg-blue-50" },
-    { title: "Alertes actives", value: "2", sub: "En ligne", icon: AlertTriangle, color: "text-red-500", bg: "bg-red-50" },
+    { title: "Articles publiés", value: "382", sub: "+12 ce mois", icon: Newspaper, color: "text-green-600", bg: "bg-green-50", roles: ['super_admin', 'admin', 'redacteur'] },
+    { title: "En attente", value: "7", sub: "À valider", icon: Clock, color: "text-yellow-600", bg: "bg-yellow-50", roles: ['super_admin', 'admin', 'redacteur'] },
+    { title: "Objets déclarés", value: "36", sub: "4 nouveaux", icon: Search, color: "text-blue-600", bg: "bg-blue-50", roles: ['super_admin', 'admin'] },
+    { title: "Alertes actives", value: "2", sub: "En ligne", icon: AlertTriangle, color: "text-red-500", bg: "bg-red-50", roles: ['super_admin', 'admin', 'redacteur'] },
   ];
+
+  const visibleStats = stats.filter(s => role && s.roles.includes(role));
+  const canManageObjects = role === 'super_admin' || role === 'admin';
 
   return (
     <div className="space-y-8 animate-slide-up">
@@ -64,7 +61,7 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             ))
-          : stats.map((stat, i) => (
+          : visibleStats.map((stat, i) => (
               <Card key={i} className="border-champagne/20 shadow-sm hover:shadow-md transition-shadow">
                 <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
                   <CardTitle className="text-xs font-raleway font-bold text-champagne uppercase tracking-wider">
@@ -98,29 +95,37 @@ export default function DashboardPage() {
           ))
         ) : (
           <>
-            <Button className="h-auto p-6 bg-or hover:bg-or/90 text-noir flex flex-col items-start gap-2 rounded-2xl shadow-lg shadow-or/20 border-0">
-              <Newspaper size={24} />
-              <div className="text-left">
-                <div className="font-bold">Rédiger un article</div>
-                <div className="text-xs font-normal opacity-70">Créer et publier du contenu</div>
-              </div>
-            </Button>
+            <Link href="/dashboard/articles" className="w-full">
+              <Button className="w-full h-auto p-6 bg-or hover:bg-or/90 text-noir flex flex-col items-start gap-2 rounded-2xl shadow-lg shadow-or/20 border-0">
+                <Newspaper size={24} />
+                <div className="text-left">
+                  <div className="font-bold">Rédiger un article</div>
+                  <div className="text-xs font-normal opacity-70">Créer et publier du contenu</div>
+                </div>
+              </Button>
+            </Link>
 
-            <Button variant="outline" className="h-auto p-6 bg-blanc border-champagne/30 hover:border-or text-noir flex flex-col items-start gap-2 rounded-2xl shadow-sm hover:shadow-md transition-all">
-              <Search size={24} className="text-champagne" />
-              <div className="text-left">
-                <div className="font-bold">Gérer les objets</div>
-                <div className="text-xs font-normal text-champagne">Valider les déclarations</div>
-              </div>
-            </Button>
+            {canManageObjects && (
+              <Link href="/dashboard/lost" className="w-full">
+                <Button variant="outline" className="w-full h-auto p-6 bg-blanc border-champagne/30 hover:border-or text-noir flex flex-col items-start gap-2 rounded-2xl shadow-sm hover:shadow-md transition-all">
+                  <Search size={24} className="text-champagne" />
+                  <div className="text-left">
+                    <div className="font-bold">Gérer les objets</div>
+                    <div className="text-xs font-normal text-champagne">Valider les déclarations</div>
+                  </div>
+                </Button>
+              </Link>
+            )}
 
-            <Button variant="outline" className="h-auto p-6 bg-blanc border-champagne/30 hover:border-red-400 text-noir flex flex-col items-start gap-2 rounded-2xl shadow-sm hover:shadow-md transition-all">
-              <AlertTriangle size={24} className="text-red-400" />
-              <div className="text-left">
-                <div className="font-bold">Publier une alerte</div>
-                <div className="text-xs font-normal text-champagne">Urgences et travaux</div>
-              </div>
-            </Button>
+            <Link href="/dashboard/alerts" className="w-full">
+              <Button variant="outline" className="w-full h-auto p-6 bg-blanc border-champagne/30 hover:border-red-400 text-noir flex flex-col items-start gap-2 rounded-2xl shadow-sm hover:shadow-md transition-all">
+                <AlertTriangle size={24} className="text-red-400" />
+                <div className="text-left">
+                  <div className="font-bold">Publier une alerte</div>
+                  <div className="text-xs font-normal text-champagne">Urgences et travaux</div>
+                </div>
+              </Button>
+            </Link>
           </>
         )}
       </div>

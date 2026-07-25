@@ -7,50 +7,58 @@ import { fetchApi } from "@/lib/api";
 interface AuthUser {
   name: string;
   email: string;
-  role: string;
+  role: 'super_admin' | 'admin' | 'redacteur' | 'utilisateur';
+}
+
+interface AdminGuardProps {
+  children: React.ReactNode;
+  allowedRoles?: string[];
 }
 
 /**
- * Composant de protection des routes (Guard) pour l'espace d'administration.
- * Vérifie l'authentification et les habilitations de l'utilisateur via le cookie HTTP-Only.
- * Redirige vers la page d'accueil si l'utilisateur n'est pas connecté ou n'a pas le rôle requis.
- * 
- * @param {Object} props - Les propriétés du composant.
- * @param {React.ReactNode} props.children - Les composants enfants à rendre si l'accès est autorisé.
- * @returns {JSX.Element} Les enfants si autorisé, sinon un écran de chargement pendant la vérification.
+ * Composant de protection des routes (Guard).
+ * Vérifie l'authentification et les habilitations précises.
  */
-export default function AdminGuard({ children }: { children: React.ReactNode }) {
+export default function AdminGuard({ 
+  children, 
+  allowedRoles = ['super_admin', 'admin', 'redacteur'] 
+}: AdminGuardProps) {
   const router = useRouter();
   const [isAuthorized, setIsAuthorized] = useState(false);
+
+  // On convertit le tableau en chaîne pour éviter les boucles infinies du useEffect
+  const rolesStr = allowedRoles.join(',');
 
   useEffect(() => {
     const checkAdminStatus = async () => {
       try {
-        // L'API va lire le cookie HTTP-Only automatiquement
         const user = await fetchApi<AuthUser>('/v1/auth/me');
+        const targetRoles = rolesStr.split(',');
 
-        // Vérification stricte des rôles autorisés
-        const allowedRoles = ['super_admin', 'admin', 'redacteur'];
-        if (!allowedRoles.includes(user.role)) {
-          router.push("/");
+        if (!targetRoles.includes(user.role)) {
+          // Si l'utilisateur est déjà dans l'admin, on le renvoie à l'accueil du dashboard
+          if (window.location.pathname !== '/dashboard' && window.location.pathname.startsWith('/dashboard')) {
+             router.push("/dashboard");
+          } else {
+             router.push("/"); // Sinon, retour brutal au site public
+          }
         } else {
           setIsAuthorized(true);
         }
       } catch {
-        // Si erreur 401 (non connecté) ou autre, on éjecte
         router.push("/");
       }
     };
 
     checkAdminStatus();
-  }, [router]);
+  }, [router, rolesStr]);
 
   if (!isAuthorized) {
     return (
-      <div className="h-screen w-full flex flex-col items-center justify-center bg-blanc">
-        <div className="w-12 h-12 border-4 border-champagne/20 border-t-or rounded-full animate-spin"></div>
-        <p className="mt-4 font-montserrat font-bold text-sm text-champagne uppercase tracking-widest">
-          Vérification des habilitations...
+      <div className="h-full w-full flex flex-col items-center justify-center bg-transparent min-h-[40vh]">
+        <div className="w-10 h-10 border-4 border-champagne/20 border-t-or rounded-full animate-spin"></div>
+        <p className="mt-4 font-montserrat font-bold text-xs text-champagne uppercase tracking-widest">
+          Vérification des accès...
         </p>
       </div>
     );
