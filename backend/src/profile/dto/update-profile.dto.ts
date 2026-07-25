@@ -45,7 +45,8 @@ export class UpdateProfileDto {
   })
   @IsString()
   @Matches(/^\+?[0-9 ]{8,25}$/, {
-    message: 'Numéro invalide. Renseignez un numéro local (10 chiffres) ou international (+XX).',
+    message:
+      'Numéro invalide. Renseignez un numéro local (10 chiffres) ou international (+XX).',
   })
   @MaxLength(25)
   tel?: string;
