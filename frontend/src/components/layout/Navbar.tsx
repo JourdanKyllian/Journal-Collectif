@@ -30,10 +30,6 @@ interface AuthUser {
   role: string;
 }
 
-/**
- * Barre de navigation principale du site .
- * Gère l'affichage dynamique du menu, du profil et du lien vers le Dashboard .
- */
 export default function Navbar() {
   const pathname = usePathname();
   
@@ -41,18 +37,19 @@ export default function Navbar() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   
+  // NOUVEAU: Récupère les paramètres de l'appli pour le logo dynamique
+  const [settings, setSettings] = useState({ nom_journal: "Collectif Chalonnais", type_journal: "Journal Municipal" });
+  
   useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const userData = await fetchApi<AuthUser>('/v1/auth/me');
-        setUser(userData);
-      } catch {
-        setUser(null);
-      } finally {
-        setIsCheckingSession(false);
-      }
-    };
-    checkSession();
+    // On charge le profil utilisateur ET les paramètres en parallèle
+    Promise.all([
+      fetchApi<AuthUser>('/v1/auth/me').catch(() => null),
+      fetchApi<typeof settings>('/v1/settings').catch(() => settings)
+    ]).then(([userData, settingsData]) => {
+      setUser(userData);
+      setSettings(settingsData as typeof settings);
+      setIsCheckingSession(false);
+    });
   }, []);
   
   const userRoleLower = user?.role ? user.role.toLowerCase() : '';
@@ -92,12 +89,18 @@ export default function Navbar() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-blanc/90 backdrop-blur-xl border-b border-champagne/30 h-17.5 flex items-center">
         <div className="max-w-7xl mx-auto w-full px-6 flex items-center justify-between gap-8">
           
-          <Link href="/" className="flex items-center shrink-0 cursor-pointer" aria-label="Accueil">
+          {/* LOGO DYNAMIQUE */}
+          <Link href="/" className="flex items-center gap-3 shrink-0 cursor-pointer" aria-label="Accueil">
             <div className="w-10 h-10 bg-linear-to-br from-vert to-noir rounded-xl flex items-center justify-center text-or border-2 border-or shadow-sm hover:scale-105 transition-transform">
               <Landmark size={20} />
             </div>
+            <div className="text-left hidden sm:block">
+              <div className="font-poppins font-black text-sm text-noir leading-tight">{settings.nom_journal}</div>
+              <div className="font-raleway text-xs text-champagne font-semibold tracking-wide">· {settings.type_journal}</div>
+            </div>
           </Link>
 
+          {/* LIENS DE NAVIGATION (DESKTOP) */}
           <ul className="hidden md:flex items-center gap-1 list-none">
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
@@ -116,6 +119,7 @@ export default function Navbar() {
             })}
           </ul>
 
+          {/* ACTIONS UTILISATEUR (DROITE) */}
           <div className="flex items-center gap-3 shrink-0">
             {isCheckingSession ? (
               <Skeleton className="hidden md:block w-35 h-13 rounded-xl" />

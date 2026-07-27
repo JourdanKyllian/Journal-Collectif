@@ -17,6 +17,10 @@ export class Setting {
   @Column({ type: 'varchar', length: 20, default: '03 26 26 08 30' })
   tel_contact!: string;
 
-  @Column({ type: 'text', default: 'Le journal officiel et indépendant de la commune, pour rester connectés à la vie locale en temps réel.' })
+  @Column({
+    type: 'text',
+    default:
+      'Le journal officiel et indépendant de la commune, pour rester connectés à la vie locale en temps réel.',
+  })
   description_footer!: string;
 }
