@@ -9,11 +9,6 @@ import { CreateUserDto } from './dto/create-user.dto';
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  @Get('contact')
-  async getContactInfo() {
-    return this.usersService.getSuperAdminContact();
-  }
-
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('super_admin', 'admin') // Autorisés à créer des comptes
   @Post('create')

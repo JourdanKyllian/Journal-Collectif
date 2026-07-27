@@ -22,6 +22,7 @@ import { LoggerMiddleware } from './common/middleware/logger.middleware';
 import { TableSeedService } from './common/database/seed/table.seed';
 import { HealthModule } from './health/health.module';
 import { ProfileModule } from './profile/profile.module';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { ProfileModule } from './profile/profile.module';
     AuthModule,
     HealthModule,
     ProfileModule,
+    SettingsModule,
   ],
   providers: [AdminSeedService, TableSeedService],
 })

@@ -92,19 +92,4 @@ export class UsersService {
       return userWithoutPassword;
     });
   }
-
-  /**
-   * Récupère les infos de contact du super_admin pour le footer public.
-   */
-  async getSuperAdminContact() {
-    const superAdmin = await this.usersRepository.findOne({
-      where: { role: { libelle: 'super_admin' } },
-      relations: ['profile'],
-    });
-
-    return {
-      email: superAdmin?.email || 'contact@chalonnais.fr',
-      tel: superAdmin?.profile?.tel || 'Non renseigné',
-    };
-  }
 }
