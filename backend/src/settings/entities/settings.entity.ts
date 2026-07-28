@@ -11,7 +11,11 @@ export class Setting {
   @Column({ type: 'varchar', length: 50, default: 'Journal Associatif' })
   type_journal!: string;
 
-  @Column({ type: 'varchar', length: 255, default: 'contact@collectif-chalonnais.fr' })
+  @Column({
+    type: 'varchar',
+    length: 255,
+    default: 'contact@collectif-chalonnais.fr',
+  })
   email_contact!: string;
 
   @Column({ type: 'varchar', length: 20, default: '03 26 26 08 30' })

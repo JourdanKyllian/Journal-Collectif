@@ -4,7 +4,9 @@ import { parsePhoneNumberFromString } from 'libphonenumber-js';
  * Formate un numéro de téléphone pour correspondre aux standards internationaux.
  * Utilise la norme mondiale pour appliquer les bons espacements selon le pays.
  */
-export function formatInternationalPhone(value: string | undefined | null): string | null {
+export function formatInternationalPhone(
+  value: string | undefined | null,
+): string | null {
   if (!value || value.trim() === '') return null;
 
   let cleaned = value.trim();
