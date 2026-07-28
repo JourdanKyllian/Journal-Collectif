@@ -23,6 +23,7 @@ import { TableSeedService } from './common/database/seed/table.seed';
 import { HealthModule } from './health/health.module';
 import { ProfileModule } from './profile/profile.module';
 import { SettingsModule } from './settings/settings.module';
+import { AlertsModule } from './alerts/alerts.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { SettingsModule } from './settings/settings.module';
     HealthModule,
     ProfileModule,
     SettingsModule,
+    AlertsModule,
   ],
   providers: [AdminSeedService, TableSeedService],
 })
