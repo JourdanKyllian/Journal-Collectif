@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { 
-  AlertTriangle, Trash2, Info, CalendarDays, Megaphone, PartyPopper, CheckCircle2 
+  AlertTriangle, Trash2, Info, CalendarDays, Megaphone, PartyPopper, CheckCircle2, PenSquare 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,8 +51,10 @@ export default function AlertsDashboard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
-  // Nouvel état pour gérer si on veut une date de fin ou non
+  // États pour la modification
+  const [editingAlertId, setEditingAlertId] = useState<number | null>(null);
   const [hasEndDate, setHasEndDate] = useState(false);
+  const formRef = useRef<HTMLDivElement>(null);
 
   const [formData, setFormData] = useState({
     type: "urgent",
@@ -77,30 +79,40 @@ export default function AlertsDashboard() {
     loadAlerts();
   }, []);
 
-  const handleCreate = async (e: React.FormEvent) => {
+  // Gère la création ET la modification
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setFeedback(null);
     try {
-      await fetchApi('/v1/alerts', {
-        method: 'POST',
-        body: JSON.stringify({
-          ...formData,
-          startDate: formData.startDate || undefined,
-          // On n'envoie la date de fin que si le switch est activé
-          endDate: (hasEndDate && formData.endDate) ? formData.endDate : undefined,
-        }),
-      });
-      setFeedback({ type: "success", message: "Alerte publiée avec succès !" });
+      const payload = {
+        ...formData,
+        startDate: formData.startDate || undefined,
+        // On n'envoie la date de fin que si le switch est activé
+        endDate: (hasEndDate && formData.endDate) ? formData.endDate : undefined,
+      };
+
+      if (editingAlertId) {
+        await fetchApi(`/v1/alerts/${editingAlertId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(payload),
+        });
+        setFeedback({ type: "success", message: "Alerte modifiée avec succès !" });
+      } else {
+        await fetchApi('/v1/alerts', {
+          method: 'POST',
+          body: JSON.stringify(payload),
+        });
+        setFeedback({ type: "success", message: "Alerte publiée avec succès !" });
+      }
       
       // Réinitialisation du formulaire
-      setFormData({ type: "urgent", title: "", message: "", startDate: "", endDate: "" });
-      setHasEndDate(false);
+      handleCancelEdit();
       
       const data = await fetchApi<AlertItem[]>('/v1/alerts');
       setAlerts(data);
     } catch (error: unknown) {
-      setFeedback({ type: "error", message: (error as Error).message || "Erreur de création" });
+      setFeedback({ type: "error", message: (error as Error).message || "Erreur de sauvegarde" });
     } finally {
       setIsSubmitting(false);
       setTimeout(() => setFeedback(null), 5000);
@@ -112,10 +124,34 @@ export default function AlertsDashboard() {
     try {
       await fetchApi(`/v1/alerts/${id}`, { method: 'DELETE' });
       setAlerts(alerts.filter(a => a.id !== id));
+      if (editingAlertId === id) handleCancelEdit();
     } catch (error) {
       console.error("Erreur de suppression:", error);
       alert("Impossible de supprimer l'alerte.");
     }
+  };
+
+  const handleEditClick = (alert: AlertItem) => {
+    setEditingAlertId(alert.id);
+    setFormData({
+      type: alert.type,
+      title: alert.title,
+      message: alert.message,
+      startDate: alert.startDate || "",
+      endDate: alert.endDate || ""
+    });
+    setHasEndDate(!!alert.endDate);
+    
+    // Défilement doux vers le formulaire
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingAlertId(null);
+    setFormData({ type: "urgent", title: "", message: "", startDate: "", endDate: "" });
+    setHasEndDate(false);
   };
 
   const formatDates = (start: string | null, end: string | null) => {
@@ -157,8 +193,8 @@ export default function AlertsDashboard() {
               alerts.map((alert) => {
                 const style = TYPE_STYLES[alert.type];
                 return (
-                  <div key={alert.id} className={`bg-blanc border-l-4 ${style.wrapper} rounded-xl p-5 flex flex-col sm:flex-row items-start gap-4 hover:shadow-md transition-all`}>
-                    <div className={`w-10 h-10 ${style.bgIcon} rounded-xl flex items-center justify-center ${style.textIcon} shrink-0 mt-1`}>
+                  <div key={alert.id} className={`bg-blanc border-l-4 ${style.wrapper} rounded-xl p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 hover:shadow-md transition-all`}>
+                    <div className={`w-10 h-10 ${style.bgIcon} rounded-xl flex items-center justify-center ${style.textIcon} shrink-0`}>
                       <style.Icon size={20} />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -168,14 +204,19 @@ export default function AlertsDashboard() {
                         </span>
                         <h3 className="font-montserrat font-bold text-sm">{alert.title}</h3>
                       </div>
-                      <p className="font-montserrat text-xs text-champagne mb-2 whitespace-pre-wrap">{alert.message}</p>
+                      <p className="font-montserrat text-xs text-champagne mb-2 whitespace-pre-wrap line-clamp-2">{alert.message}</p>
                       <div className="font-montserrat text-xs text-champagne flex items-center gap-1.5">
                         <CalendarDays size={12} /> {formatDates(alert.startDate, alert.endDate)}
                       </div>
                     </div>
-                    <Button onClick={() => handleDelete(alert.id)} variant="ghost" size="sm" className="bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 font-montserrat font-bold text-xs rounded-lg mt-2 sm:mt-0">
-                      <Trash2 size={14} className="mr-1.5" /> Retirer
-                    </Button>
+                    <div className="flex gap-2 w-full sm:w-auto justify-end shrink-0 border-t border-champagne/10 sm:border-0 pt-3 sm:pt-0 mt-1 sm:mt-0">
+                      <Button onClick={() => handleEditClick(alert)} variant="ghost" size="sm" className="bg-champagne/15 text-vert hover:bg-champagne/30 font-montserrat font-bold text-xs rounded-lg flex-1 sm:flex-none">
+                        <PenSquare size={14} className="mr-1.5" /> Éditer
+                      </Button>
+                      <Button onClick={() => handleDelete(alert.id)} variant="ghost" size="sm" className="bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 font-montserrat font-bold text-xs rounded-lg flex-1 sm:flex-none">
+                        <Trash2 size={14} className="mr-1.5" /> Retirer
+                      </Button>
+                    </div>
                   </div>
                 );
               })
@@ -183,10 +224,14 @@ export default function AlertsDashboard() {
           </div>
         </div>
 
-        {/* --- CRÉER UNE ALERTE --- */}
-        <div className="bg-blanc rounded-2xl border border-champagne/20 p-6 sm:p-8 mt-8">
+        {/* --- CRÉER / MODIFIER UNE ALERTE --- */}
+        <div ref={formRef} className={`bg-blanc rounded-2xl border ${editingAlertId ? 'border-or shadow-lg shadow-or/10' : 'border-champagne/20'} p-6 sm:p-8 mt-8 transition-all duration-300`}>
           <h2 className="font-poppins font-black text-lg text-noir mb-6 flex items-center gap-2">
-            ＋ Créer une nouvelle alerte
+            {editingAlertId ? (
+              <><PenSquare size={20} className="text-or" /> Modifier l&apos;alerte</>
+            ) : (
+              <>＋ Créer une nouvelle alerte</>
+            )}
           </h2>
 
           {feedback && (
@@ -196,7 +241,7 @@ export default function AlertsDashboard() {
             </div>
           )}
           
-          <form onSubmit={handleCreate} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-3">
               <Label className="font-montserrat font-bold text-xs text-vert tracking-wide uppercase">Niveau d&apos;urgence</Label>
               <RadioGroup value={formData.type} onValueChange={(val) => setFormData({ ...formData, type: val })} className="flex flex-wrap gap-4">
@@ -264,9 +309,29 @@ export default function AlertsDashboard() {
               </div>
             </div>
 
-            <Button disabled={isSubmitting} type="submit" className="w-full py-6 bg-noir text-blanc font-montserrat font-bold text-sm rounded-xl hover:bg-vert transition-all hover:-translate-y-0.5 mt-4">
-              {isSubmitting ? "Création en cours..." : <><Megaphone size={16} className="mr-2" /> Publier l&apos;alerte sur le site</>}
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+              {editingAlertId && (
+                <Button 
+                  type="button" 
+                  onClick={handleCancelEdit} 
+                  variant="outline" 
+                  className="py-6 border-champagne/40 text-noir font-montserrat font-bold rounded-xl hover:bg-champagne/10 transition-all sm:w-1/3"
+                >
+                  Annuler
+                </Button>
+              )}
+              <Button 
+                disabled={isSubmitting} 
+                type="submit" 
+                className={`py-6 bg-noir text-blanc font-montserrat font-bold text-sm rounded-xl hover:bg-vert transition-all hover:-translate-y-0.5 ${editingAlertId ? 'sm:w-2/3' : 'w-full'}`}
+              >
+                {isSubmitting ? "Traitement en cours..." : (
+                  editingAlertId 
+                    ? <><CheckCircle2 size={16} className="mr-2" /> Enregistrer les modifications</>
+                    : <><Megaphone size={16} className="mr-2" /> Publier l&apos;alerte sur le site</>
+                )}
+              </Button>
+            </div>
           </form>
         </div>
       </div>
