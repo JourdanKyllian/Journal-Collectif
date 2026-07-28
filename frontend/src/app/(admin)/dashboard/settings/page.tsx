@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import AdminGuard from "@/components/layout/AdminGuard";
 import { fetchApi } from "@/lib/api";
@@ -149,8 +148,11 @@ export default function SettingsDashboard() {
             <Skeleton className="h-24 w-full" />
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="bg-blanc rounded-2xl border border-champagne/20 p-6 sm:p-8 max-w-2xl space-y-6 mt-6">
-            
+          <form 
+            onSubmit={handleSubmit} 
+            autoComplete="off" 
+            className="bg-blanc rounded-2xl border border-champagne/20 p-6 sm:p-8 max-w-2xl space-y-6 mt-6"
+          >
             <div className="grid sm:grid-cols-2 gap-5">
               <div className="space-y-2">
                 <Label className="font-montserrat font-bold text-xs text-vert uppercase tracking-wide">
@@ -159,6 +161,8 @@ export default function SettingsDashboard() {
                 <Input 
                   value={formData.nom_journal}
                   onChange={(e) => setFormData({ ...formData, nom_journal: e.target.value })}
+                  autoComplete="off"
+                  data-1p-ignore
                   className="px-4 py-6 border-champagne/40 rounded-xl bg-blanc focus-visible:ring-or/30 focus-visible:border-or font-montserrat text-sm"
                 />
               </div>
@@ -167,17 +171,14 @@ export default function SettingsDashboard() {
                 <Label className="font-montserrat font-bold text-xs text-vert uppercase tracking-wide">
                   Type de média
                 </Label>
-                <Select value={formData.type_journal} onValueChange={(val) => setFormData({ ...formData, type_journal: val })}>
-                  <SelectTrigger className="px-4 py-6 border-champagne/40 rounded-xl bg-blanc focus:ring-or/30 focus:border-or font-montserrat text-sm">
-                    <SelectValue placeholder="Sélectionner..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-blanc border-champagne/40 rounded-xl font-montserrat">
-                    <SelectItem value="Journal Municipal">🏛️ Journal Municipal</SelectItem>
-                    <SelectItem value="Journal Associatif">🤝 Journal Associatif</SelectItem>
-                    <SelectItem value="Média Indépendant">📰 Média Indépendant</SelectItem>
-                    <SelectItem value="Web TV Locale">📺 Web TV Locale</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input 
+                  value={formData.type_journal}
+                  onChange={(e) => setFormData({ ...formData, type_journal: e.target.value })}
+                  placeholder="Ex: Journal Associatif"
+                  autoComplete="off"
+                  data-1p-ignore
+                  className="px-4 py-6 border-champagne/40 rounded-xl bg-blanc focus-visible:ring-or/30 focus-visible:border-or font-montserrat text-sm"
+                />
               </div>
             </div>
 
@@ -190,6 +191,8 @@ export default function SettingsDashboard() {
                 value={formData.nom_ville}
                 onChange={(e) => setFormData({ ...formData, nom_ville: e.target.value })}
                 placeholder="Ex: Châlons"
+                autoComplete="off"
+                data-1p-ignore
                 className="px-4 py-6 border-champagne/40 rounded-xl bg-blanc focus-visible:ring-or/30 focus-visible:border-or font-montserrat text-sm"
               />
             </div>
@@ -203,6 +206,8 @@ export default function SettingsDashboard() {
                   type="email" 
                   value={formData.email_contact}
                   onChange={(e) => setFormData({ ...formData, email_contact: e.target.value })}
+                  autoComplete="off"
+                  data-1p-ignore
                   className="px-4 py-6 border-champagne/40 rounded-xl bg-blanc focus-visible:ring-or/30 focus-visible:border-or font-montserrat text-sm"
                 />
               </div>
@@ -211,10 +216,12 @@ export default function SettingsDashboard() {
                   Téléphone public
                 </Label>
                 <Input 
-                  type="text" 
+                  type="tel" 
                   value={formData.tel_contact}
                   onChange={(e) => setFormData({ ...formData, tel_contact: e.target.value })}
                   placeholder="Sera formaté automatiquement"
+                  autoComplete="off"
+                  data-1p-ignore
                   className="px-4 py-6 border-champagne/40 rounded-xl bg-blanc focus-visible:ring-or/30 focus-visible:border-or font-montserrat text-sm"
                 />
               </div>
@@ -228,6 +235,8 @@ export default function SettingsDashboard() {
                 rows={3}
                 value={formData.description_footer}
                 onChange={(e) => setFormData({ ...formData, description_footer: e.target.value })}
+                autoComplete="off"
+                data-1p-ignore
                 className="px-4 py-3 border-champagne/40 rounded-xl bg-blanc focus-visible:ring-or/30 focus-visible:border-or resize-none font-montserrat text-sm" 
               />
             </div>
