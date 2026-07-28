@@ -3,6 +3,7 @@ import {
   UnauthorizedException,
   ConflictException,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -26,6 +27,20 @@ export class AuthService {
     private roleRepository: Repository<Role>,
     private jwtService: JwtService,
   ) {}
+
+  /**
+   * Retourne la configuration stricte des cookies (HTTPOnly, SameSite, Secure).
+   */
+  private get cookieOptions() {
+    const isProduction = process.env.NODE_ENV === 'production';
+    return {
+      httpOnly: true,
+      secure: isProduction,
+      // 'none' est obligatoire pour que Vercel puisse envoyer le cookie à Render
+      sameSite: isProduction ? ('none' as const) : ('lax' as const),
+      path: '/',
+    };
+  }
 
   /**
    * Authentifie un utilisateur via son email et son mot de passe.
@@ -78,6 +93,11 @@ export class AuthService {
    * @returns {Promise<Partial<Users>>} L'utilisateur créé sans son mot de passe .
    */
   async register(registerDto: RegisterDto) {
+    // 1. Vérification de la correspondance des mots de passe
+    if (registerDto.password !== registerDto.confirmPassword) {
+      throw new BadRequestException('Les mots de passe ne correspondent pas.');
+    }
+
     const userExists = await this.usersRepository.findOne({
       where: { email: registerDto.email },
     });
@@ -91,14 +111,15 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(registerDto.password, 10);
 
+    // 2. Création de l'utilisateur avec un profil allégé (juste le username mappé sur firstname)
     const newUser = this.usersRepository.create({
       email: registerDto.email,
       password: hashedPassword,
       role: userRole,
       profile: {
-        lastname: registerDto.lastname || null,
-        firstname: registerDto.firstname || null,
-        tel: registerDto.tel || null,
+        firstname: registerDto.username,
+        lastname: null,
+        tel: null,
       },
     });
 
