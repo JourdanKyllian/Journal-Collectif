@@ -170,7 +170,7 @@ interface DashboardStats {
 export default function Home() {
   const [latestArticles, setLatestArticles] = useState<ArticlePreview[]>([]);
   const [stats, setStats] = useState<DashboardStats>({ articles: 0, categories: 0, subscribers: 0 });
-  const [settings, setSettings] = useState<AppSettings>({ nom_journal: "Collectif Chalonnais", nom_ville: "Châlons" });
+  const [settings, setSettings] = useState<AppSettings | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -182,7 +182,8 @@ export default function Home() {
         const [articlesRes, categoriesRes, settingsRes] = await Promise.all([
           fetchApi<BackendArticle[]>('/v1/article/published').catch(() => []),
           fetchApi<BackendCategorie[]>('/v1/categorie').catch(() => []),
-          fetchApi<AppSettings>('/v1/settings').catch(() => ({ nom_journal: "Collectif Chalonnais", nom_ville: "Châlons" }))
+          // Valeur de secours en cas d'erreur de l'API uniquement
+          fetchApi<AppSettings>('/v1/settings').catch(() => ({ nom_journal: "Collectif", nom_ville: "la commune" }))
         ]);
 
         const formattedArticles = articlesRes.slice(0, 6).map((article, index) => ({
@@ -220,6 +221,7 @@ export default function Home() {
 
   return (
     <div className="w-full">
+      {/* ================= SECTION EN-TÊTE (HERO) ================= */}
       <section
         className="bg-linear-to-br from-vert via-vert/90 to-noir pt-16 pb-24 px-6 relative overflow-hidden"
         aria-label="Présentation du journal"
@@ -236,17 +238,29 @@ export default function Home() {
 
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-16 items-center relative z-10">
           <div>
-            <span className="inline-block bg-or/20 border border-or/50 text-or font-poppins font-black text-xs px-4 py-1.5 rounded-full mb-5 tracking-wide">
-              📰 Journal en ligne · {settings.nom_journal}
-            </span>
-            <h1 className="font-poppins font-black text-4xl md:text-5xl text-blanc leading-tight mb-5">
-              L&apos;actualité de<br />
-              <span className="text-or">{settings.nom_ville}</span> en temps réel
-            </h1>
+            {isLoading || !settings ? (
+              <div className="mb-8 space-y-4">
+                <Skeleton className="h-7 w-64 rounded-full bg-blanc/20" />
+                <Skeleton className="h-12 w-full max-w-md bg-blanc/20" />
+                <Skeleton className="h-12 w-3/4 max-w-sm bg-blanc/20" />
+              </div>
+            ) : (
+              <>
+                <span className="inline-block bg-or/20 border border-or/50 text-or font-poppins font-black text-xs px-4 py-1.5 rounded-full mb-5 tracking-wide">
+                  📰 Journal en ligne · {settings.nom_journal}
+                </span>
+                <h1 className="font-poppins font-black text-4xl md:text-5xl text-blanc leading-tight mb-5">
+                  L&apos;actualité de<br />
+                  <span className="text-or">{settings.nom_ville}</span> en temps réel
+                </h1>
+              </>
+            )}
+            
             <p className="font-raleway text-blanc/80 text-lg leading-relaxed mb-8">
               Restez informés des événements, travaux, annonces et faits divers
               qui rythment la vie de votre commune.
             </p>
+            
             <div className="flex gap-4 flex-wrap">
               <Link href="/articles" aria-label="Parcourir tous les articles du journal">
                 <Button className="bg-or text-noir font-montserrat font-bold px-7 py-6 text-base rounded-xl transition-all hover:bg-or/90 hover:-translate-y-0.5 hover:shadow-lg shadow-or/30">
@@ -302,6 +316,7 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ================= SECTION ARTICLES RÉCENTS ================= */}
       <section
         className="max-w-7xl mx-auto px-6 py-16"
         aria-labelledby="recent-articles-heading"
@@ -357,6 +372,7 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ================= SECTION STATISTIQUES ================= */}
       <section
         className="bg-linear-to-r from-noir to-vert py-16 px-6"
         aria-label="Statistiques du journal"
