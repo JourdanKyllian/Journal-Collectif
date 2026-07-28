@@ -87,9 +87,8 @@ export default function AlertsDashboard() {
     try {
       const payload = {
         ...formData,
-        startDate: formData.startDate || undefined,
-        // On n'envoie la date de fin que si le switch est activé
-        endDate: (hasEndDate && formData.endDate) ? formData.endDate : undefined,
+        startDate: formData.startDate ? formData.startDate : null,
+        endDate: (hasEndDate && formData.endDate) ? formData.endDate : null,
       };
 
       if (editingAlertId) {

@@ -14,10 +14,8 @@ export class CreateAlertDto {
   message!: string;
 
   @IsOptional()
-  @IsString()
-  startDate?: string;
+  startDate?: string | null;
 
   @IsOptional()
-  @IsString()
-  endDate?: string;
+  endDate?: string | null;
 }
