@@ -53,13 +53,16 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModal
     setIsLoading(true);
 
     try {
+      // 1. Authentification (le backend pose les cookies HTTP-Only)
       await fetchApi('/v1/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       });
 
+      // 2. Récupération de l'identité en base de données
       const userData = await fetchApi<{ firstname: string | null; lastname: string | null; email: string; role: string }>('/v1/auth/me');
       
+      // 3. Formatage pour la Navbar
       const fullName = userData.firstname && userData.lastname 
         ? `${userData.firstname} ${userData.lastname}` 
         : (userData.firstname || "Citoyen Anonyme");
@@ -204,30 +207,94 @@ export default function AuthModal({ isOpen, onClose, onLoginSuccess }: AuthModal
               </div>
             </div>
 
+            {/* --- LISTE VERTICALE DES 5 COMPTES --- */}
             <div className="flex flex-col gap-2">
-              <button type="button" onClick={() => fillDemo('superadmin@journal.fr', 'superadmin123')} className="w-full flex items-center justify-between px-3.5 py-2.5 bg-blanc border border-champagne/25 rounded-xl hover:border-or hover:shadow-xs transition-all group">
+              
+              {/* 1. Super Admin (Gérant) */}
+              <button 
+                type="button"
+                onClick={() => fillDemo('superadmin@journal.fr', 'superadmin123')}
+                className="w-full flex items-center justify-between px-3.5 py-2.5 bg-blanc border border-champagne/25 rounded-xl hover:border-or hover:shadow-xs transition-all group"
+              >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <Crown size={15} className="text-or shrink-0" />
-                  <span className="font-montserrat font-bold text-noir text-xs">superadmin@journal.fr</span>
+                  <span className="font-montserrat font-bold text-noir text-xs">
+                    superadmin@journal.fr
+                  </span>
                 </div>
-                <Badge className="bg-or text-noir font-poppins font-black text-[10px] px-2 py-0.5 border-0 shrink-0">Gérant</Badge>
+                <Badge className="bg-or text-noir font-poppins font-black text-[10px] px-2 py-0.5 border-0 shrink-0">
+                  Gérant
+                </Badge>
               </button>
 
-              <button type="button" onClick={() => fillDemo('admin@journal.fr', 'admin123')} className="w-full flex items-center justify-between px-3.5 py-2.5 bg-blanc border border-champagne/25 rounded-xl hover:border-or hover:shadow-xs transition-all group">
+              {/* 2. Admin */}
+              <button 
+                type="button"
+                onClick={() => fillDemo('admin@journal.fr', 'admin123')}
+                className="w-full flex items-center justify-between px-3.5 py-2.5 bg-blanc border border-champagne/25 rounded-xl hover:border-or hover:shadow-xs transition-all group"
+              >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <Shield size={15} className="text-or shrink-0" />
-                  <span className="font-montserrat font-bold text-noir text-xs">admin@journal.fr</span>
+                  <span className="font-montserrat font-bold text-noir text-xs">
+                    admin@journal.fr
+                  </span>
                 </div>
-                <Badge className="bg-or/30 text-noir font-poppins font-black text-[10px] px-2 py-0.5 border-0 shrink-0">Admin</Badge>
+                <Badge className="bg-or/30 text-noir font-poppins font-black text-[10px] px-2 py-0.5 border-0 shrink-0">
+                  Admin
+                </Badge>
               </button>
 
-              <button type="button" onClick={() => fillDemo('redacteur@journal.fr', 'redacteur123')} className="w-full flex items-center justify-between px-3.5 py-2.5 bg-blanc border border-champagne/25 rounded-xl hover:border-or hover:shadow-xs transition-all group">
+              {/* 3. Rédacteur */}
+              <button 
+                type="button"
+                onClick={() => fillDemo('redacteur@journal.fr', 'redacteur123')}
+                className="w-full flex items-center justify-between px-3.5 py-2.5 bg-blanc border border-champagne/25 rounded-xl hover:border-or hover:shadow-xs transition-all group"
+              >
                 <div className="flex items-center gap-2.5 min-w-0">
                   <PenTool size={15} className="text-vert shrink-0" />
-                  <span className="font-montserrat font-bold text-noir text-xs">redacteur@journal.fr</span>
+                  <span className="font-montserrat font-bold text-noir text-xs">
+                    redacteur@journal.fr
+                  </span>
                 </div>
-                <Badge className="bg-champagne/30 text-vert font-poppins font-black text-[10px] px-2 py-0.5 border-0 shrink-0">Rédacteur</Badge>
+                <Badge className="bg-champagne/30 text-vert font-poppins font-black text-[10px] px-2 py-0.5 border-0 shrink-0">
+                  Rédacteur
+                </Badge>
               </button>
+
+              {/* 4. Visiteur Complet */}
+              <button 
+                type="button"
+                onClick={() => fillDemo('visiteur.complet@exemple.fr', 'user123')}
+                className="w-full flex items-center justify-between px-3.5 py-2.5 bg-blanc border border-champagne/25 rounded-xl hover:border-or hover:shadow-xs transition-all group"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <UserCheck size={15} className="text-champagne shrink-0" />
+                  <span className="font-montserrat font-bold text-noir text-xs">
+                    visiteur.complet@exemple.fr
+                  </span>
+                </div>
+                <Badge className="bg-champagne/20 text-champagne font-poppins font-black text-[10px] px-2 py-0.5 border-0 shrink-0">
+                  Vérifié
+                </Badge>
+              </button>
+
+              {/* 5. Visiteur Incomplet */}
+              <button 
+                type="button"
+                onClick={() => fillDemo('visiteur.incomplet@exemple.fr', 'user123')}
+                className="w-full flex items-center justify-between px-3.5 py-2.5 bg-blanc border border-champagne/25 rounded-xl hover:border-or hover:shadow-xs transition-all group"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <UserX size={15} className="text-champagne/60 shrink-0" />
+                  <span className="font-montserrat font-bold text-noir text-xs">
+                    visiteur.incomplet@exemple.fr
+                  </span>
+                </div>
+                <Badge className="bg-champagne/10 text-champagne/80 font-poppins font-black text-[10px] px-2 py-0.5 border-0 shrink-0">
+                  Incomplet
+                </Badge>
+              </button>
+
             </div>
           </TabsContent>
 
