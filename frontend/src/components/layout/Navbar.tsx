@@ -37,14 +37,18 @@ export default function Navbar() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   
-  // NOUVEAU: Récupère les paramètres de l'appli pour le logo dynamique
+  // Récupère les paramètres de l'appli pour le logo dynamique
   const [settings, setSettings] = useState({ nom_journal: "Collectif Chalonnais", type_journal: "Journal Municipal" });
   
   useEffect(() => {
+    // FIX: Au lieu de faire .catch(() => settings) qui déclenche l'avertissement ESLint
+    // car il utilise la variable d'état, on passe directement l'objet par défaut.
+    const defaultSettings = { nom_journal: "Collectif Chalonnais", type_journal: "Journal Municipal" };
+
     // On charge le profil utilisateur ET les paramètres en parallèle
     Promise.all([
       fetchApi<AuthUser>('/v1/auth/me').catch(() => null),
-      fetchApi<typeof settings>('/v1/settings').catch(() => settings)
+      fetchApi<typeof settings>('/v1/settings').catch(() => defaultSettings)
     ]).then(([userData, settingsData]) => {
       setUser(userData);
       setSettings(settingsData as typeof settings);

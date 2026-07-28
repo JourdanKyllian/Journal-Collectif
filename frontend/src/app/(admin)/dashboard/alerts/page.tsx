@@ -58,23 +58,28 @@ export default function AlertsDashboard() {
     endDate: ""
   });
 
-  // 1. Charger les alertes
-  const loadAlerts = async () => {
-    try {
-      const data = await fetchApi<AlertItem[]>('/v1/alerts');
-      setAlerts(data);
-    } catch (error) {
-      console.error("Erreur lors du chargement des alertes:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
+    /**
+     * Charge l'ensemble des alertes actives depuis l'API.
+     */
+    const loadAlerts = async () => {
+      try {
+        const data = await fetchApi<AlertItem[]>('/v1/alerts');
+        setAlerts(data);
+      } catch (error) {
+        console.error("Erreur lors du chargement des alertes:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     loadAlerts();
   }, []);
 
-  // 2. Créer une alerte
+  /**
+   * Crée une nouvelle alerte en base de données.
+   * @param {React.FormEvent} e - L'événement de soumission du formulaire.
+   */
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -90,7 +95,10 @@ export default function AlertsDashboard() {
       });
       setFeedback({ type: "success", message: "Alerte publiée avec succès !" });
       setFormData({ type: "urgent", title: "", message: "", startDate: "", endDate: "" });
-      loadAlerts(); // Recharger la liste
+      
+      // Recharger la liste
+      const data = await fetchApi<AlertItem[]>('/v1/alerts');
+      setAlerts(data);
     } catch (error: unknown) {
       setFeedback({ type: "error", message: (error as Error).message || "Erreur de création" });
     } finally {
@@ -99,7 +107,10 @@ export default function AlertsDashboard() {
     }
   };
 
-  // 3. Supprimer une alerte
+  /**
+   * Supprime une alerte existante.
+   * @param {number} id - L'identifiant unique de l'alerte.
+   */
   const handleDelete = async (id: number) => {
     if (!confirm("Voulez-vous vraiment retirer cette alerte ?")) return;
     try {
@@ -111,7 +122,9 @@ export default function AlertsDashboard() {
     }
   };
 
-  // Utilitaire pour formater les dates
+  /**
+   * Formate la plage de dates pour l'affichage.
+   */
   const formatDates = (start: string | null, end: string | null) => {
     if (!start && !end) return "Dates non spécifiées";
     const opt: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
