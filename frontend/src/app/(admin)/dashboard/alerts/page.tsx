@@ -21,7 +21,7 @@ interface AlertItem {
   message: string;
   startDate: string | null;
   endDate: string | null;
-  createdAt: string;
+  created_at: string;
 }
 
 // --- MAPPING DES STYLES SELON LE TYPE ---
@@ -111,7 +111,7 @@ export default function AlertsDashboard() {
     }
   };
 
-  // Utilitaire pour formater les dates ("Du 15 au 18 mars" etc.)
+  // Utilitaire pour formater les dates
   const formatDates = (start: string | null, end: string | null) => {
     if (!start && !end) return "Dates non spécifiées";
     const opt: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };

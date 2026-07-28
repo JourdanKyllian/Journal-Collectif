@@ -1,33 +1,23 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column } from 'typeorm';
+import { CustomBaseEntity } from '../../common/base/base.entity';
 
 @Entity('settings')
-export class Setting {
-  @PrimaryGeneratedColumn()
-  id!: number;
-
-  @Column({ type: 'varchar', length: 100, default: 'Collectif Chalonnais' })
+export class Setting extends CustomBaseEntity {
+  @Column({ type: 'varchar', length: 100 })
   nom_journal!: string;
 
-  @Column({ type: 'varchar', length: 50, default: 'Journal Associatif' })
+  @Column({ type: 'varchar', length: 50 })
   type_journal!: string;
 
-  @Column({ type: 'varchar', length: 100, default: 'Châlons' })
+  @Column({ type: 'varchar', length: 100 })
   nom_ville!: string;
 
-  @Column({
-    type: 'varchar',
-    length: 255,
-    default: 'contact@collectif-chalonnais.fr',
-  })
+  @Column({ type: 'varchar', length: 255 })
   email_contact!: string;
 
-  @Column({ type: 'varchar', length: 20, default: '03 26 26 08 30' })
+  @Column({ type: 'varchar', length: 20 })
   tel_contact!: string;
 
-  @Column({
-    type: 'text',
-    default:
-      'Le journal indépendant de chalons-en-champagne et sa périphérie, pour rester connectés à la vie locale en temps réel.',
-  })
+  @Column({ type: 'text' })
   description_footer!: string;
 }

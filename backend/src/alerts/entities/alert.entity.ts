@@ -1,10 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm';
+import { Entity, Column } from 'typeorm';
+import { CustomBaseEntity } from '../../common/base/base.entity';
 
 @Entity('alerts')
-export class Alert {
-  @PrimaryGeneratedColumn()
-  id!: number;
-
+export class Alert extends CustomBaseEntity {
   @Column({ type: 'varchar', length: 20 })
   type!: string; // 'urgent', 'info', 'event'
 
@@ -19,7 +17,4 @@ export class Alert {
 
   @Column({ type: 'date', nullable: true })
   endDate!: string | null;
-
-  @CreateDateColumn()
-  createdAt!: Date;
 }
