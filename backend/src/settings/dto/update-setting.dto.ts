@@ -21,7 +21,7 @@ export class UpdateSettingDto {
   @IsOptional()
   @Transform(({ value }) => formatInternationalPhone(value as string))
   @IsString()
-  @Matches(/^\+[0-9 ]{8,25}$/, {
+  @Matches(/^\+[0-9 \-()]{8,25}$/, {
     message: 'Le numéro public doit être au format international valide.',
   })
   @MaxLength(20)

@@ -16,7 +16,7 @@ export class UpdateProfileDto {
   @IsOptional()
   @Transform(({ value }) => formatInternationalPhone(value as string))
   @IsString()
-  @Matches(/^\+[0-9 ]{8,25}$/, {
+  @Matches(/^\+[0-9 \-()]{8,25}$/, {
     message:
       'Le numéro doit être au format international valide (ex: +33 6 12 34 56 78).',
   })
