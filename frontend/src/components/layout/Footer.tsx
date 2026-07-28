@@ -101,7 +101,7 @@ export default function Footer() {
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-6 items-center">
           <span>© {new Date().getFullYear()} {settings.nom_journal} — Tous droits réservés</span>
           <Link 
-            href="#" 
+            href="/mentions-legales"
             className="hover:text-blanc transition-colors underline decoration-blanc/20 underline-offset-4"
           >
             Mentions légales
