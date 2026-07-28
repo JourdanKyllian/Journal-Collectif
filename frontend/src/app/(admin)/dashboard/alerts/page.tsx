@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import AdminGuard from "@/components/layout/AdminGuard";
 import { fetchApi } from "@/lib/api";
 
@@ -50,6 +51,9 @@ export default function AlertsDashboard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
+  // Nouvel état pour gérer si on veut une date de fin ou non
+  const [hasEndDate, setHasEndDate] = useState(false);
+
   const [formData, setFormData] = useState({
     type: "urgent",
     title: "",
@@ -59,9 +63,6 @@ export default function AlertsDashboard() {
   });
 
   useEffect(() => {
-    /**
-     * Charge l'ensemble des alertes actives depuis l'API.
-     */
     const loadAlerts = async () => {
       try {
         const data = await fetchApi<AlertItem[]>('/v1/alerts');
@@ -76,10 +77,6 @@ export default function AlertsDashboard() {
     loadAlerts();
   }, []);
 
-  /**
-   * Crée une nouvelle alerte en base de données.
-   * @param {React.FormEvent} e - L'événement de soumission du formulaire.
-   */
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -90,13 +87,16 @@ export default function AlertsDashboard() {
         body: JSON.stringify({
           ...formData,
           startDate: formData.startDate || undefined,
-          endDate: formData.endDate || undefined,
+          // On n'envoie la date de fin que si le switch est activé
+          endDate: (hasEndDate && formData.endDate) ? formData.endDate : undefined,
         }),
       });
       setFeedback({ type: "success", message: "Alerte publiée avec succès !" });
-      setFormData({ type: "urgent", title: "", message: "", startDate: "", endDate: "" });
       
-      // Recharger la liste
+      // Réinitialisation du formulaire
+      setFormData({ type: "urgent", title: "", message: "", startDate: "", endDate: "" });
+      setHasEndDate(false);
+      
       const data = await fetchApi<AlertItem[]>('/v1/alerts');
       setAlerts(data);
     } catch (error: unknown) {
@@ -107,10 +107,6 @@ export default function AlertsDashboard() {
     }
   };
 
-  /**
-   * Supprime une alerte existante.
-   * @param {number} id - L'identifiant unique de l'alerte.
-   */
   const handleDelete = async (id: number) => {
     if (!confirm("Voulez-vous vraiment retirer cette alerte ?")) return;
     try {
@@ -122,11 +118,8 @@ export default function AlertsDashboard() {
     }
   };
 
-  /**
-   * Formate la plage de dates pour l'affichage.
-   */
   const formatDates = (start: string | null, end: string | null) => {
-    if (!start && !end) return "Dates non spécifiées";
+    if (!start && !end) return "Alerte permanente";
     const opt: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
     const s = start ? new Date(start).toLocaleDateString('fr-FR', opt) : null;
     const e = end ? new Date(end).toLocaleDateString('fr-FR', opt) : null;
@@ -237,13 +230,41 @@ export default function AlertsDashboard() {
                 <Label className="font-montserrat font-bold text-xs text-vert tracking-wide uppercase">Date de début</Label>
                 <Input type="date" value={formData.startDate} onChange={(e) => setFormData({ ...formData, startDate: e.target.value })} className="px-4 py-6 border-champagne/40 rounded-xl bg-blanc focus-visible:ring-or/30 focus-visible:border-or" />
               </div>
+              
               <div className="space-y-2">
-                <Label className="font-montserrat font-bold text-xs text-vert tracking-wide uppercase">Date de fin</Label>
-                <Input type="date" value={formData.endDate} onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} className="px-4 py-6 border-champagne/40 rounded-xl bg-blanc focus-visible:ring-or/30 focus-visible:border-or" />
+                <div className="flex items-center justify-between mb-1">
+                  <Label className="font-montserrat font-bold text-xs text-vert tracking-wide uppercase">Date de fin</Label>
+                  <div className="flex items-center gap-2">
+                    <Label 
+                      className="text-[10px] font-montserrat text-champagne cursor-pointer uppercase tracking-wider" 
+                      onClick={() => {
+                        setHasEndDate(!hasEndDate);
+                        if(hasEndDate) setFormData({ ...formData, endDate: "" });
+                      }}
+                    >
+                      Définir une fin
+                    </Label>
+                    <Switch 
+                      checked={hasEndDate} 
+                      onCheckedChange={(val) => {
+                        setHasEndDate(val);
+                        if (!val) setFormData({ ...formData, endDate: "" });
+                      }} 
+                      className="data-[state=checked]:bg-or"
+                    />
+                  </div>
+                </div>
+                <Input 
+                  type="date" 
+                  disabled={!hasEndDate}
+                  value={formData.endDate} 
+                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} 
+                  className="px-4 py-6 border-champagne/40 rounded-xl bg-blanc focus-visible:ring-or/30 focus-visible:border-or disabled:opacity-50 disabled:bg-champagne/10 disabled:cursor-not-allowed transition-all" 
+                />
               </div>
             </div>
 
-            <Button disabled={isSubmitting} type="submit" className="w-full py-6 bg-noir text-blanc font-montserrat font-bold text-sm rounded-xl hover:bg-vert transition-all hover:-translate-y-0.5 mt-2">
+            <Button disabled={isSubmitting} type="submit" className="w-full py-6 bg-noir text-blanc font-montserrat font-bold text-sm rounded-xl hover:bg-vert transition-all hover:-translate-y-0.5 mt-4">
               {isSubmitting ? "Création en cours..." : <><Megaphone size={16} className="mr-2" /> Publier l&apos;alerte sur le site</>}
             </Button>
           </form>

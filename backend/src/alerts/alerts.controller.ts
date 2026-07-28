@@ -15,12 +15,13 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 
-@Controller('v1/alerts')
+// CORRECTION : On retire le 'v1/' car il est géré globalement par ton API
+@Controller('alerts')
 export class AlertsController {
   constructor(private readonly alertsService: AlertsService) {}
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'super_admin')
+  @Roles('admin', 'super_admin') // Sécurisation pour les admins
   @Post()
   create(@Body() createAlertDto: CreateAlertDto) {
     return this.alertsService.create(createAlertDto);
