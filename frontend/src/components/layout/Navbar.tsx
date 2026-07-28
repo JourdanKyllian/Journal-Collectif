@@ -20,6 +20,7 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
+  SheetClose,
 } from "@/components/ui/sheet";
 import AuthModal from "@/components/features/AuthModal";
 import { fetchApi } from "@/lib/api";
@@ -42,13 +43,15 @@ export default function Navbar() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
   
+  // État pour contrôler l'ouverture/fermeture du menu mobile
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  
   // État initialisé à NULL sans valeur par défaut
   const [settings, setSettings] = useState<NavbarSettings | null>(null);
   
   useEffect(() => {
     Promise.all([
       fetchApi<AuthUser>('/v1/auth/me').catch(() => null),
-      // On fetch, si le réseau échoue vraiment on donne une valeur de secours
       fetchApi<NavbarSettings>('/v1/settings').catch(() => ({ nom_journal: "Collectif", type_journal: "Journal" }))
     ]).then(([userData, settingsData]) => {
       setUser(userData);
@@ -183,7 +186,8 @@ export default function Navbar() {
               </DropdownMenu>
             )}
 
-            <Sheet>
+            {/* MENU MOBILE (SHEET) */}
+            <Sheet open={isMobileOpen} onOpenChange={setIsMobileOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="md:hidden flex flex-col gap-1.5 p-2 rounded-lg hover:bg-or/10 h-auto">
                   <Menu size={24} className="text-noir" />
@@ -195,41 +199,50 @@ export default function Navbar() {
                 </SheetHeader>
                 <div className="flex flex-col gap-2 mt-4">
                   {navLinks.map((link) => (
-                    <Link 
-                      key={link.href} 
-                      href={link.href}
-                      className="flex items-center gap-3 w-full text-left font-semibold text-sm text-noir px-4 py-4 rounded-xl hover:bg-or/10 transition-all"
-                    >
-                      <link.icon size={18} className="text-vert" /> {link.name}
-                    </Link>
+                    <SheetClose asChild key={link.href}>
+                      <Link 
+                        href={link.href}
+                        className="flex items-center gap-3 w-full text-left font-semibold text-sm text-noir px-4 py-4 rounded-xl hover:bg-or/10 transition-all"
+                      >
+                        <link.icon size={18} className="text-vert" /> {link.name}
+                      </Link>
+                    </SheetClose>
                   ))}
                   <div className="h-px bg-champagne/30 my-2"></div>
                   
                   {isCheckingSession ? (
                     <Skeleton className="w-full h-14 rounded-xl" />
                   ) : !user ? (
-                    <Button 
-                      onClick={() => setIsAuthModalOpen(true)} 
-                      className="w-full flex justify-start items-center gap-3 bg-noir text-blanc font-montserrat font-bold text-sm px-4 py-6 rounded-xl hover:bg-vert"
-                    >
-                      <User size={18} /> Connexion
-                    </Button>
+                    <SheetClose asChild>
+                      <Button 
+                        onClick={() => setIsAuthModalOpen(true)} 
+                        className="w-full flex justify-start items-center gap-3 bg-noir text-blanc font-montserrat font-bold text-sm px-4 py-6 rounded-xl hover:bg-vert"
+                      >
+                        <User size={18} /> Connexion
+                      </Button>
+                    </SheetClose>
                   ) : (
                     <>
-                      <Link href="/profile" className="flex items-center gap-3 w-full text-left font-semibold text-sm text-noir px-4 py-4 rounded-xl hover:bg-or/10 transition-all">
-                        <User size={18} className="text-vert" /> Mon Profil
-                      </Link>
-                      {hasDashboardAccess && (
-                        <Link href="/dashboard" className="flex items-center gap-3 w-full text-left font-semibold text-sm text-noir px-4 py-4 rounded-xl hover:bg-or/10 transition-all">
-                          <Settings size={18} className="text-vert" /> Dashboard
+                      <SheetClose asChild>
+                        <Link href="/profile" className="flex items-center gap-3 w-full text-left font-semibold text-sm text-noir px-4 py-4 rounded-xl hover:bg-or/10 transition-all">
+                          <User size={18} className="text-vert" /> Mon Profil
                         </Link>
+                      </SheetClose>
+                      {hasDashboardAccess && (
+                        <SheetClose asChild>
+                          <Link href="/dashboard" className="flex items-center gap-3 w-full text-left font-semibold text-sm text-noir px-4 py-4 rounded-xl hover:bg-or/10 transition-all">
+                            <Settings size={18} className="text-vert" /> Dashboard
+                          </Link>
+                        </SheetClose>
                       )}
-                      <button 
-                        onClick={handleLogout}
-                        className="flex items-center gap-3 w-full text-left font-semibold text-sm text-red-500 px-4 py-4 rounded-xl hover:bg-red-50 transition-all"
-                      >
-                        <LogOut size={18} /> Déconnexion
-                      </button>
+                      <SheetClose asChild>
+                        <button 
+                          onClick={handleLogout}
+                          className="flex items-center gap-3 w-full text-left font-semibold text-sm text-red-500 px-4 py-4 rounded-xl hover:bg-red-50 transition-all"
+                        >
+                          <LogOut size={18} /> Déconnexion
+                        </button>
+                      </SheetClose>
                     </>
                   )}
                 </div>
