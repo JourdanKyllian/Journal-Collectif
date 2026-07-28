@@ -13,11 +13,14 @@ import { Button }  from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchApi } from "@/lib/api";
 
+// ============================================================================
+// UTILITAIRES
+// ============================================================================
+
 /**
- * Détermine l'icône appropriée pour un nom de catégorie donné.
- *
- * @param {string} categorieName - Le nom de la catégorie.
- * @returns {LucideIcon} Le composant d'icône Lucide React correspondant.
+ * Associe un nom de catégorie à son icône Lucide React correspondante.
+ * @param {string} categorieName - Le libellé de la catégorie (ex: "Culture", "Sport").
+ * @returns {LucideIcon} Le composant d'icône correspondant à la thématique.
  */
 const getCategorieIcon = (categorieName: string): LucideIcon => {
   const normalized = categorieName?.toLowerCase() || "";
@@ -32,10 +35,9 @@ const getCategorieIcon = (categorieName: string): LucideIcon => {
 };
 
 /**
- * Renvoie une classe de dégradé d'arrière-plan en fonction de l'index de l'article.
- *
- * @param {number} index - L'index de position de l'article dans la liste.
- * @returns {string} Les classes CSS Tailwind pour le fond en dégradé.
+ * Détermine une classe CSS Tailwind de dégradé en fonction de l'index de la carte.
+ * @param {number} index - L'index de l'article dans la liste affichée.
+ * @returns {string} La chaîne de classes CSS générant le dégradé.
  */
 const getGradientClass = (index: number): string => {
   const gradients = [
@@ -50,10 +52,9 @@ const getGradientClass = (index: number): string => {
 };
 
 /**
- * Calcule le temps de lecture estimé pour un texte donné sur la base d'une moyenne de 225 mots par minute.
- *
- * @param {string} text - Le contenu de l'article.
- * @returns {string} Le temps de lecture estimé formaté sous forme de chaîne de caractères.
+ * Estime le temps de lecture d'un article basé sur une moyenne de 225 mots/minute.
+ * @param {string} text - Le contenu brut de l'article.
+ * @returns {string} Le temps estimé formaté (ex: "3 min").
  */
 const calculateReadTime = (text: string): string => {
   if (!text) return "1 min";
@@ -63,10 +64,9 @@ const calculateReadTime = (text: string): string => {
 };
 
 /**
- * Formate une chaîne de date ISO en une chaîne de date française localisée.
- *
- * @param {string} isoDate - La chaîne de date au format ISO.
- * @returns {string} La chaîne de date localisée.
+ * Formate une date au format ISO en une chaîne lisible localisée (fr-FR).
+ * @param {string} isoDate - La date sous format ISO 8601.
+ * @returns {string} La date formatée (ex: "15 fév. 2026").
  */
 const formatDate = (isoDate: string): string => {
   if (!isoDate) return "Date inconnue";
@@ -74,69 +74,115 @@ const formatDate = (isoDate: string): string => {
   return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
+// ============================================================================
+// INTERFACES
+// ============================================================================
+
 /**
- * Interface représentant la structure d'un article en base de données.
+ * @interface BackendArticle
+ * @description Structure de l'article tel que retourné par l'API NestJS.
  */
 interface BackendArticle {
+  /** Identifiant unique de l'article */
   id: number;
+  /** Titre principal de l'article */
   titre: string;
+  /** Corps complet de l'article */
   contenu: string;
+  /** Date de publication effective */
   published_at: string;
+  /** Catégorie parente optionnelle */
   categorie?: {
     libelle: string;
   };
 }
 
 /**
- * Interface représentant la structure d'une catégorie en base de données.
+ * @interface BackendCategorie
+ * @description Structure d'une catégorie retournée par l'API.
  */
 interface BackendCategorie {
+  /** Identifiant unique de la catégorie */
   id: number;
+  /** Libellé affichable de la catégorie */
   libelle: string;
 }
 
 /**
- * Interface représentant la structure d'un aperçu d'article formaté pour l'affichage frontal.
+ * @interface AppSettings
+ * @description Configuration dynamique globale de l'application.
+ */
+interface AppSettings {
+  /** Nom officiel du journal ou de la plateforme */
+  nom_journal: string;
+  /** Nom de la commune ciblée par le journal */
+  nom_ville: string;
+}
+
+/**
+ * @interface ArticlePreview
+ * @description Structure formatée d'un article pour son rendu dans l'interface utilisateur.
  */
 interface ArticlePreview {
+  /** Identifiant unique de l'article */
   id: number;
+  /** Titre principal de l'article */
   title: string;
+  /** Résumé extrait du contenu */
   excerpt: string;
+  /** Nom de la catégorie associée */
   categorie: string;
+  /** Date formatée pour l'affichage */
   date: string;
+  /** Date originelle pour le tri */
   dateIso: string;
+  /** Temps de lecture calculé */
   readTime: string;
+  /** Composant d'icône thématique */
   icon: LucideIcon;
+  /** Classes Tailwind du dégradé de fond */
   gradientClass: string;
 }
 
 /**
- * Interface représentant les statistiques globales à afficher.
+ * @interface DashboardStats
+ * @description Métriques globales affichées en pied de page.
  */
 interface DashboardStats {
+  /** Nombre total d'articles publiés */
   articles: number;
+  /** Nombre total de catégories actives */
   categories: number;
+  /** Nombre total d'utilisateurs abonnés aux notifications */
   subscribers: number;
 }
 
+// ============================================================================
+// COMPOSANT PRINCIPAL
+// ============================================================================
+
 /**
- * Composant client rendant la page d'accueil.
- * Gère la récupération asynchrone des articles et des statistiques, l'affichage des Skeleton Loaders,
- * et le rendu de l'interface utilisateur.
- *
- * @returns {JSX.Element} Le composant de page d'accueil rendu.
+ * @component Home
+ * @description Page d'accueil publique (Visiteur). Effectue les requêtes initiales
+ * pour récupérer les paramètres du site, les articles récents et les statistiques.
+ * @returns {JSX.Element} L'interface utilisateur de la page d'accueil.
  */
 export default function Home() {
   const [latestArticles, setLatestArticles] = useState<ArticlePreview[]>([]);
   const [stats, setStats] = useState<DashboardStats>({ articles: 0, categories: 0, subscribers: 0 });
+  const [settings, setSettings] = useState<AppSettings>({ nom_journal: "Collectif Chalonnais", nom_ville: "Châlons" });
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
+    /**
+     * Charge l'ensemble des données requises pour la page d'accueil en parallèle.
+     */
     const loadData = async () => {
       try {
-        const [articlesRes, categoriesRes] = await Promise.all([
+        const [articlesRes, categoriesRes, settingsRes] = await Promise.all([
           fetchApi<BackendArticle[]>('/v1/article/published').catch(() => []),
-          fetchApi<BackendCategorie[]>('/v1/categorie').catch(() => [])
+          fetchApi<BackendCategorie[]>('/v1/categorie').catch(() => []),
+          fetchApi<AppSettings>('/v1/settings').catch(() => ({ nom_journal: "Collectif Chalonnais", nom_ville: "Châlons" }))
         ]);
 
         const formattedArticles = articlesRes.slice(0, 6).map((article, index) => ({
@@ -152,6 +198,7 @@ export default function Home() {
         }));
 
         setLatestArticles(formattedArticles);
+        setSettings(settingsRes);
         
         setStats({
           articles: articlesRes.length,
@@ -190,11 +237,11 @@ export default function Home() {
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-16 items-center relative z-10">
           <div>
             <span className="inline-block bg-or/20 border border-or/50 text-or font-poppins font-black text-xs px-4 py-1.5 rounded-full mb-5 tracking-wide">
-              📰 Journal en ligne · Collectif Chalonnais
+              📰 Journal en ligne · {settings.nom_journal}
             </span>
             <h1 className="font-poppins font-black text-4xl md:text-5xl text-blanc leading-tight mb-5">
               L&apos;actualité de<br />
-              <span className="text-or">Châlons</span> en temps réel
+              <span className="text-or">{settings.nom_ville}</span> en temps réel
             </h1>
             <p className="font-raleway text-blanc/80 text-lg leading-relaxed mb-8">
               Restez informés des événements, travaux, annonces et faits divers

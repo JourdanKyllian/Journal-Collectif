@@ -11,6 +11,9 @@ export class Setting {
   @Column({ type: 'varchar', length: 50, default: 'Journal Associatif' })
   type_journal!: string;
 
+  @Column({ type: 'varchar', length: 100, default: 'Châlons' })
+  nom_ville!: string;
+
   @Column({
     type: 'varchar',
     length: 255,

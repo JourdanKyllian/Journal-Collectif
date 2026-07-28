@@ -15,6 +15,11 @@ export class UpdateSettingDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(100)
+  nom_ville?: string;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(255)
   email_contact?: string;
 
