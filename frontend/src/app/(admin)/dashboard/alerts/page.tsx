@@ -67,7 +67,7 @@ export default function AlertsDashboard() {
   useEffect(() => {
     const loadAlerts = async () => {
       try {
-        const data = await fetchApi<AlertItem[]>('/alerts');
+        const data = await fetchApi<AlertItem[]>('/v1/alerts');
         setAlerts(data);
       } catch (error) {
         console.error("Erreur lors du chargement des alertes:", error);
@@ -92,13 +92,13 @@ export default function AlertsDashboard() {
       };
 
       if (editingAlertId) {
-        await fetchApi(`/alerts/${editingAlertId}`, {
+        await fetchApi(`/v1/alerts/${editingAlertId}`, {
           method: 'PATCH',
           body: JSON.stringify(payload),
         });
         setFeedback({ type: "success", message: "Alerte modifiée avec succès !" });
       } else {
-        await fetchApi('/alerts', {
+        await fetchApi('/v1/alerts', {
           method: 'POST',
           body: JSON.stringify(payload),
         });
@@ -108,7 +108,7 @@ export default function AlertsDashboard() {
       // Réinitialisation du formulaire
       handleCancelEdit();
       
-      const data = await fetchApi<AlertItem[]>('/alerts');
+      const data = await fetchApi<AlertItem[]>('/v1/alerts');
       setAlerts(data);
     } catch (error: unknown) {
       setFeedback({ type: "error", message: (error as Error).message || "Erreur de sauvegarde" });
@@ -121,7 +121,7 @@ export default function AlertsDashboard() {
   const handleDelete = async (id: number) => {
     if (!confirm("Voulez-vous vraiment retirer cette alerte ?")) return;
     try {
-      await fetchApi(`/alerts/${id}`, { method: 'DELETE' });
+      await fetchApi(`/v1/alerts/${id}`, { method: 'DELETE' });
       setAlerts(alerts.filter(a => a.id !== id));
       if (editingAlertId === id) handleCancelEdit();
     } catch (error) {
