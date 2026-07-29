@@ -57,7 +57,7 @@ export default function UsersDashboard() {
         const me = await fetchApi<DashboardUser>('/v1/auth/me').catch(() => null);
         setCurrentUser(me);
 
-        const allUsers = await fetchApi<DashboardUser[]>('/v1/users');
+        const allUsers = await fetchApi<DashboardUser[]>('/v1/users/all');
         
         // Rôles autorisés pour le dashboard (ajusté avec la casse de ta BDD)
         const authorizedRoles = ['super_admin', 'admin', 'redacteur', 'journaliste'];
