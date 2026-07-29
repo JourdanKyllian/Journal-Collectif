@@ -55,4 +55,9 @@ export class CreateUserDto {
   })
   @MaxLength(25)
   tel?: string;
+
+  // On ajoute le rôle comme optionnel lors de l'envoi du formulaire
+  @IsOptional()
+  @IsString()
+  role?: string;
 }
