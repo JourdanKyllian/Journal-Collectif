@@ -2,12 +2,17 @@
 
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, CalendarDays, BookOpen, Share2 } from "lucide-react";
+import { ArrowLeft, CalendarDays, BookOpen, Share2, PenTool } from "lucide-react";
 import { useFetchApi } from "@/hooks/useFetchApi";
 import { getCategoryUI, formatDateToFrench, calculateReadTime } from "@/lib/formatters";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+
+interface ArticleCredit {
+  role: string;
+  name: string;
+}
 
 interface ArticleDetails {
   id: number;
@@ -16,13 +21,13 @@ interface ArticleDetails {
   image_couverture: string | null;
   published_at: string;
   categorie?: { libelle: string };
+  credits: ArticleCredit[]; // <- Ajout de notre nouvelle propriété issue du backend
 }
 
 export default function ArticleReadPage() {
   const params = useParams();
   const router = useRouter();
   
-  // Requête API pour récupérer l'article spécifique
   const { data: article, isLoading, error } = useFetchApi<ArticleDetails>(`/v1/article/${params.id}`);
 
   if (isLoading) {
@@ -43,7 +48,6 @@ export default function ArticleReadPage() {
     );
   }
 
-  // Si l'article n'existe pas ou s'il y a une erreur 404/410
   if (error || !article) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-6">
@@ -65,10 +69,7 @@ export default function ArticleReadPage() {
 
   const handleShare = () => {
     if (navigator.share) {
-      navigator.share({
-        title: article.titre,
-        url: window.location.href,
-      });
+      navigator.share({ title: article.titre, url: window.location.href });
     } else {
       navigator.clipboard.writeText(window.location.href);
       alert("Lien copié dans le presse-papier !");
@@ -77,7 +78,7 @@ export default function ArticleReadPage() {
 
   return (
     <article className="w-full bg-blanc pb-24">
-      {/* HEADER DE L'ARTICLE */}
+      {/* HEADER */}
       <header className={`${uiConfig.gradient} pt-20 pb-16 px-6 text-blanc`}>
         <div className="max-w-4xl mx-auto">
           <Link href="/articles" className="inline-flex items-center text-blanc/70 hover:text-blanc font-montserrat text-sm mb-10 transition-colors">
@@ -103,17 +104,38 @@ export default function ArticleReadPage() {
         </div>
       </header>
 
-      {/* CONTENU DE L'ARTICLE */}
+      {/* CONTENU */}
       <div className="max-w-3xl mx-auto px-6 py-16">
-        {/*
-          La classe "prose" de Tailwind Typography formate automatiquement
-          tout le HTML généré par Tiptap (les h2, les paragraphes, les images).
-        */}
         <div 
           className="prose prose-lg prose-headings:font-poppins prose-headings:font-black prose-headings:text-noir prose-p:font-montserrat prose-p:text-noir/80 prose-a:text-or prose-a:no-underline hover:prose-a:underline prose-img:rounded-2xl max-w-none"
           dangerouslySetInnerHTML={{ __html: article.contenu }} 
         />
       </div>
+
+      {/* CRÉDITS DE L'ARTICLE (Traçabilité RGPD) */}
+      {article.credits && article.credits.length > 0 && (
+        <div className="max-w-3xl mx-auto px-6">
+          <div className="bg-champagne/5 border border-champagne/20 rounded-2xl p-6 flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
+            <div>
+              <h4 className="font-poppins font-black text-noir flex items-center gap-2 mb-2">
+                <PenTool size={18} className="text-or" /> Équipe Éditoriale
+              </h4>
+              <p className="font-montserrat text-xs text-champagne">
+                Cet article a été rédigé et modéré avec soin pour la commune.
+              </p>
+            </div>
+            
+            <div className="flex flex-col gap-2 min-w-0 md:min-w-62.5">
+              {article.credits.map((credit, idx) => (
+                <div key={idx} className="flex justify-between items-center text-sm font-montserrat border-b border-champagne/10 pb-1 last:border-0 last:pb-0">
+                  <span className="text-champagne">{credit.role}</span>
+                  <strong className="text-noir">{credit.name}</strong>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </article>
   );
 }

@@ -193,7 +193,7 @@ describe('ArticleService - Gestion du contenu et règles SEO', () => {
 
       const result = await service.findOne(1);
 
-      expect(result).toEqual(validArticle);
+      expect(result).toEqual({ ...validArticle, credits: [] });
     });
   });
 });

@@ -1,7 +1,7 @@
 import {
-  ForbiddenException,
   Injectable,
   NotFoundException,
+  ForbiddenException,
   GoneException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -9,227 +9,265 @@ import { Repository } from 'typeorm';
 import { Article, ArticleStatus } from './entities/article.entity';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
+import { AuteurArticle } from '../auteur-article/entities/auteur-article.entity/auteur-article.entity';
 import { Users } from '../users/entities/user.entity';
 import { Categorie } from '../categorie/entities/categorie.entity';
-import { AuteurArticle } from '../auteur-article/entities/auteur-article.entity/auteur-article.entity';
 
 /**
- * Service gérant la logique métier des articles.
- * Assure la gestion des permissions, la validation des profils auteurs et intègre les règles SEO (HTTP 410).
+ * Service gérant le cycle de vie complet des articles,
+ * la traçabilité des auteurs/éditeurs, et le respect de l'anonymat (RGPD).
  */
 @Injectable()
 export class ArticleService {
   constructor(
     @InjectRepository(Article)
     private readonly articleRepository: Repository<Article>,
+    @InjectRepository(AuteurArticle)
+    private readonly auteurRepository: Repository<AuteurArticle>,
     @InjectRepository(Users)
-    private readonly usersRepository: Repository<Users>,
+    private readonly userRepository: Repository<Users>,
     @InjectRepository(Categorie)
     private readonly categorieRepository: Repository<Categorie>,
-    @InjectRepository(AuteurArticle)
-    private readonly auteurArticleRepository: Repository<AuteurArticle>,
   ) {}
 
   /**
-   * Crée un nouvel article et l'associe à son auteur.
+   * Crée un nouvel article et enregistre l'auteur initial.
    *
-   * @param createArticleDto - Les données de création de l'article.
-   * @param userId - L'identifiant de l'utilisateur créant l'article.
-   * @param userRole - Le rôle de l'utilisateur.
-   * @returns {Promise<Article>} L'article sauvegardé en base de données.
-   * @throws {ForbiddenException} Si l'utilisateur n'est pas authentifié ou si son profil est incomplet.
-   * @throws {NotFoundException} Si la catégorie spécifiée n'existe pas.
+   * @param {CreateArticleDto} dto - Les données de l'article.
+   * @param {number} userId - L'identifiant de l'auteur.
+   * @param {string} userRole - Le rôle de l'auteur pour déduire le statut par défaut.
+   * @returns {Promise<any>} L'article créé avec ses crédits.
    */
-  async create(
-    createArticleDto: CreateArticleDto,
-    userId: number,
-    userRole: string,
-  ) {
-    if (!userId) throw new ForbiddenException('Authentification invalide.');
-
-    // Chargement de la relation 'profile' pour lire le prénom et le nom
-    const user = await this.usersRepository.findOne({
+  async create(dto: CreateArticleDto, userId: number, userRole: string) {
+    const user = await this.userRepository.findOne({
       where: { id: userId },
       relations: ['profile'],
     });
 
-    if (
-      !user ||
-      !user.is_phone_verified ||
-      !user.profile?.firstname ||
-      !user.profile?.lastname
-    ) {
+    if (!user) {
+      throw new NotFoundException('Utilisateur introuvable.');
+    }
+
+    if (!user.is_phone_verified) {
       throw new ForbiddenException(
-        'Profil incomplet (téléphone vérifié, nom et prénom requis).',
+        'Votre profil et numéro de téléphone doivent être vérifiés pour publier.',
       );
     }
 
-    const categorie = await this.categorieRepository.findOne({
-      where: { id: createArticleDto.categorieId },
-    });
-    if (!categorie) throw new NotFoundException('Catégorie introuvable');
+    const normalizedRole = userRole?.toLowerCase();
+    const isStaff = [
+      'super_admin',
+      'admin',
+      'redacteur',
+      'moderateur',
+    ].includes(normalizedRole);
 
-    let statutFinal =
-      (createArticleDto.statut as ArticleStatus) || ArticleStatus.BROUILLON;
-
-    if (['utilisateur', 'journaliste'].includes(userRole)) {
-      if (statutFinal === ArticleStatus.PUBLIE) {
-        statutFinal = ArticleStatus.EN_ATTENTE;
-      }
+    let statutFinal = ArticleStatus.BROUILLON;
+    if (!isStaff) {
+      statutFinal = ArticleStatus.EN_ATTENTE;
+    } else if (dto.statut) {
+      statutFinal = dto.statut;
     }
 
+    const publishedAt =
+      statutFinal === ArticleStatus.PUBLIE ? new Date() : null;
+
     const newArticle = this.articleRepository.create({
-      ...createArticleDto,
+      titre: dto.titre,
+      contenu: dto.contenu,
+      image_couverture: dto.image_couverture,
+      source_link: dto.source_link,
       statut: statutFinal,
-      categorie: categorie,
-      published_at: statutFinal === ArticleStatus.PUBLIE ? new Date() : null,
+      published_at: publishedAt,
+      categorie: { id: dto.categorieId } as Categorie,
     });
 
     const savedArticle = await this.articleRepository.save(newArticle);
 
-    await this.auteurArticleRepository.save(
-      this.auteurArticleRepository.create({
-        article: savedArticle,
-        user: user,
+    const roleContribution = dto.is_anonymous ? 'Auteur Anonyme' : 'Auteur';
+
+    await this.auteurRepository.save(
+      this.auteurRepository.create({
+        userId: userId,
+        articleId: savedArticle.id,
+        role_contribution: roleContribution,
       }),
     );
 
-    return savedArticle;
+    const authorName =
+      dto.is_anonymous || !user.profile
+        ? 'Citoyen Anonyme'
+        : user.profile.firstname && user.profile.lastname
+          ? `${user.profile.firstname} ${user.profile.lastname}`
+          : user.profile.firstname || 'Utilisateur';
+
+    return {
+      ...savedArticle,
+      credits: [{ role: 'Auteur', name: authorName }],
+    };
   }
 
   /**
-   * Récupère un article par son identifiant avec ses relations.
-   * Valide le statut de l'article pour appliquer la stratégie SEO.
-   *
-   * @param id - L'identifiant de l'article.
-   * @returns {Promise<Article>} L'article demandé.
-   * @throws {NotFoundException} Si l'article n'a jamais existé.
-   * @throws {GoneException} Si l'article a été supprimé logiquement (Soft Delete).
+   * Met à jour un article et trace les modifications par un administrateur.
+   */
+  async update(
+    id: number,
+    dto: UpdateArticleDto,
+    userId: number,
+    userRole: string,
+  ) {
+    const article = await this.articleRepository.findOne({ where: { id } });
+    if (!article) throw new NotFoundException('Article introuvable.');
+
+    Object.assign(article, dto);
+    await this.articleRepository.save(article);
+
+    const normalizedRole = userRole?.toLowerCase();
+    const isStaff = [
+      'super_admin',
+      'admin',
+      'redacteur',
+      'moderateur',
+    ].includes(normalizedRole);
+
+    if (isStaff) {
+      const existingPivot = await this.auteurRepository.findOne({
+        where: { articleId: id, userId },
+      });
+      if (!existingPivot) {
+        await this.auteurRepository.save(
+          this.auteurRepository.create({
+            articleId: id,
+            userId,
+            role_contribution: 'Éditeur',
+          }),
+        );
+      }
+    }
+
+    return this.findOne(id);
+  }
+
+  /**
+   * Valide et publie publiquement un article en attente.
+   */
+  async publishArticle(id: number) {
+    const article = await this.articleRepository.findOne({ where: { id } });
+    if (!article) throw new NotFoundException('Article introuvable.');
+
+    article.statut = ArticleStatus.PUBLIE;
+    article.published_at = new Date();
+    await this.articleRepository.save(article);
+
+    return this.findOne(id);
+  }
+
+  /**
+   * Récupère tous les articles publiés (Formatés pour le public).
+   */
+  async findAllPublished() {
+    const articles = await this.articleRepository.find({
+      where: { statut: ArticleStatus.PUBLIE, is_delete: false },
+      relations: [
+        'categorie',
+        'auteursArticles',
+        'auteursArticles.user',
+        'auteursArticles.user.profile',
+      ],
+      order: { published_at: 'DESC' },
+    });
+
+    return articles.map((article) => this.formatArticleCredits(article));
+  }
+
+  /**
+   * Récupère tous les articles sans restriction (Pour le Dashboard Admin).
+   */
+  async findAllAdmin() {
+    const articles = await this.articleRepository.find({
+      where: { is_delete: false },
+      relations: [
+        'categorie',
+        'auteursArticles',
+        'auteursArticles.user',
+        'auteursArticles.user.profile',
+      ],
+      order: { created_at: 'DESC' },
+    });
+
+    return articles.map((article) => this.formatArticleCredits(article));
+  }
+
+  /**
+   * Récupère un article spécifique (Formaté avec ses crédits épurés).
    */
   async findOne(id: number) {
     const article = await this.articleRepository.findOne({
       where: { id },
-      relations: ['categorie', 'auteursArticles', 'auteursArticles.user'],
+      relations: [
+        'categorie',
+        'auteursArticles',
+        'auteursArticles.user',
+        'auteursArticles.user.profile',
+      ],
       withDeleted: true,
     });
 
-    if (!article) throw new NotFoundException('Article introuvable');
+    if (!article) throw new NotFoundException('Article introuvable.');
+    if (article.is_delete || article.deleted_at)
+      throw new GoneException('Article supprimé.');
 
-    if (article.is_delete || article.deleted_at) {
-      throw new GoneException(
-        `L'article #${id} a été retiré de la plateforme.`,
-      );
-    }
-
-    return article;
+    return this.formatArticleCredits(article);
   }
 
   /**
-   * Met à jour un article existant.
-   * Vérifie les permissions de modification et gère les transitions de statut sécurisées.
-   *
-   * @param id - L'identifiant de l'article à modifier.
-   * @param updateArticleDto - Les données à mettre à jour.
-   * @param userId - L'identifiant de l'utilisateur effectuant la requête.
-   * @param userRole - Le rôle de l'utilisateur.
-   * @returns {Promise<Article>} L'article mis à jour.
-   * @throws {ForbiddenException} Si l'utilisateur n'a pas les droits nécessaires de modification.
-   */
-  async update(
-    id: number,
-    updateArticleDto: UpdateArticleDto,
-    userId: number,
-    userRole: string,
-  ) {
-    const article = await this.findOne(id);
-
-    const isAuthor = article.auteursArticles.some((a) => a.user.id === userId);
-    const isManagement = ['Admin', 'moderateur'].includes(userRole);
-
-    if (!isAuthor && !isManagement) {
-      throw new ForbiddenException('Modification interdite.');
-    }
-
-    if (updateArticleDto.statut && !isManagement) {
-      if (updateArticleDto.statut === ArticleStatus.PUBLIE) {
-        updateArticleDto.statut = ArticleStatus.EN_ATTENTE;
-      }
-    }
-
-    if (
-      (updateArticleDto.statut as ArticleStatus) === ArticleStatus.PUBLIE &&
-      article.statut !== ArticleStatus.PUBLIE
-    ) {
-      article.published_at = new Date();
-    }
-
-    Object.assign(article, updateArticleDto);
-    return this.articleRepository.save(article);
-  }
-
-  /**
-   * Force la publication immédiate d'un article.
-   *
-   * @param id - L'identifiant de l'article à publier.
-   * @returns {Promise<Article>} L'article publié avec sa date de publication mise à jour.
-   */
-  async publishArticle(id: number) {
-    const article = await this.findOne(id);
-
-    article.statut = ArticleStatus.PUBLIE;
-    article.published_at = new Date();
-    return this.articleRepository.save(article);
-  }
-
-  /**
-   * Récupère tous les articles ayant le statut PUBLIE.
-   *
-   * @returns {Promise<Article[]>} La liste des articles publiés triés par date de publication (décroissante).
-   */
-  findAllPublished() {
-    return this.articleRepository.find({
-      where: { statut: ArticleStatus.PUBLIE },
-      relations: ['categorie', 'auteursArticles', 'auteursArticles.user'],
-      order: { published_at: 'DESC' },
-    });
-  }
-
-  /**
-   * Récupère l'intégralité des articles pour les interfaces d'administration.
-   *
-   * @returns {Promise<Article[]>} La liste complète des articles triés par date de création (décroissante).
-   */
-  findAllAdmin() {
-    return this.articleRepository.find({
-      relations: ['categorie', 'auteursArticles', 'auteursArticles.user'],
-      order: { created_at: 'DESC' },
-    });
-  }
-
-  /**
-   * Supprime logiquement un article (Soft Delete).
-   * Restreint l'action aux auteurs de l'article ou au personnel d'administration.
-   *
-   * @param id - L'identifiant de l'article à supprimer.
-   * @param userId - L'identifiant de l'utilisateur effectuant la suppression.
-   * @param userRole - Le rôle de l'utilisateur.
-   * @returns {Promise<{ message: string; article: Article }>} Un objet contenant un message de confirmation et l'entité supprimée.
-   * @throws {ForbiddenException} Si l'utilisateur n'a pas les droits nécessaires.
+   * Effectue un Soft Delete sur l'article.
    */
   async remove(id: number, userId: number, userRole: string) {
-    const article = await this.findOne(id);
+    const article = await this.articleRepository.findOne({ where: { id } });
+    if (!article) throw new NotFoundException('Article introuvable.');
 
-    const isAuthor = article.auteursArticles.some((a) => a.user.id === userId);
-    const isManagement = ['Admin', 'moderateur'].includes(userRole);
+    const normalizedRole = userRole?.toLowerCase();
+    const isStaff = [
+      'super_admin',
+      'admin',
+      'redacteur',
+      'moderateur',
+    ].includes(normalizedRole);
+    if (!isStaff) throw new ForbiddenException('Non autorisé.');
 
-    if (!isAuthor && !isManagement) {
-      throw new ForbiddenException('Suppression interdite.');
+    return this.articleRepository.softRemove(article);
+  }
+
+  /**
+   * Formate les relations d'un article pour extraire les auteurs/éditeurs.
+   * Masque intégralement les données personnelles si l'anonymat est requis (RGPD).
+   *
+   * @private
+   * @param {Article} article - L'entité brute avec ses relations.
+   * @returns {object} L'article formaté avec le tableau `credits` purifié.
+   */
+  private formatArticleCredits(article: Article) {
+    let credits: Array<{ role: string; name: string }> = [];
+
+    if (article.auteursArticles && article.auteursArticles.length > 0) {
+      credits = article.auteursArticles.map((pivot) => {
+        if (pivot.role_contribution === 'Auteur Anonyme') {
+          return { role: 'Auteur', name: 'Citoyen Anonyme' };
+        }
+
+        const profile = pivot.user?.profile;
+        const name =
+          profile?.firstname && profile?.lastname
+            ? `${profile.firstname} ${profile.lastname}`
+            : profile?.firstname || 'Utilisateur';
+
+        return { role: pivot.role_contribution || 'Auteur', name };
+      });
     }
 
-    const removedArticle = await this.articleRepository.softRemove(article);
-    return {
-      message: `L'article #${id} a été supprimé avec succès.`,
-      article: removedArticle,
-    };
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { auteursArticles, ...rest } = article;
+    return { ...rest, credits };
   }
 }
