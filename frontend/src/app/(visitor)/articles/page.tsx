@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchApi } from "@/lib/api";
-import { getCategoryUI, formatDateToFrench, generateSlug } from "@/lib/formatters";
+import { getCategoryUI, formatDateToFrench, generateSlug, calculateReadTime } from "@/lib/formatters";
 
 interface RawArticle {
   id: number;
@@ -39,6 +39,7 @@ interface ArticleUI {
   readTime: string;
   icon: LucideIcon;
   gradientClass: string;
+  href?: string;
 }
 
 interface FilterCategorie {
@@ -146,9 +147,10 @@ export default function ArticlesPage() {
             categorieSlug: uiStyles.slug,
             date: formatDateToFrench(pubDate),
             dateIso: pubDate.toISOString().split('T')[0],
-            readTime: "3 min", 
+            readTime: calculateReadTime(bodyText), 
             icon: uiStyles.icon,
             gradientClass: uiStyles.gradient,
+            href: `/articles/${item.id}`,
           };
         });
 

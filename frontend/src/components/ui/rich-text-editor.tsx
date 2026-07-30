@@ -178,7 +178,7 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
       </div>
 
       {/* --- ZONE D'ÉDITION --- */}
-      <div className="prose-wrapper min-h-[250px] cursor-text" onClick={() => editor.chain().focus().run()}>
+      <div className="prose-wrapper min-h-62.5 cursor-text" onClick={() => editor.chain().focus().run()}>
         <EditorContent editor={editor} />
       </div>
     </div>

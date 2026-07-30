@@ -78,6 +78,7 @@ export default function Home() {
             readTime: calculateReadTime(article.contenu),
             icon: uiConfig.icon,
             gradientClass: getGradientClassByIndex(index),
+            href: `/articles/${article.id}`,
           };
         });
 
