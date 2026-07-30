@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import AdminGuard from "@/components/layout/AdminGuard";
 import { fetchApi } from "@/lib/api";
+import { PERMISSIONS } from "@/lib/permissions";
 
 // --- TYPES ---
 interface AlertItem {
@@ -165,7 +166,7 @@ export default function AlertsDashboard() {
   };
 
   return (
-    <AdminGuard allowedRoles={['admin', 'super_admin']}>
+    <AdminGuard allowedRoles={PERMISSIONS.manageAlerts}>
       <div className="space-y-8 animate-slide-up max-w-4xl">
         <div>
           <h1 className="font-poppins font-black text-2xl text-noir mb-1 flex items-center gap-2">

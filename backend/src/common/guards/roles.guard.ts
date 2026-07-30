@@ -27,9 +27,8 @@ export class RolesGuard implements CanActivate {
     }
 
     // Extraction sécurisée du rôle
-    const roleStr = typeof user.role === 'string' 
-      ? user.role 
-      : user.role.libelle || '';
+    const roleStr =
+      typeof user.role === 'string' ? user.role : user.role.libelle || '';
 
     return requiredRoles.includes(roleStr.toLowerCase());
   }

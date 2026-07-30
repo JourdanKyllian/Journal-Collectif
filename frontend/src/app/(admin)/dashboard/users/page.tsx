@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import AdminGuard from "@/components/layout/AdminGuard";
 import { fetchApi } from "@/lib/api";
+import { PERMISSIONS } from "@/lib/permissions";
 
 interface Role { id: number; libelle: string; }
 interface Profile { firstname: string; lastname: string; tel?: string; }
@@ -143,7 +144,7 @@ export default function UsersDashboard() {
   const currentRole = getRoleName(currentUser?.role);
 
   return (
-    <AdminGuard allowedRoles={['admin', 'super_admin']}>
+    <AdminGuard allowedRoles={PERMISSIONS.manageAlerts}>
       <div className="space-y-8 animate-slide-up max-w-5xl">
         
         <div className="flex justify-between items-end flex-wrap gap-4">
