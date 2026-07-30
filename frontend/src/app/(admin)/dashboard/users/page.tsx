@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { User as UserIcon, PenSquare, Trash2, ShieldCheck, Pen, Plus } from "lucide-react";
 import { SkeletonGrid, SkeletonTableRow } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { FeedbackAlert, FeedbackMessage } from "@/components/ui/feedback-alert";
 import AdminGuard from "@/components/layout/AdminGuard";
 import { fetchApi } from "@/lib/api";
+import { useFetchApi } from "@/hooks/useFetchApi";
 import { PERMISSIONS, hasPermission } from "@/lib/permissions";
 
 interface Role { id: number; libelle: string; }
@@ -25,12 +26,29 @@ interface DashboardUser {
 }
 
 /**
- * Tableau de bord pour la gestion des utilisateurs, des accès et des rôles.
+ * Récupère le nom complet affichable de l'utilisateur.
+ */
+const getDisplayName = (user: DashboardUser | null): string => {
+  if (!user) return "";
+  if (user.profile?.firstname && user.profile?.lastname) return `${user.profile.firstname} ${user.profile.lastname}`;
+  return user.name || "Utilisateur inconnu";
+};
+
+/**
+ * Normalise l'extraction du nom de rôle en minuscules, qu'il provienne d'une string ou d'un objet.
+ */
+const getRoleName = (roleData: string | Role | undefined): string => {
+  if (!roleData) return "";
+  if (typeof roleData === 'string') return roleData.toLowerCase();
+  return (roleData.libelle || "").toLowerCase();
+};
+
+/**
+ * Tableau de bord d'administration pour la gestion des utilisateurs et de la gouvernance.
  */
 export default function UsersDashboard() {
-  const [users, setUsers] = useState<DashboardUser[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<DashboardUser | null>(null);
+  const { data: allUsers, isLoading: isUsersLoading, refetch } = useFetchApi<DashboardUser[]>('/v1/users/all');
+  const { data: currentUser, isLoading: isUserLoading } = useFetchApi<DashboardUser>('/v1/auth/me');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUserId, setEditingUserId] = useState<number | null>(null);
@@ -39,46 +57,24 @@ export default function UsersDashboard() {
   
   const [formData, setFormData] = useState({ firstname: "", lastname: "", email: "", password: "", role: "redacteur" });
 
-  const getDisplayName = (user: DashboardUser | null): string => {
-    if (!user) return "";
-    if (user.profile?.firstname && user.profile?.lastname) return `${user.profile.firstname} ${user.profile.lastname}`;
-    return user.name || "Utilisateur inconnu";
-  };
+  const isLoading = isUsersLoading || isUserLoading;
+  const currentRole = getRoleName(currentUser?.role);
 
-  const getRoleName = (roleData: string | Role | undefined): string => {
-    if (!roleData) return "";
-    if (typeof roleData === 'string') return roleData.toLowerCase();
-    return (roleData.libelle || "").toLowerCase();
-  };
-
-  const loadData = async () => {
-    try {
-      const me = await fetchApi<DashboardUser>('/v1/auth/me').catch(() => null);
-      setCurrentUser(me);
-      const allUsers = await fetchApi<DashboardUser[]>('/v1/users/all');
-      
-      const filteredUsers = allUsers.filter(u => hasPermission(getRoleName(u.role), PERMISSIONS.dashboardAccess));
-
-      if (me) {
-        const currentUserData = filteredUsers.find(u => u.id === me.id);
-        const otherUsers = filteredUsers.filter(u => u.id !== me.id);
-        if (currentUserData) {
-          setUsers([currentUserData, ...otherUsers]);
-        } else {
-          setUsers(filteredUsers);
-        }
-      } else {
-        setUsers(filteredUsers);
-      }
-
-    } catch (error) {
-      console.error("Erreur de chargement", error);
-    } finally {
-      setIsLoading(false);
+  /**
+   * Trie et filtre la liste des utilisateurs de manière à toujours épingler
+   * le compte de la session courante tout en haut du tableau.
+   */
+  const processedUsers = useMemo(() => {
+    if (!allUsers) return [];
+    const filtered = allUsers.filter(u => hasPermission(getRoleName(u.role), PERMISSIONS.dashboardAccess));
+    
+    if (currentUser) {
+      const me = filtered.find(u => u.id === currentUser.id);
+      const others = filtered.filter(u => u.id !== currentUser.id);
+      return me ? [me, ...others] : filtered;
     }
-  };
-
-  useEffect(() => { loadData(); }, []);
+    return filtered;
+  }, [allUsers, currentUser]);
 
   const openModal = (user?: DashboardUser) => {
     setFeedback(null);
@@ -104,8 +100,18 @@ export default function UsersDashboard() {
     setFeedback(null);
 
     try {
-      const payload = { ...formData };
-      if (editingUserId && !payload.password) delete (payload as any).password;
+      // Typage strict du payload pour éviter les "any"
+      const payload: Record<string, string> = {
+        firstname: formData.firstname,
+        lastname: formData.lastname,
+        email: formData.email,
+        role: formData.role
+      };
+      
+      // On n'envoie le mot de passe que lors d'une création ou s'il a été expressément modifié
+      if (!editingUserId || formData.password) {
+        payload.password = formData.password;
+      }
 
       if (editingUserId) {
         await fetchApi(`/v1/users/${editingUserId}`, { method: 'PATCH', body: JSON.stringify(payload) });
@@ -113,7 +119,7 @@ export default function UsersDashboard() {
         await fetchApi('/v1/users/create', { method: 'POST', body: JSON.stringify(payload) });
       }
       setIsModalOpen(false);
-      loadData(); 
+      await refetch();
     } catch (error: unknown) {
       setFeedback({ type: "error", message: (error as Error).message });
     } finally {
@@ -125,10 +131,9 @@ export default function UsersDashboard() {
     if (!confirm(`Voulez-vous retirer les accès de ${name} ?`)) return;
     try {
       await fetchApi(`/v1/users/${id}`, { method: 'DELETE' });
-      setUsers(users.filter(u => u.id !== id));
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      alert(error.message || "Erreur lors de la suppression");
+      await refetch();
+    } catch (error: unknown) {
+      alert((error as Error).message || "Erreur lors de la suppression");
     }
   };
 
@@ -138,8 +143,6 @@ export default function UsersDashboard() {
     if (['redacteur', 'journaliste'].includes(r)) return <span className="inline-flex items-center gap-1.5 bg-vert/10 text-vert border border-vert/20 font-poppins font-black text-xs px-3 py-1 rounded-full"><Pen size={14} />Rédacteur</span>;
     return <span className="inline-flex items-center gap-1.5 bg-champagne/20 text-noir font-poppins font-black text-xs px-3 py-1 rounded-full capitalize"><UserIcon size={14} />{r}</span>;
   };
-
-  const currentRole = getRoleName(currentUser?.role);
 
   return (
     <AdminGuard allowedRoles={PERMISSIONS.manageUsers}>
@@ -168,7 +171,7 @@ export default function UsersDashboard() {
             {isLoading ? (
               <SkeletonGrid count={5} Component={SkeletonTableRow} />
             ) : (
-              users.map((user) => {
+              processedUsers.map((user) => {
                 const targetRole = getRoleName(user.role);
                 const isSelf = currentUser?.id === user.id;
                 const canManage = currentRole === 'super_admin' || isSelf || (currentRole === 'admin' && !['super_admin', 'admin'].includes(targetRole));

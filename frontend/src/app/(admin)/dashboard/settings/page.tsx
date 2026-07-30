@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { FeedbackAlert, FeedbackMessage } from "@/components/ui/feedback-alert";
 import AdminGuard from "@/components/layout/AdminGuard";
 import { fetchApi } from "@/lib/api";
+import { useFetchApi } from "@/hooks/useFetchApi";
 import { PERMISSIONS } from "@/lib/permissions";
 
 interface SettingsFormData {
@@ -25,7 +26,7 @@ interface SettingsFormData {
  * Interface d'administration pour la configuration globale de l'identité de la plateforme.
  */
 export default function SettingsDashboard() {
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const { data: initialData, isLoading } = useFetchApi<SettingsFormData>('/v1/settings');
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<FeedbackMessage | null>(null);
 
@@ -35,19 +36,10 @@ export default function SettingsDashboard() {
   });
 
   useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const data = await fetchApi<SettingsFormData>('/v1/settings');
-        setFormData(data);
-      } catch (error) {
-        console.error("Erreur de chargement des paramètres:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadSettings();
-  }, []);
+    if (initialData) {
+      setFormData(initialData);
+    }
+  }, [initialData]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
