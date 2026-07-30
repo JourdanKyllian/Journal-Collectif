@@ -38,8 +38,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const allMenuItems = [
     { name: "Vue d'ensemble", href: "/dashboard", icon: LayoutDashboard, roles: ['super_admin', 'admin', 'redacteur'] },
     { name: "Articles", href: "/dashboard/articles", icon: Newspaper, roles: ['super_admin', 'admin', 'redacteur'] },
-    { name: "Objets perdus", href: "/dashboard/lost", icon: Search, roles: ['super_admin', 'admin'] },
-    { name: "Alertes", href: "/dashboard/alerts", icon: Bell, roles: ['super_admin', 'admin', 'redacteur'] },
+    { name: "Objets perdus", href: "/dashboard/lost", icon: Search, roles: ['super_admin', 'admin', 'redacteur'] },
+    { name: "Alertes", href: "/dashboard/alerts", icon: Bell, roles: ['super_admin', 'admin'] },
     { name: "Utilisateurs", href: "/dashboard/users", icon: Users, roles: ['super_admin', 'admin'] },
     { name: "Paramètres", href: "/dashboard/settings", icon: Settings, roles: ['super_admin'] },
   ];

@@ -16,16 +16,21 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
-    // Type la requête pour dire qu'elle contient un user
+    // Type la requête
     const request = context
       .switchToHttp()
-      .getRequest<{ user?: { role?: string } }>();
+      .getRequest<{ user?: { role?: string | { libelle: string } } }>();
     const user = request.user;
 
     if (!user || !user.role) {
       return false;
     }
 
-    return requiredRoles.includes(user.role);
+    // Extraction sécurisée du rôle
+    const roleStr = typeof user.role === 'string' 
+      ? user.role 
+      : user.role.libelle || '';
+
+    return requiredRoles.includes(roleStr.toLowerCase());
   }
 }

@@ -205,7 +205,7 @@ export default function UsersDashboard() {
 
         {/* --- MODALE CRÉATION / MODIFICATION --- */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="sm:max-w-[500px] bg-blanc rounded-2xl border-champagne/30 p-6" showCloseButton={true}>
+          <DialogContent className="sm:max-w-125 bg-blanc rounded-2xl border-champagne/30 p-6" showCloseButton={true}>
             <DialogHeader>
               <DialogTitle className="font-poppins font-black text-xl text-noir">
                 {editingUserId ? "Modifier l'utilisateur" : "Ajouter un membre"}

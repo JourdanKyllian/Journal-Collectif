@@ -38,7 +38,8 @@ export default function DashboardPage() {
   ];
 
   const visibleStats = stats.filter(s => role && s.roles.includes(role));
-  const canManageObjects = role === 'super_admin' || role === 'admin';
+  const canManageObjects = ['super_admin', 'admin', 'redacteur'].includes(role || '');
+  const canManageAlerts = ['super_admin', 'admin'].includes(role || '');
 
   return (
     <div className="space-y-8 animate-slide-up">
@@ -117,6 +118,7 @@ export default function DashboardPage() {
               </Link>
             )}
 
+            {canManageAlerts && (
             <Link href="/dashboard/alerts" className="w-full">
               <Button variant="outline" className="w-full h-auto p-6 bg-blanc border-champagne/30 hover:border-red-400 text-noir flex flex-col items-start gap-2 rounded-2xl shadow-sm hover:shadow-md transition-all">
                 <AlertTriangle size={24} className="text-red-400" />
@@ -126,6 +128,7 @@ export default function DashboardPage() {
                 </div>
               </Button>
             </Link>
+            )}
           </>
         )}
       </div>

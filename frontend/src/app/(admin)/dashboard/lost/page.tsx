@@ -36,7 +36,7 @@ export default function LostObjectsDashboard() {
   const [activeTab, setActiveTab] = useState("active");
 
   return (
-    <AdminGuard allowedRoles={['super_admin', 'admin']}>
+    <AdminGuard allowedRoles={['super_admin', 'admin', 'redacteur']}>
       <div className="space-y-6 animate-slide-up">
         {/* En-tête */}
         <div className="flex items-center justify-between flex-wrap gap-4">
