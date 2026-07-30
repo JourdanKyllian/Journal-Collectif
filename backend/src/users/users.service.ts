@@ -91,6 +91,7 @@ export class UsersService {
     id: number,
     updateUserDto: UpdateUserDto,
     currentUserRole: string,
+    currentUserId: number,
   ) {
     const user = await this.usersRepository.findOne({
       where: { id },
@@ -99,11 +100,13 @@ export class UsersService {
     if (!user) throw new NotFoundException('Utilisateur introuvable');
 
     const targetRole = user.role?.libelle || 'utilisateur';
+    const isSelf = id === currentUserId; // <-- Est-ce qu'on s'édite soi-même ?
 
-    // Sécurité Hiérarchique
+    // Sécurité Hiérarchique (Exception pour isSelf)
     if (
       currentUserRole === 'admin' &&
-      (targetRole === 'super_admin' || targetRole === 'admin')
+      (targetRole === 'super_admin' || targetRole === 'admin') &&
+      !isSelf
     ) {
       throw new ForbiddenException(
         'Un administrateur ne peut modifier que des rédacteurs.',
@@ -112,9 +115,12 @@ export class UsersService {
 
     // Mise à jour du rôle si demandé
     if (updateUserDto.role) {
+      const isSelfKeepingAdmin = isSelf && updateUserDto.role === 'admin';
+
       if (
         currentUserRole === 'admin' &&
-        ['super_admin', 'admin'].includes(updateUserDto.role)
+        ['super_admin', 'admin'].includes(updateUserDto.role) &&
+        !isSelfKeepingAdmin // On le laisse faire si c'est juste le formulaire qui renvoie "admin"
       ) {
         throw new ForbiddenException(
           'Un administrateur ne peut attribuer que le rôle rédacteur.',
@@ -126,7 +132,7 @@ export class UsersService {
       if (newRole) user.role = newRole;
     }
 
-    // Mise à jour du profil
+    // Mise à jour du profil (Le reste du code ne change pas)
     if (user.profile) {
       if (updateUserDto.firstname)
         user.profile.firstname = updateUserDto.firstname;

@@ -71,7 +71,12 @@ export class UsersController {
     @Body() updateUserDto: UpdateUserDto,
     @Request() req: RequestWithUser,
   ) {
-    return this.usersService.update(+id, updateUserDto, req.user.role);
+    return this.usersService.update(
+      +id,
+      updateUserDto,
+      req.user.role,
+      req.user.userId,
+    );
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

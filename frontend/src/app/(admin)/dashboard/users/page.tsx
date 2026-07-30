@@ -173,10 +173,9 @@ export default function UsersDashboard() {
             ) : (
               users.map((user) => {
                 const targetRole = getRoleName(user.role);
-                
-                // Hiérarchie de sécurité pour l'affichage des boutons
-                const canManage = currentRole === 'super_admin' || (currentRole === 'admin' && !['super_admin', 'admin'].includes(targetRole));
-                const canDelete = canManage && currentUser?.id !== user.id;
+                const isSelf = currentUser?.id === user.id;
+                const canManage = currentRole === 'super_admin' || isSelf || (currentRole === 'admin' && !['super_admin', 'admin'].includes(targetRole));
+                const canDelete = canManage && !isSelf;
 
                 return (
                   <div key={user.id} className="grid grid-cols-[2fr_1fr_1fr_auto] gap-4 p-4 items-center hover:bg-champagne/5 transition-colors">
@@ -238,13 +237,18 @@ export default function UsersDashboard() {
 
               <div className="space-y-2">
                 <Label className="font-montserrat font-bold text-xs text-champagne uppercase">Rôle</Label>
-                <Select value={formData.role} onValueChange={(val) => setFormData({...formData, role: val})}>
+                <Select 
+                  value={formData.role} 
+                  onValueChange={(val) => setFormData({...formData, role: val})}
+                  disabled={editingUserId === currentUser?.id && currentRole !== 'super_admin'}
+                >
                   <SelectTrigger className="border-champagne/40 bg-blanc font-montserrat h-10">
                     <SelectValue placeholder="Sélectionnez un rôle" />
                   </SelectTrigger>
                   <SelectContent className="bg-blanc font-montserrat">
-                    {/* Le super_admin voit tout, l'admin ne voit que le rédacteur */}
-                    {currentRole === 'super_admin' && <SelectItem value="admin">Administrateur</SelectItem>}
+                    {(currentRole === 'super_admin' || (editingUserId === currentUser?.id && currentRole === 'admin')) && (
+                      <SelectItem value="admin">Administrateur</SelectItem>
+                    )}
                     <SelectItem value="redacteur">Rédacteur / Journaliste</SelectItem>
                   </SelectContent>
                 </Select>
