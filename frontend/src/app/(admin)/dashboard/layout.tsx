@@ -26,8 +26,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   useEffect(() => {
-    fetchApi<{ role: string }>('/v1/auth/me')
-      .then(user => setRole(user.role))
+    fetchApi<{ role: string | { libelle: string } }>('/v1/auth/me')
+      .then(user => {
+        const roleStr = typeof user.role === 'string' ? user.role : user.role?.libelle || '';
+        setRole(roleStr.toLowerCase());
+      })
       .catch(() => {});
   }, []);
 

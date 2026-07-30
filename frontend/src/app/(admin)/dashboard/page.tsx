@@ -16,10 +16,10 @@ export default function DashboardPage() {
     const loadDashboardData = async () => {
       try {
         setIsLoading(true);
-        // On récupère le rôle de l'utilisateur pour adapter l'interface
-        const user = await fetchApi<{ role: string }>('/v1/auth/me');
-        setRole(user.role);
-        // await fetchApi('/v1/stats/dashboard'); // Données réelles plus tard
+        const user = await fetchApi<{ role: string | { libelle: string } }>('/v1/auth/me');
+        const roleStr = typeof user.role === 'string' ? user.role : user.role?.libelle || '';
+        setRole(roleStr.toLowerCase());
+        
       } catch (error) {
         console.error("Erreur de récupération :", error);
       } finally {
