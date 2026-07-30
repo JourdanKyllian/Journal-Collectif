@@ -1,9 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { 
-  AlertTriangle, Trash2, Info, CalendarDays, Megaphone, PartyPopper, CheckCircle2, PenSquare 
-} from "lucide-react";
+import { AlertTriangle, Trash2, Info, CalendarDays, Megaphone, PartyPopper, CheckCircle2, PenSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,11 +9,11 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { FeedbackAlert, FeedbackMessage } from "@/components/ui/feedback-alert";
 import AdminGuard from "@/components/layout/AdminGuard";
 import { fetchApi } from "@/lib/api";
 import { PERMISSIONS } from "@/lib/permissions";
 
-// --- TYPES ---
 interface AlertItem {
   id: number;
   type: "urgent" | "info" | "event";
@@ -26,44 +24,26 @@ interface AlertItem {
   created_at: string;
 }
 
-// --- MAPPING DES STYLES SELON LE TYPE ---
 const TYPE_STYLES = {
-  urgent: {
-    wrapper: "border-red-500", bgIcon: "bg-red-100", textIcon: "text-red-500",
-    badgeBg: "bg-red-500", badgeText: "URGENT", Icon: Megaphone
-  },
-  info: {
-    wrapper: "border-orange-400", bgIcon: "bg-orange-100", textIcon: "text-orange-500",
-    badgeBg: "bg-orange-400", badgeText: "INFO", Icon: Info
-  },
-  event: {
-    wrapper: "border-vert", bgIcon: "bg-vert/10", textIcon: "text-vert",
-    badgeBg: "bg-vert", badgeText: "ÉVÉNEMENT", Icon: PartyPopper
-  }
+  urgent: { wrapper: "border-red-500", bgIcon: "bg-red-100", textIcon: "text-red-500", badgeBg: "bg-red-500", badgeText: "URGENT", Icon: Megaphone },
+  info: { wrapper: "border-orange-400", bgIcon: "bg-orange-100", textIcon: "text-orange-500", badgeBg: "bg-orange-400", badgeText: "INFO", Icon: Info },
+  event: { wrapper: "border-vert", bgIcon: "bg-vert/10", textIcon: "text-vert", badgeBg: "bg-vert", badgeText: "ÉVÉNEMENT", Icon: PartyPopper }
 };
 
 /**
- * @component AlertsDashboard
- * @description Tableau de bord pour la gestion dynamique des alertes et bannières d'urgence.
+ * Tableau de bord pour la gestion dynamique des alertes et bannières d'urgence.
  */
 export default function AlertsDashboard() {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<FeedbackMessage | null>(null);
 
-  // États pour la modification
   const [editingAlertId, setEditingAlertId] = useState<number | null>(null);
   const [hasEndDate, setHasEndDate] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
 
-  const [formData, setFormData] = useState({
-    type: "urgent",
-    title: "",
-    message: "",
-    startDate: "",
-    endDate: ""
-  });
+  const [formData, setFormData] = useState({ type: "urgent", title: "", message: "", startDate: "", endDate: "" });
 
   useEffect(() => {
     const loadAlerts = async () => {
@@ -76,11 +56,9 @@ export default function AlertsDashboard() {
         setIsLoading(false);
       }
     };
-
     loadAlerts();
   }, []);
 
-  // Gère la création ET la modification
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -93,22 +71,14 @@ export default function AlertsDashboard() {
       };
 
       if (editingAlertId) {
-        await fetchApi(`/v1/alerts/${editingAlertId}`, {
-          method: 'PATCH',
-          body: JSON.stringify(payload),
-        });
+        await fetchApi(`/v1/alerts/${editingAlertId}`, { method: 'PATCH', body: JSON.stringify(payload) });
         setFeedback({ type: "success", message: "Alerte modifiée avec succès !" });
       } else {
-        await fetchApi('/v1/alerts', {
-          method: 'POST',
-          body: JSON.stringify(payload),
-        });
+        await fetchApi('/v1/alerts', { method: 'POST', body: JSON.stringify(payload) });
         setFeedback({ type: "success", message: "Alerte publiée avec succès !" });
       }
       
-      // Réinitialisation du formulaire
       handleCancelEdit();
-      
       const data = await fetchApi<AlertItem[]>('/v1/alerts');
       setAlerts(data);
     } catch (error: unknown) {
@@ -133,19 +103,9 @@ export default function AlertsDashboard() {
 
   const handleEditClick = (alert: AlertItem) => {
     setEditingAlertId(alert.id);
-    setFormData({
-      type: alert.type,
-      title: alert.title,
-      message: alert.message,
-      startDate: alert.startDate || "",
-      endDate: alert.endDate || ""
-    });
+    setFormData({ type: alert.type, title: alert.title, message: alert.message, startDate: alert.startDate || "", endDate: alert.endDate || "" });
     setHasEndDate(!!alert.endDate);
-    
-    // Défilement doux vers le formulaire
-    setTimeout(() => {
-      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
   };
 
   const handleCancelEdit = () => {
@@ -175,7 +135,6 @@ export default function AlertsDashboard() {
           <p className="font-raleway text-champagne text-sm">Gérez les bannières d&apos;urgence affichées en tête du site</p>
         </div>
 
-        {/* --- LISTE DES ALERTES ACTIVES --- */}
         <div className="space-y-4">
           <h2 className="font-montserrat font-bold text-base flex items-center gap-2">
             Alertes actives 
@@ -199,9 +158,7 @@ export default function AlertsDashboard() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        <span className={`${style.badgeBg} text-blanc font-poppins font-black text-xs px-2.5 py-0.5 rounded-full`}>
-                          {style.badgeText}
-                        </span>
+                        <span className={`${style.badgeBg} text-blanc font-poppins font-black text-xs px-2.5 py-0.5 rounded-full`}>{style.badgeText}</span>
                         <h3 className="font-montserrat font-bold text-sm">{alert.title}</h3>
                       </div>
                       <p className="font-montserrat text-xs text-champagne mb-2 whitespace-pre-wrap line-clamp-2">{alert.message}</p>
@@ -224,22 +181,12 @@ export default function AlertsDashboard() {
           </div>
         </div>
 
-        {/* --- CRÉER / MODIFIER UNE ALERTE --- */}
         <div ref={formRef} className={`bg-blanc rounded-2xl border ${editingAlertId ? 'border-or shadow-lg shadow-or/10' : 'border-champagne/20'} p-6 sm:p-8 mt-8 transition-all duration-300`}>
           <h2 className="font-poppins font-black text-lg text-noir mb-6 flex items-center gap-2">
-            {editingAlertId ? (
-              <><PenSquare size={20} className="text-or" /> Modifier l&apos;alerte</>
-            ) : (
-              <>＋ Créer une nouvelle alerte</>
-            )}
+            {editingAlertId ? <><PenSquare size={20} className="text-or" /> Modifier l&apos;alerte</> : <>＋ Créer une nouvelle alerte</>}
           </h2>
 
-          {feedback && (
-            <div className={`p-4 mb-6 rounded-xl flex items-center gap-3 font-montserrat font-bold text-sm ${feedback.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
-              {feedback.type === 'success' ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
-              {feedback.message}
-            </div>
-          )}
+          <FeedbackAlert feedback={feedback} />
           
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-3">
@@ -280,56 +227,20 @@ export default function AlertsDashboard() {
                 <div className="flex items-center justify-between mb-1">
                   <Label className="font-montserrat font-bold text-xs text-vert tracking-wide uppercase">Date de fin</Label>
                   <div className="flex items-center gap-2">
-                    <Label 
-                      className="text-[10px] font-montserrat text-champagne cursor-pointer uppercase tracking-wider" 
-                      onClick={() => {
-                        setHasEndDate(!hasEndDate);
-                        if(hasEndDate) setFormData({ ...formData, endDate: "" });
-                      }}
-                    >
+                    <Label className="text-[10px] font-montserrat text-champagne cursor-pointer uppercase tracking-wider" onClick={() => { setHasEndDate(!hasEndDate); if(hasEndDate) setFormData({ ...formData, endDate: "" }); }}>
                       Définir une fin
                     </Label>
-                    <Switch 
-                      checked={hasEndDate} 
-                      onCheckedChange={(val) => {
-                        setHasEndDate(val);
-                        if (!val) setFormData({ ...formData, endDate: "" });
-                      }} 
-                      className="data-[state=checked]:bg-or"
-                    />
+                    <Switch checked={hasEndDate} onCheckedChange={(val) => { setHasEndDate(val); if (!val) setFormData({ ...formData, endDate: "" }); }} className="data-[state=checked]:bg-or" />
                   </div>
                 </div>
-                <Input 
-                  type="date" 
-                  disabled={!hasEndDate}
-                  value={formData.endDate} 
-                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} 
-                  className="px-4 py-6 border-champagne/40 rounded-xl bg-blanc focus-visible:ring-or/30 focus-visible:border-or disabled:opacity-50 disabled:bg-champagne/10 disabled:cursor-not-allowed transition-all" 
-                />
+                <Input type="date" disabled={!hasEndDate} value={formData.endDate} onChange={(e) => setFormData({ ...formData, endDate: e.target.value })} className="px-4 py-6 border-champagne/40 rounded-xl bg-blanc focus-visible:ring-or/30 focus-visible:border-or disabled:opacity-50 disabled:bg-champagne/10 disabled:cursor-not-allowed transition-all" />
               </div>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              {editingAlertId && (
-                <Button 
-                  type="button" 
-                  onClick={handleCancelEdit} 
-                  variant="outline" 
-                  className="py-6 border-champagne/40 text-noir font-montserrat font-bold rounded-xl hover:bg-champagne/10 transition-all sm:w-1/3"
-                >
-                  Annuler
-                </Button>
-              )}
-              <Button 
-                disabled={isSubmitting} 
-                type="submit" 
-                className={`py-6 bg-noir text-blanc font-montserrat font-bold text-sm rounded-xl hover:bg-vert transition-all hover:-translate-y-0.5 ${editingAlertId ? 'sm:w-2/3' : 'w-full'}`}
-              >
-                {isSubmitting ? "Traitement en cours..." : (
-                  editingAlertId 
-                    ? <><CheckCircle2 size={16} className="mr-2" /> Enregistrer les modifications</>
-                    : <><Megaphone size={16} className="mr-2" /> Publier l&apos;alerte sur le site</>
-                )}
+              {editingAlertId && <Button type="button" onClick={handleCancelEdit} variant="outline" className="py-6 border-champagne/40 text-noir font-montserrat font-bold rounded-xl hover:bg-champagne/10 transition-all sm:w-1/3">Annuler</Button>}
+              <Button disabled={isSubmitting} type="submit" className={`py-6 bg-noir text-blanc font-montserrat font-bold text-sm rounded-xl hover:bg-vert transition-all hover:-translate-y-0.5 ${editingAlertId ? 'sm:w-2/3' : 'w-full'}`}>
+                {isSubmitting ? "Traitement en cours..." : (editingAlertId ? <><CheckCircle2 size={16} className="mr-2" /> Enregistrer les modifications</> : <><Megaphone size={16} className="mr-2" /> Publier l&apos;alerte sur le site</>)}
               </Button>
             </div>
           </form>

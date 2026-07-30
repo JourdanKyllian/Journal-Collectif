@@ -1,16 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { User as UserIcon, PenSquare, Trash2, ShieldCheck, Pen, Plus, CheckCircle2, AlertTriangle } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { User as UserIcon, PenSquare, Trash2, ShieldCheck, Pen, Plus } from "lucide-react";
+import { SkeletonGrid, SkeletonTableRow } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { FeedbackAlert, FeedbackMessage } from "@/components/ui/feedback-alert";
 import AdminGuard from "@/components/layout/AdminGuard";
 import { fetchApi } from "@/lib/api";
-import { PERMISSIONS } from "@/lib/permissions";
+import { PERMISSIONS, hasPermission } from "@/lib/permissions";
 
 interface Role { id: number; libelle: string; }
 interface Profile { firstname: string; lastname: string; tel?: string; }
@@ -23,16 +24,18 @@ interface DashboardUser {
   created_at: string;
 }
 
+/**
+ * Tableau de bord pour la gestion des utilisateurs, des accès et des rôles.
+ */
 export default function UsersDashboard() {
   const [users, setUsers] = useState<DashboardUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<DashboardUser | null>(null);
   
-  // États de la Modale d'édition / création
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUserId, setEditingUserId] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<FeedbackMessage | null>(null);
   
   const [formData, setFormData] = useState({ firstname: "", lastname: "", email: "", password: "", role: "redacteur" });
 
@@ -53,16 +56,12 @@ export default function UsersDashboard() {
       const me = await fetchApi<DashboardUser>('/v1/auth/me').catch(() => null);
       setCurrentUser(me);
       const allUsers = await fetchApi<DashboardUser[]>('/v1/users/all');
-      const authorizedRoles = ['super_admin', 'admin', 'redacteur', 'journaliste'];
       
-      // 1. On filtre les rôles autorisés
-      const filteredUsers = allUsers.filter(u => authorizedRoles.includes(getRoleName(u.role)));
+      const filteredUsers = allUsers.filter(u => hasPermission(getRoleName(u.role), PERMISSIONS.dashboardAccess));
 
-      // 2. On place l'utilisateur connecté tout en haut
       if (me) {
         const currentUserData = filteredUsers.find(u => u.id === me.id);
         const otherUsers = filteredUsers.filter(u => u.id !== me.id);
-        
         if (currentUserData) {
           setUsers([currentUserData, ...otherUsers]);
         } else {
@@ -89,7 +88,7 @@ export default function UsersDashboard() {
         firstname: user.profile?.firstname || "",
         lastname: user.profile?.lastname || "",
         email: user.email,
-        password: "", // On le laisse vide, la BDD ne le modifiera pas si vide
+        password: "",
         role: getRoleName(user.role)
       });
     } else {
@@ -105,7 +104,6 @@ export default function UsersDashboard() {
     setFeedback(null);
 
     try {
-      // Nettoyage du mot de passe vide en cas d'édition
       const payload = { ...formData };
       if (editingUserId && !payload.password) delete (payload as any).password;
 
@@ -115,7 +113,7 @@ export default function UsersDashboard() {
         await fetchApi('/v1/users/create', { method: 'POST', body: JSON.stringify(payload) });
       }
       setIsModalOpen(false);
-      loadData(); // On rafraîchit le tableau
+      loadData(); 
     } catch (error: unknown) {
       setFeedback({ type: "error", message: (error as Error).message });
     } finally {
@@ -144,9 +142,8 @@ export default function UsersDashboard() {
   const currentRole = getRoleName(currentUser?.role);
 
   return (
-    <AdminGuard allowedRoles={PERMISSIONS.manageAlerts}>
+    <AdminGuard allowedRoles={PERMISSIONS.manageUsers}>
       <div className="space-y-8 animate-slide-up max-w-5xl">
-        
         <div className="flex justify-between items-end flex-wrap gap-4">
           <div>
             <h1 className="font-poppins font-black text-2xl text-noir mb-1 flex items-center gap-2">
@@ -169,7 +166,7 @@ export default function UsersDashboard() {
 
           <div className="divide-y divide-champagne/10">
             {isLoading ? (
-              <div className="p-4"><Skeleton className="h-10 w-full" /></div>
+              <SkeletonGrid count={5} Component={SkeletonTableRow} />
             ) : (
               users.map((user) => {
                 const targetRole = getRoleName(user.role);
@@ -181,7 +178,7 @@ export default function UsersDashboard() {
                   <div key={user.id} className="grid grid-cols-[2fr_1fr_1fr_auto] gap-4 p-4 items-center hover:bg-champagne/5 transition-colors">
                     <div className="flex flex-col min-w-0 pr-4">
                       <span className="font-montserrat font-bold text-noir text-sm truncate capitalize">
-                        {getDisplayName(user)} {currentUser?.id === user.id && "(Vous)"}
+                        {getDisplayName(user)} {isSelf && "(Vous)"}
                       </span>
                       <span className="font-montserrat text-xs text-champagne truncate">{user.email}</span>
                     </div>
@@ -203,20 +200,15 @@ export default function UsersDashboard() {
           </div>
         </div>
 
-        {/* --- MODALE CRÉATION / MODIFICATION --- */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="sm:max-w-125 bg-blanc rounded-2xl border-champagne/30 p-6" showCloseButton={true}>
+          <DialogContent className="sm:max-w-[500px] bg-blanc rounded-2xl border-champagne/30 p-6" showCloseButton={true}>
             <DialogHeader>
               <DialogTitle className="font-poppins font-black text-xl text-noir">
                 {editingUserId ? "Modifier l'utilisateur" : "Ajouter un membre"}
               </DialogTitle>
             </DialogHeader>
 
-            {feedback && (
-              <div className={`p-3 rounded-lg text-xs font-bold font-montserrat flex items-center gap-2 ${feedback.type === 'error' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
-                {feedback.type === 'error' ? <AlertTriangle size={14}/> : <CheckCircle2 size={14}/>} {feedback.message}
-              </div>
-            )}
+            <FeedbackAlert feedback={feedback} />
 
             <form onSubmit={handleSubmit} className="space-y-4 py-2">
               <div className="grid grid-cols-2 gap-4">
@@ -237,11 +229,7 @@ export default function UsersDashboard() {
 
               <div className="space-y-2">
                 <Label className="font-montserrat font-bold text-xs text-champagne uppercase">Rôle</Label>
-                <Select 
-                  value={formData.role} 
-                  onValueChange={(val) => setFormData({...formData, role: val})}
-                  disabled={editingUserId === currentUser?.id && currentRole !== 'super_admin'}
-                >
+                <Select value={formData.role} onValueChange={(val) => setFormData({...formData, role: val})} disabled={editingUserId === currentUser?.id && currentRole !== 'super_admin'}>
                   <SelectTrigger className="border-champagne/40 bg-blanc font-montserrat h-10">
                     <SelectValue placeholder="Sélectionnez un rôle" />
                   </SelectTrigger>
@@ -270,7 +258,6 @@ export default function UsersDashboard() {
             </form>
           </DialogContent>
         </Dialog>
-
       </div>
     </AdminGuard>
   );
