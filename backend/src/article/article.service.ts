@@ -32,11 +32,6 @@ export class ArticleService {
 
   /**
    * Crée un nouvel article et enregistre l'auteur initial.
-   *
-   * @param {CreateArticleDto} dto - Les données de l'article.
-   * @param {number} userId - L'identifiant de l'auteur.
-   * @param {string} userRole - Le rôle de l'auteur pour déduire le statut par défaut.
-   * @returns {Promise<any>} L'article créé avec ses crédits.
    */
   async create(dto: CreateArticleDto, userId: number, userRole: string) {
     const user = await this.userRepository.findOne({
@@ -55,12 +50,10 @@ export class ArticleService {
     }
 
     const normalizedRole = userRole?.toLowerCase();
-    const isStaff = [
-      'super_admin',
-      'admin',
-      'redacteur',
-      'moderateur',
-    ].includes(normalizedRole);
+    // CORRECTION ICI : Nettoyage des vieux rôles
+    const isStaff = ['super_admin', 'admin', 'redacteur'].includes(
+      normalizedRole,
+    );
 
     let statutFinal = ArticleStatus.BROUILLON;
     if (!isStaff) {
@@ -123,12 +116,10 @@ export class ArticleService {
     await this.articleRepository.save(article);
 
     const normalizedRole = userRole?.toLowerCase();
-    const isStaff = [
-      'super_admin',
-      'admin',
-      'redacteur',
-      'moderateur',
-    ].includes(normalizedRole);
+    // CORRECTION ICI
+    const isStaff = ['super_admin', 'admin', 'redacteur'].includes(
+      normalizedRole,
+    );
 
     if (isStaff) {
       const existingPivot = await this.auteurRepository.findOne({
@@ -228,12 +219,10 @@ export class ArticleService {
     if (!article) throw new NotFoundException('Article introuvable.');
 
     const normalizedRole = userRole?.toLowerCase();
-    const isStaff = [
-      'super_admin',
-      'admin',
-      'redacteur',
-      'moderateur',
-    ].includes(normalizedRole);
+    // CORRECTION ICI
+    const isStaff = ['super_admin', 'admin', 'redacteur'].includes(
+      normalizedRole,
+    );
     if (!isStaff) throw new ForbiddenException('Non autorisé.');
 
     return this.articleRepository.softRemove(article);
@@ -242,10 +231,6 @@ export class ArticleService {
   /**
    * Formate les relations d'un article pour extraire les auteurs/éditeurs.
    * Masque intégralement les données personnelles si l'anonymat est requis (RGPD).
-   *
-   * @private
-   * @param {Article} article - L'entité brute avec ses relations.
-   * @returns {object} L'article formaté avec le tableau `credits` purifié.
    */
   private formatArticleCredits(article: Article) {
     let credits: Array<{ role: string; name: string }> = [];

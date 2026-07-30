@@ -36,20 +36,11 @@ interface RequestWithUser extends Request {
 @ApiBearerAuth()
 @Controller('article')
 export class ArticleController {
-  /**
-   * Initialise le ArticleController.
-   *
-   * @param {ArticleService} articleService - Le service gérant la logique métier des articles.
-   */
   constructor(private readonly articleService: ArticleService) {}
 
   /**
    * Crée ou propose un nouvel article.
    * Nécessite l'authentification de l'utilisateur.
-   *
-   * @param {CreateArticleDto} createArticleDto - L'objet de transfert de données contenant les détails de l'article.
-   * @param {RequestWithUser} req - La requête HTTP contenant le contexte de l'utilisateur authentifié.
-   * @returns {Promise<any>} L'article nouvellement créé.
    */
   @Post()
   @UseGuards(JwtAuthGuard)
@@ -67,11 +58,6 @@ export class ArticleController {
   /**
    * Met à jour un article existant (brouillon ou correction).
    * Nécessite l'authentification de l'utilisateur.
-   *
-   * @param {string} id - L'identifiant unique de l'article à mettre à jour.
-   * @param {UpdateArticleDto} updateArticleDto - L'objet de transfert de données contenant les champs à mettre à jour.
-   * @param {RequestWithUser} req - La requête HTTP contenant le contexte de l'utilisateur authentifié.
-   * @returns {Promise<any>} L'article mis à jour.
    */
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
@@ -90,14 +76,11 @@ export class ArticleController {
 
   /**
    * Valide et publie un article manuellement.
-   * Réservé aux utilisateurs ayant le rôle 'Admin' ou 'moderateur'.
-   *
-   * @param {string} id - L'identifiant unique de l'article à publier.
-   * @returns {Promise<any>} L'article publié.
+   * Réservé aux utilisateurs ayant le rôle 'super_admin' ou 'admin'.
    */
   @Patch(':id/publish')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('Admin', 'moderateur')
+  @Roles('super_admin', 'admin') // CORRECTION ICI
   publish(@Param('id') id: string) {
     return this.articleService.publishArticle(+id);
   }
@@ -105,8 +88,6 @@ export class ArticleController {
   /**
    * Récupère tous les articles publiés accessibles publiquement.
    * Ne nécessite pas d'authentification.
-   *
-   * @returns {Promise<any[]>} Une liste d'articles publiés.
    */
   @Get('published')
   findAll() {
@@ -116,21 +97,16 @@ export class ArticleController {
   /**
    * Récupère l'intégralité des articles (brouillons, en attente, publiés) pour le Dashboard.
    * Nécessite l'authentification et des droits d'administration ou de rédaction.
-   *
-   * @returns {Promise<any[]>} Une liste exhaustive des articles.
    */
   @Get('admin/all')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('Admin', 'moderateur', 'journaliste')
+  @Roles('super_admin', 'admin', 'redacteur') // CORRECTION ICI
   findAllAdmin() {
     return this.articleService.findAllAdmin();
   }
 
   /**
    * Récupère les détails d'un article spécifique.
-   *
-   * @param {string} id - L'identifiant unique de l'article.
-   * @returns {Promise<any>} Les informations de l'article.
    */
   @Get(':id')
   findOne(@Param('id') id: string) {
@@ -140,10 +116,6 @@ export class ArticleController {
   /**
    * Supprime un article de manière logique (Soft Delete).
    * Seul l'auteur, un Admin ou un modérateur peut effectuer cette action.
-   *
-   * @param {string} id - L'identifiant unique de l'article à supprimer.
-   * @param {RequestWithUser} req - La requête HTTP contenant le contexte de l'utilisateur authentifié.
-   * @returns {Promise<any>} Un objet confirmant la suppression.
    */
   @Delete(':id')
   @UseGuards(JwtAuthGuard)

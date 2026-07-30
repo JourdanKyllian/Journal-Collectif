@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { Search, X, CalendarDays, LucideIcon } from "lucide-react";
+import Link from "next/link";
+import { Search, X, CalendarDays, LucideIcon, Plus } from "lucide-react";
 import ArticleCard from "@/components/features/ArticleCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -192,7 +193,7 @@ export default function ArticlesPage() {
   const hasActiveFilter = search || categorie !== "all" || dateFrom || dateTo;
 
   return (
-    <div className="w-full">
+    <div className="w-full relative pb-20">
       <header className="bg-linear-to-br from-vert to-noir py-14 px-6 text-center">
         <h1 className="font-poppins font-black text-4xl text-blanc mb-3">
           La <span className="text-or">Presse</span>
@@ -324,6 +325,15 @@ export default function ArticlesPage() {
           </div>
         )}
       </div>
+
+      {/* BOUTON D'ACTION FLOTTANT (FAB) */}
+      <Link href="/articles/soumettre">
+        <Button 
+          className="fixed bottom-7 right-7 z-40 flex items-center gap-2 bg-or text-noir hover:bg-or/90 font-montserrat font-bold px-6 py-6 h-auto rounded-full shadow-2xl shadow-or/40 transition-all hover:-translate-y-1 hover:shadow-or/50"
+        >
+          <Plus size={20} /> Proposer un article
+        </Button>
+      </Link>
     </div>
   );
 }
