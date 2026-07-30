@@ -6,6 +6,9 @@ import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
 import cookieParser from 'cookie-parser';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import * as express from 'express';
+import { join } from 'path';
+import * as fs from 'fs';
 
 // Import des outils de base de données
 import { DataSource } from 'typeorm';
@@ -30,6 +33,13 @@ async function bootstrap() {
   const logger = app.get(Logger);
   app.useLogger(logger);
   app.use(cookieParser());
+
+  // exposition du dossier des uploads
+  const uploadDir = join(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
+  app.use('/uploads', express.static(uploadDir));
 
   app.use(
     helmet({

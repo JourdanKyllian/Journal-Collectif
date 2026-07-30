@@ -24,6 +24,7 @@ import { HealthModule } from './health/health.module';
 import { ProfileModule } from './profile/profile.module';
 import { SettingsModule } from './settings/settings.module';
 import { AlertsModule } from './alerts/alerts.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { AlertsModule } from './alerts/alerts.module';
     ProfileModule,
     SettingsModule,
     AlertsModule,
+    UploadModule,
   ],
   providers: [AdminSeedService, TableSeedService],
 })
