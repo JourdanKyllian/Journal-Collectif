@@ -1,22 +1,18 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import Link   from "next/link";
-import {
-  Palette, Trophy, HardHat, Siren,
-  PartyPopper, Building2, BookOpen,
-  ArrowRight, Bell, Mail, Smartphone, X, LucideIcon
-} from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Bell, Mail, Smartphone, X, LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchApi } from "@/lib/api";
+import { getCategoryUI } from "@/lib/formatters";
 
-// ── Types pour l'API et l'UI ────────────────────────────────
 interface BackendCategorie {
   id: number;
   libelle: string;
   description: string | null;
-  icon: string; // Emoji stocké en base
+  icon: string;
 }
 
 interface UICategorie {
@@ -28,19 +24,6 @@ interface UICategorie {
   dbIcon: string;
 }
 
-// ── Mapping dynamique (Catégorie BDD -> Icône/Slug Front) ──
-const mapCategorieToUI = (libelle: string): { slug: string, icon: LucideIcon } => {
-  const normalized = libelle.toLowerCase().trim();
-  if (normalized.includes("culture")) return { slug: "culture", icon: Palette };
-  if (normalized.includes("sport")) return { slug: "sport", icon: Trophy };
-  if (normalized.includes("travaux")) return { slug: "travaux", icon: HardHat };
-  if (normalized.includes("divers") || normalized.includes("alerte")) return { slug: "faits-divers", icon: Siren };
-  if (normalized.includes("evénement") || normalized.includes("evenement")) return { slug: "evenements", icon: PartyPopper };
-  if (normalized.includes("politique") || normalized.includes("mairie")) return { slug: "politique", icon: Building2 };
-  return { slug: "annonces", icon: BookOpen };
-};
-
-// ── Mini-Toast maison ────────────────────────────────────────
 function useToast() {
   const [message, setMessage] = useState<string | null>(null);
 
@@ -73,25 +56,21 @@ function Toast({ message, onClose }: { message: string; onClose: () => void }) {
 }
 
 /**
- * Composant de la page des catégories d'articles.
- * Affiche la grille des thématiques récupérées depuis l'API et permet de s'abonner.
+ * Page des catégories publiques.
+ * Affiche la grille des thématiques récupérées depuis l'API et permet à l'utilisateur de s'y abonner.
  */
 export default function CategoriesPage() {
   const toast = useToast();
-  
-  // États de chargement et de données
   const [categories, setCategories] = useState<UICategorie[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Récupération dynamique depuis la base de données
   useEffect(() => {
     const loadCategories = async () => {
       try {
         const data = await fetchApi<BackendCategorie[]>('/v1/categorie');
         
-        // On formate les données de la BDD pour notre affichage Front
         const mappedData: UICategorie[] = data.map(cat => {
-          const uiStyles = mapCategorieToUI(cat.libelle);
+          const uiStyles = getCategoryUI(cat.libelle);
           return {
             id: cat.id,
             slug: uiStyles.slug,
@@ -142,9 +121,7 @@ export default function CategoriesPage() {
             Cliquez sur une catégorie pour consulter ses articles, ou abonnez-vous pour recevoir les nouveautés.
           </p>
 
-          {/* ── AFFICHAGE (SKELETON OU GRILLE BDD) ── */}
           {isLoading ? (
-            // Skeleton Loader Vercel-style
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="bg-blanc border border-champagne/30 rounded-2xl overflow-hidden shadow-sm">
@@ -164,12 +141,7 @@ export default function CategoriesPage() {
               ))}
             </div>
           ) : categories.length > 0 ? (
-            // Grille des catégories récupérées depuis NestJS
-            <div
-              className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5"
-              role="list"
-              aria-label="Liste des catégories"
-            >
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5" role="list" aria-label="Liste des catégories">
               {categories.map((cat) => (
                 <article
                   key={cat.id}
@@ -182,7 +154,6 @@ export default function CategoriesPage() {
                     aria-label={`Voir les articles de la catégorie ${cat.name}`}
                   >
                     <div className="w-14 h-14 bg-or/10 border-2 border-or/20 rounded-2xl flex items-center justify-center shrink-0 group-hover:bg-or/20 group-hover:border-or/40 transition-all text-xl">
-                      {/* Affichage de l'icône Lucide */}
                       <cat.icon size={24} className="text-or" aria-hidden="true" />
                     </div>
                     <div className="flex-1 min-w-0">
@@ -231,7 +202,6 @@ export default function CategoriesPage() {
             </div>
           )}
 
-          {/* ── CTA global ───────────────────────────────────── */}
           <div className="mt-12 bg-linear-to-br from-vert to-noir rounded-2xl p-8 flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
             <div className="w-16 h-16 bg-or/20 border-2 border-or/40 rounded-2xl flex items-center justify-center shrink-0 mx-auto sm:mx-0">
               <Bell size={28} className="text-or" aria-hidden="true" />

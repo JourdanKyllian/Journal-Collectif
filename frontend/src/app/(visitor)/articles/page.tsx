@@ -1,35 +1,13 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
-import {
-  Search, X, CalendarDays,
-  Palette, HardHat, Trophy,
-  Megaphone, Siren, PartyPopper, Building2,
-  LucideIcon, BookOpen
-} from "lucide-react";
+import { Search, X, CalendarDays, LucideIcon } from "lucide-react";
 import ArticleCard from "@/components/features/ArticleCard";
-import { Input }   from "@/components/ui/input";
-import { Button }  from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchApi } from "@/lib/api";
-
-// ── Utilitaires ─────────────────────────────────────────────
-
-/**
- * Transforme un texte en identifiant propre (ex: "Faits Divers" -> "faits-divers")
- * Garantit que les filtres marchent même si l'Admin ajoute des accents ou des espaces.
- */
-const generateSlug = (text: string) => {
-  return text
-    .toString()
-    .toLowerCase()
-    .normalize("NFD") // Sépare les accents des lettres
-    .replace(/[\u0300-\u036f]/g, "") // Supprime les accents
-    .replace(/[^a-z0-9]+/g, "-") // Remplace les espaces et caractères spéciaux par des tirets
-    .replace(/(^-|-$)+/g, ""); // Nettoie les tirets au début et à la fin
-};
-
-// ── Types ───────────────────────────────────────────────────
+import { getCategoryUI, formatDateToFrench, generateSlug } from "@/lib/formatters";
 
 interface RawArticle {
   id: number;
@@ -47,19 +25,19 @@ interface RawArticle {
 interface BackendCategorie {
   id: number;
   libelle: string;
-  icon: string; // Emoji
+  icon: string;
 }
 
 interface ArticleUI {
-  id:            number;
-  title:         string;
-  excerpt:       string;
-  categorie:      string;
-  categorieSlug:  string;
-  date:          string;
-  dateIso:       string;
-  readTime:      string;
-  icon:          LucideIcon;
+  id: number;
+  title: string;
+  excerpt: string;
+  categorie: string;
+  categorieSlug: string;
+  date: string;
+  dateIso: string;
+  readTime: string;
+  icon: LucideIcon;
   gradientClass: string;
 }
 
@@ -68,36 +46,13 @@ interface FilterCategorie {
   label: string;
 }
 
-// ── Mapping Visuel (Icônes et Couleurs) ─────────────────────
-
-/**
- * Déduit l'icône Lucide et le dégradé Tailwind en fonction du nom de la catégorie.
- * Si l'Admin crée une catégorie non reconnue, on lui assigne un style par défaut élégant.
- */
-const mapCategorieToUI = (categorieName: string): { icon: LucideIcon, gradient: string } => {
-  const normalized = categorieName.toLowerCase().trim();
-  
-  if (normalized.includes("culture")) return { icon: Palette, gradient: "bg-linear-to-br from-vert to-noir" };
-  if (normalized.includes("travaux")) return { icon: HardHat, gradient: "bg-linear-to-br from-vert/80 to-vert" };
-  if (normalized.includes("sport")) return { icon: Trophy, gradient: "bg-linear-to-br from-noir to-vert" };
-  if (normalized.includes("annonce")) return { icon: Megaphone, gradient: "bg-linear-to-br from-noir/90 to-vert/60" };
-  if (normalized.includes("divers") || normalized.includes("alerte")) return { icon: Siren, gradient: "bg-linear-to-br from-vert to-noir/90" };
-  if (normalized.includes("evénement") || normalized.includes("evenement")) return { icon: PartyPopper, gradient: "bg-linear-to-br from-noir to-vert/80" };
-  if (normalized.includes("politique") || normalized.includes("mairie")) return { icon: Building2, gradient: "bg-linear-to-br from-vert/70 to-noir" };
-  
-  // Style par défaut pour toute nouvelle catégorie créée par l'Admin
-  return { icon: BookOpen, gradient: "bg-linear-to-br from-champagne/80 to-noir" };
-};
-
-// ── Composant Sélecteur de Dates ────────────────────────────
-
 function DateRangePicker({
   from, to, onFromChange, onToChange, onClear,
 }: {
   from: string; to: string;
   onFromChange: (v: string) => void;
-  onToChange:   (v: string) => void;
-  onClear:      () => void;
+  onToChange: (v: string) => void;
+  onClear: () => void;
 }) {
   const hasRange = from || to;
   return (
@@ -139,31 +94,31 @@ function DateRangePicker({
   );
 }
 
-// ── Composant Principal ─────────────────────────────────────
-
+/**
+ * Page répertoriant tous les articles.
+ * Gère le filtrage côté client par catégorie, recherche textuelle et plage de dates.
+ */
 export default function ArticlesPage() {
   const [articles, setArticles] = useState<ArticleUI[]>([]);
   const [categorieFilters, setCategorieFilters] = useState<FilterCategorie[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  const [search,      setSearch]      = useState("");
-  const [categorie,    setCategorie]    = useState<string>("all");
-  const [dateFrom,    setDateFrom]    = useState("");
-  const [dateTo,      setDateTo]      = useState("");
+  const [search, setSearch] = useState("");
+  const [categorie, setCategorie] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setIsLoading(true);
-        // On récupère TOUT en même temps avec Promise.all pour optimiser le temps de chargement
         const [rawArticles, rawCategories] = await Promise.all([
           fetchApi<RawArticle[]>('/v1/article/published'),
           fetchApi<BackendCategorie[]>('/v1/categorie')
         ]);
 
-        // 1. Formatage des Catégories pour les filtres
         const formattedCategories: FilterCategorie[] = [
-          { id: "all", label: "Tous" }, // On garde toujours l'option "Tous"
+          { id: "all", label: "Tous" },
           ...rawCategories.map(cat => ({
             id: generateSlug(cat.libelle),
             label: `${cat.icon} ${cat.libelle}`
@@ -171,14 +126,12 @@ export default function ArticlesPage() {
         ];
         setCategorieFilters(formattedCategories);
 
-        // 2. Formatage des Articles
         const formattedArticles: ArticleUI[] = rawArticles.map((item) => {
           const categorieName = typeof item.categorie === 'object' && item.categorie !== null 
             ? (item.categorie as { libelle?: string }).libelle || 'Annonces' 
             : item.categorie || 'Annonces';
           
-          const uiStyles = mapCategorieToUI(categorieName);
-          const slug = generateSlug(categorieName); // Le slug permet de lier avec les boutons filtres
+          const uiStyles = getCategoryUI(categorieName);
           const rawDate = item.publishedAt || item.published_at || item.createdAt || Date.now();
           const pubDate = new Date(rawDate);
 
@@ -190,10 +143,10 @@ export default function ArticlesPage() {
             title: titleText,
             excerpt: bodyText.length > 100 ? bodyText.substring(0, 100) + '...' : bodyText, 
             categorie: categorieName,
-            categorieSlug: slug,
-            date: pubDate.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }),
+            categorieSlug: uiStyles.slug,
+            date: formatDateToFrench(pubDate),
             dateIso: pubDate.toISOString().split('T')[0],
-            readTime: "3 min", // Calcul réel à implémenter si besoin
+            readTime: "3 min", 
             icon: uiStyles.icon,
             gradientClass: uiStyles.gradient,
           };
@@ -216,19 +169,15 @@ export default function ArticlesPage() {
     );
 
     return sorted.filter((article) => {
-      // Filtrage par slug dynamique
       if (categorie !== "all" && article.categorieSlug !== categorie) return false;
 
       if (search.trim()) {
         const q = search.trim().toLowerCase();
-        if (
-          !article.title.toLowerCase().includes(q) &&
-          !article.excerpt.toLowerCase().includes(q)
-        ) return false;
+        if (!article.title.toLowerCase().includes(q) && !article.excerpt.toLowerCase().includes(q)) return false;
       }
 
       if (dateFrom && article.dateIso < dateFrom) return false;
-      if (dateTo   && article.dateIso > dateTo)   return false;
+      if (dateTo && article.dateIso > dateTo) return false;
 
       return true;
     });
@@ -286,7 +235,6 @@ export default function ArticlesPage() {
 
           <div className="flex gap-2 flex-wrap items-center">
             <div role="group" className="flex gap-2 flex-wrap">
-              {/* --- SKELETON DES BOUTONS CATÉGORIES --- */}
               {isLoading ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <Skeleton key={i} className="h-9 w-24 rounded-full" />
@@ -335,7 +283,6 @@ export default function ArticlesPage() {
           </p>
         </div>
 
-        {/* --- SKELETON DES ARTICLES --- */}
         {isLoading ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {Array.from({ length: 6 }).map((_, i) => (
