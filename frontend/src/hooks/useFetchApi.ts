@@ -6,30 +6,30 @@ interface UseFetchApiOptions {
 }
 
 interface UseFetchApiResult<T> {
-  /** Données typées renvoyées par l'API */
+  /** Données typées renvoyées par l'API. */
   data: T | null;
-  /** Indique si la requête est en cours d'exécution */
+  /** Indique si la requête est en cours d'exécution. */
   isLoading: boolean;
-  /** Contient l'objet Error en cas d'échec de la requête */
+  /** Objet Error capturé en cas d'échec de la requête. */
   error: Error | null;
-  /** Fonction permettant de forcer un nouvel appel à l'API (ex: après une modification) */
+  /** Fonction permettant de forcer un rafraîchissement des données. */
   refetch: () => Promise<T | null>;
 }
 
 /**
- * Hook personnalisé encapsulant la logique de requête API, la gestion du chargement et des erreurs.
+ * Hook personnalisé encapsulant la logique de requête API, la gestion de l'état de chargement et des erreurs.
  *
- * @template T - Le type TypeScript attendu pour la réponse de l'API.
- * @param {string | null} endpoint - Le chemin de l'endpoint à interroger (ex: '/v1/users/all').
- * @param {UseFetchApiOptions} [options] - Options optionnelles (ex: { enabled: false }).
- * @returns {UseFetchApiResult<T>} L'état complet du cycle de vie de la requête.
+ * @template T - Type attendu pour la réponse de l'API.
+ * @param {string | null} endpoint - Chemin de l'endpoint à interroger.
+ * @param {UseFetchApiOptions} [options] - Options de configuration du hook.
+ * @returns {UseFetchApiResult<T>} L'état du cycle de vie de la requête.
  */
 export function useFetchApi<T>(
   endpoint: string | null,
   options?: UseFetchApiOptions,
 ): UseFetchApiResult<T> {
   const enabled = options?.enabled ?? true;
-  
+
   const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(Boolean(endpoint && enabled));
   const [error, setError] = useState<Error | null>(null);
@@ -59,7 +59,11 @@ export function useFetchApi<T>(
   );
 
   useEffect(() => {
-    void fetchData(false);
+    const timer = setTimeout(() => {
+      void fetchData(false);
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, [fetchData]);
 
   return { data, isLoading, error, refetch: () => fetchData(true) };

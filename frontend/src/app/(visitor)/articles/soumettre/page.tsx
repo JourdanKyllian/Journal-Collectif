@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { PenSquare, Send, ShieldCheck, ArrowLeft } from "lucide-react";
+import { Send, ShieldCheck, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,18 +22,17 @@ interface Categorie {
 
 /**
  * Interface publique permettant à un utilisateur authentifié de soumettre
- * une proposition d'article au comité de rédaction de la mairie.
+ * une proposition d'article au comité de rédaction.
  */
 export default function SubmitArticlePage() {
   const router = useRouter();
-  
-  // Si l'utilisateur n'est pas loggé, l'API renverra une erreur, captée par useFetchApi
+
   const { data: user, isLoading: isAuthLoading } = useFetchApi('/v1/auth/me');
   const { data: categories } = useFetchApi<Categorie[]>('/v1/categorie');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<FeedbackMessage | null>(null);
-  
+
   const [formData, setFormData] = useState({
     titre: "",
     contenu: "",
@@ -61,9 +60,9 @@ export default function SubmitArticlePage() {
         })
       });
 
-      setFeedback({ type: "success", message: "Votre proposition a été envoyée ! Elle sera étudiée par le comité." });
+      setFeedback({ type: "success", message: "Votre proposition a été envoyée." });
       setFormData({ titre: "", contenu: "", categorieId: "", is_anonymous: false });
-      
+
       setTimeout(() => router.push('/profile'), 3000);
     } catch (error: unknown) {
       setFeedback({ type: "error", message: (error as Error).message || "Erreur lors de la soumission." });
@@ -74,7 +73,6 @@ export default function SubmitArticlePage() {
 
   if (isAuthLoading) return <div className="min-h-screen bg-blanc" />;
   if (!user) {
-    // Redirection de sécurité silencieuse si non authentifié
     router.push('/');
     return null;
   }
@@ -98,7 +96,7 @@ export default function SubmitArticlePage() {
         <FeedbackAlert feedback={feedback} />
 
         <form onSubmit={handleSubmit} className="space-y-8 bg-champagne/5 border border-champagne/20 p-6 md:p-10 rounded-3xl shadow-sm">
-          
+
           <div className="space-y-2">
             <Label className="font-montserrat font-bold text-xs text-vert tracking-wide uppercase">Titre de l&apos;actualité *</Label>
             <Input 
@@ -140,7 +138,6 @@ export default function SubmitArticlePage() {
             />
           </div>
 
-          {/* PARAMÈTRE RGPD */}
           <div className="bg-blanc border border-champagne/30 rounded-2xl p-5 flex items-center justify-between gap-4">
             <div>
               <Label className="font-poppins font-black text-sm text-noir flex items-center gap-2">

@@ -23,7 +23,7 @@ interface SettingsFormData {
 }
 
 /**
- * Interface d'administration pour la configuration globale de l'identité de la plateforme.
+ * Interface d'administration dédiée à la configuration globale de la plateforme.
  */
 export default function SettingsDashboard() {
   const { data: initialData, isLoading } = useFetchApi<SettingsFormData>('/v1/settings');
@@ -37,7 +37,8 @@ export default function SettingsDashboard() {
 
   useEffect(() => {
     if (initialData) {
-      setFormData(initialData);
+      const timer = setTimeout(() => setFormData(initialData), 0);
+      return () => clearTimeout(timer);
     }
   }, [initialData]);
 
@@ -45,15 +46,15 @@ export default function SettingsDashboard() {
     e.preventDefault();
     setIsSaving(true);
     setFeedback(null);
-    
+
     try {
       await fetchApi('/v1/settings', {
         method: 'PATCH',
         body: JSON.stringify(formData),
       });
-      setFeedback({ type: "success", message: "Paramètres sauvegardés avec succès !" });
+      setFeedback({ type: "success", message: "Paramètres sauvegardés avec succès." });
     } catch (error: unknown) {
-      setFeedback({ type: "error", message: (error as Error).message || "Erreur de sauvegarde" });
+      setFeedback({ type: "error", message: (error as Error).message || "Erreur lors de la sauvegarde." });
     } finally {
       setIsSaving(false);
       setTimeout(() => setFeedback(null), 5000);
@@ -96,7 +97,7 @@ export default function SettingsDashboard() {
               <Label className="font-montserrat font-bold text-xs text-vert uppercase tracking-wide">Nom de la ville / commune</Label>
               <Input value={formData.nom_ville} onChange={(e) => setFormData({ ...formData, nom_ville: e.target.value })} placeholder="Ex: Châlons" autoComplete="off" data-1p-ignore className="px-4 py-6 border-champagne/40 rounded-xl bg-blanc focus-visible:ring-or/30 focus-visible:border-or font-montserrat text-sm" />
             </div>
-            
+
             <div className="grid sm:grid-cols-2 gap-5">
               <div className="space-y-2">
                 <Label className="font-montserrat font-bold text-xs text-vert uppercase tracking-wide">Email de contact</Label>

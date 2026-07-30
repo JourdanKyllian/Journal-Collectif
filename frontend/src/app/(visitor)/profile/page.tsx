@@ -26,40 +26,39 @@ interface UserProfileData {
 }
 
 /**
- * Interface permettant à l'utilisateur de gérer ses données personnelles,
- * sa sécurité et ses préférences de notification.
+ * Page de gestion du compte utilisateur (données personnelles, sécurité, abonnements).
  */
 export default function ProfilePage() {
   const router = useRouter();
-  
-  // Requête API gérée par notre hook personnalisé
+
   const { data: fetchedUser, isLoading, error } = useFetchApi<UserProfileData>("/v1/auth/me");
-  
+
   const [activeTab, setActiveTab] = useState<"public" | "security" | "preferences">("public");
   const [user, setUser] = useState<UserProfileData | null>(null);
   const [feedback, setFeedback] = useState<FeedbackMessage | null>(null);
 
   const [profileForm, setProfileForm] = useState({ firstname: "", lastname: "", tel: "", bio: "", avatar_ref: "default_01" });
   const [securityForm, setSecurityForm] = useState({ currentPassword: "", newEmail: "", newPassword: "", confirmPassword: "" });
-  
+
   const [notifImportant, setNotifImportant] = useState(true);
   const [notifCategories, setNotifCategories] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Synchronisation des données reçues avec l'état local du formulaire
   useEffect(() => {
     if (error) {
-      console.error("Session invalide, redirection.");
       router.push("/");
     } else if (fetchedUser) {
-      setUser(fetchedUser);
-      setProfileForm({
-        firstname: fetchedUser.firstname || "",
-        lastname: fetchedUser.lastname || "",
-        tel: fetchedUser.tel || "",
-        bio: fetchedUser.bio || "",
-        avatar_ref: fetchedUser.avatar_ref || "default_01",
-      });
+      const timer = setTimeout(() => {
+        setUser(fetchedUser);
+        setProfileForm({
+          firstname: fetchedUser.firstname || "",
+          lastname: fetchedUser.lastname || "",
+          tel: fetchedUser.tel || "",
+          bio: fetchedUser.bio || "",
+          avatar_ref: fetchedUser.avatar_ref || "default_01",
+        });
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [fetchedUser, error, router]);
 
@@ -96,7 +95,7 @@ export default function ProfilePage() {
       if (securityForm.newPassword) payload.newPassword = securityForm.newPassword;
 
       await fetchApi("/v1/auth/security", { method: "PATCH", body: JSON.stringify(payload) });
-      
+
       if (securityForm.newEmail) setUser((prev) => prev ? { ...prev, email: securityForm.newEmail } : null);
       setSecurityForm({ currentPassword: "", newEmail: "", newPassword: "", confirmPassword: "" });
       showFeedback("success", "Paramètres de sécurité mis à jour.");
@@ -146,7 +145,7 @@ export default function ProfilePage() {
   return (
     <div className="w-full min-h-[calc(100vh-70px)] bg-blanc py-8 md:py-12 px-4 sm:px-6">
       <div className="max-w-6xl mx-auto animate-slide-up">
-        
+
         <FeedbackAlert feedback={feedback} />
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-8 items-start">
@@ -189,7 +188,7 @@ export default function ProfilePage() {
                     <Save size={14} className="mr-1.5" /> Enregistrer
                   </Button>
                 </div>
-                
+
                 <div className="grid sm:grid-cols-2 gap-5">
                   <div className="space-y-2"><Label className="font-montserrat font-bold text-xs text-champagne uppercase">Prénom</Label><Input value={profileForm.firstname} onChange={(e) => setProfileForm({ ...profileForm, firstname: e.target.value })} placeholder="Jean" className="border-champagne/40 rounded-xl bg-blanc focus-visible:ring-or/30 focus-visible:border-or text-sm py-5" /></div>
                   <div className="space-y-2"><Label className="font-montserrat font-bold text-xs text-champagne uppercase">Nom</Label><Input value={profileForm.lastname} onChange={(e) => setProfileForm({ ...profileForm, lastname: e.target.value })} placeholder="Dupont" className="border-champagne/40 rounded-xl bg-blanc focus-visible:ring-or/30 focus-visible:border-or text-sm py-5" /></div>
@@ -221,7 +220,7 @@ export default function ProfilePage() {
             {activeTab === "security" && (
               <form onSubmit={handleSecuritySubmit} className="bg-blanc border border-red-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6 relative overflow-hidden animate-in fade-in duration-300">
                 <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
-                
+
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-champagne/20 pb-4 gap-4">
                   <div>
                     <h3 className="font-poppins font-black text-lg text-noir">Sécurité du Compte</h3>
@@ -231,7 +230,7 @@ export default function ProfilePage() {
                     <Key size={14} className="mr-1.5" /> Mettre à jour
                   </Button>
                 </div>
-                
+
                 <div className="space-y-2 bg-champagne/10 p-4 rounded-xl border border-champagne/20">
                   <Label className="font-montserrat font-bold text-xs text-noir uppercase">Mot de passe actuel *</Label>
                   <Input required type="password" value={securityForm.currentPassword} onChange={(e) => setSecurityForm({ ...securityForm, currentPassword: e.target.value })} placeholder="Obligatoire pour appliquer les modifications" className="border-champagne/40 rounded-xl bg-blanc focus-visible:ring-or/30 focus-visible:border-or text-sm py-5" />
@@ -261,7 +260,7 @@ export default function ProfilePage() {
                   <h3 className="font-poppins font-black text-lg text-noir">Abonnements &amp; Notifications</h3>
                   <p className="font-raleway text-xs text-champagne">Gérez vos préférences de suivi des thématiques municipales</p>
                 </div>
-                
+
                 <div className="flex flex-wrap gap-2 py-2">
                   <Badge className="bg-or text-noir hover:bg-or/90 font-montserrat font-bold text-sm px-4 py-2 rounded-full cursor-pointer border-0">🎭 Culture</Badge>
                   <Badge className="bg-or text-noir hover:bg-or/90 font-montserrat font-bold text-sm px-4 py-2 rounded-full cursor-pointer border-0">🏗️ Travaux</Badge>
