@@ -4,19 +4,21 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
-import { Bold, Italic, Underline, Heading2, ImageIcon, Link as LinkIcon, List, ListOrdered } from "lucide-react";
+import { Bold, Italic, Heading2, ImageIcon, Link as LinkIcon, List, ListOrdered } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fetchApi } from "@/lib/api";
 
 interface RichTextEditorProps {
+  /** Contenu HTML initial de l'éditeur */
   value: string;
+  /** Fonction de rappel déclenchée à chaque modification du contenu HTML */
   onChange: (value: string) => void;
 }
 
 /**
- * Composant d'édition de texte riche basé sur Tiptap.
- * Gère le formatage du texte, les listes, les liens et l'upload d'images via l'API.
- *
+ * Éditeur de texte riche (WYSIWYG) basé sur Tiptap.
+ * Gère le formatage de base, les listes, les liens et l'upload direct d'images vers l'API.
+ * 
  * @param {RichTextEditorProps} props - Les propriétés du composant.
  * @returns {JSX.Element | null} L'interface utilisateur de l'éditeur de texte.
  */
@@ -42,11 +44,15 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
     return null;
   }
 
+  /**
+   * Ouvre une boîte de dialogue native pour sélectionner une image,
+   * l'envoie à l'API via le module d'upload, puis l'insère dans l'éditeur.
+   */
   const addImage = () => {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/jpeg, image/png, image/webp";
-
+    
     input.onchange = async (e) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
@@ -69,7 +75,7 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
         alert("L'upload de l'image a échoué. Veuillez vérifier le format et la taille.");
       }
     };
-
+    
     input.click();
   };
 
