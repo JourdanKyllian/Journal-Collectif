@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { AlertTriangle, Trash2, Info, CalendarDays, Megaphone, PartyPopper, CheckCircle2, PenSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,8 @@ import { Switch } from "@/components/ui/switch";
 import { FeedbackAlert, FeedbackMessage } from "@/components/ui/feedback-alert";
 import AdminGuard from "@/components/layout/AdminGuard";
 import { fetchApi } from "@/lib/api";
+import { useFetchApi } from "@/hooks/useFetchApi";
+import { formatDateToFrench } from "@/lib/formatters";
 import { PERMISSIONS } from "@/lib/permissions";
 
 interface AlertItem {
@@ -31,11 +33,12 @@ const TYPE_STYLES = {
 };
 
 /**
- * Tableau de bord pour la gestion dynamique des alertes et bannières d'urgence.
+ * Tableau de bord d'administration gérant les bannières d'urgence du site.
  */
 export default function AlertsDashboard() {
-  const [alerts, setAlerts] = useState<AlertItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: alertsData, isLoading, refetch } = useFetchApi<AlertItem[]>('/v1/alerts');
+  const alerts = alertsData || [];
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<FeedbackMessage | null>(null);
 
@@ -44,20 +47,6 @@ export default function AlertsDashboard() {
   const formRef = useRef<HTMLDivElement>(null);
 
   const [formData, setFormData] = useState({ type: "urgent", title: "", message: "", startDate: "", endDate: "" });
-
-  useEffect(() => {
-    const loadAlerts = async () => {
-      try {
-        const data = await fetchApi<AlertItem[]>('/v1/alerts');
-        setAlerts(data);
-      } catch (error) {
-        console.error("Erreur lors du chargement des alertes:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadAlerts();
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,8 +68,7 @@ export default function AlertsDashboard() {
       }
       
       handleCancelEdit();
-      const data = await fetchApi<AlertItem[]>('/v1/alerts');
-      setAlerts(data);
+      await refetch();
     } catch (error: unknown) {
       setFeedback({ type: "error", message: (error as Error).message || "Erreur de sauvegarde" });
     } finally {
@@ -93,11 +81,10 @@ export default function AlertsDashboard() {
     if (!confirm("Voulez-vous vraiment retirer cette alerte ?")) return;
     try {
       await fetchApi(`/v1/alerts/${id}`, { method: 'DELETE' });
-      setAlerts(alerts.filter(a => a.id !== id));
       if (editingAlertId === id) handleCancelEdit();
-    } catch (error) {
-      console.error("Erreur de suppression:", error);
-      alert("Impossible de supprimer l'alerte.");
+      await refetch();
+    } catch (error: unknown) {
+      alert((error as Error).message || "Impossible de supprimer l'alerte.");
     }
   };
 
@@ -112,17 +99,6 @@ export default function AlertsDashboard() {
     setEditingAlertId(null);
     setFormData({ type: "urgent", title: "", message: "", startDate: "", endDate: "" });
     setHasEndDate(false);
-  };
-
-  const formatDates = (start: string | null, end: string | null) => {
-    if (!start && !end) return "Alerte permanente";
-    const opt: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
-    const s = start ? new Date(start).toLocaleDateString('fr-FR', opt) : null;
-    const e = end ? new Date(end).toLocaleDateString('fr-FR', opt) : null;
-    if (s && e) return `Du ${s} au ${e}`;
-    if (s) return `À partir du ${s}`;
-    if (e) return `Jusqu'au ${e}`;
-    return "";
   };
 
   return (
@@ -163,7 +139,7 @@ export default function AlertsDashboard() {
                       </div>
                       <p className="font-montserrat text-xs text-champagne mb-2 whitespace-pre-wrap line-clamp-2">{alert.message}</p>
                       <div className="font-montserrat text-xs text-champagne flex items-center gap-1.5">
-                        <CalendarDays size={12} /> {formatDates(alert.startDate, alert.endDate)}
+                        <CalendarDays size={12} /> {alert.startDate ? `Du ${formatDateToFrench(alert.startDate)}` : "Alerte permanente"} {alert.endDate && `au ${formatDateToFrench(alert.endDate)}`}
                       </div>
                     </div>
                     <div className="flex gap-2 w-full sm:w-auto justify-end shrink-0 border-t border-champagne/10 sm:border-0 pt-3 sm:pt-0 mt-1 sm:mt-0">

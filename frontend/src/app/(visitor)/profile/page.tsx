@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { FeedbackAlert, FeedbackMessage } from "@/components/ui/feedback-alert";
 import { fetchApi } from "@/lib/api";
+import { useFetchApi } from "@/hooks/useFetchApi";
 
 interface UserProfileData {
   id: number;
@@ -31,7 +32,9 @@ interface UserProfileData {
 export default function ProfilePage() {
   const router = useRouter();
   
-  const [isLoading, setIsLoading] = useState(true);
+  // Requête API gérée par notre hook personnalisé
+  const { data: fetchedUser, isLoading, error } = useFetchApi<UserProfileData>("/v1/auth/me");
+  
   const [activeTab, setActiveTab] = useState<"public" | "security" | "preferences">("public");
   const [user, setUser] = useState<UserProfileData | null>(null);
   const [feedback, setFeedback] = useState<FeedbackMessage | null>(null);
@@ -43,24 +46,22 @@ export default function ProfilePage() {
   const [notifCategories, setNotifCategories] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Synchronisation des données reçues avec l'état local du formulaire
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const data = await fetchApi<UserProfileData>("/v1/auth/me");
-        setUser(data);
-        setProfileForm({
-          firstname: data.firstname || "", lastname: data.lastname || "",
-          tel: data.tel || "", bio: data.bio || "", avatar_ref: data.avatar_ref || "default_01",
-        });
-      } catch (error) {
-        console.error("Session invalide, redirection.", error);
-        router.push("/");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchUserData();
-  }, [router]);
+    if (error) {
+      console.error("Session invalide, redirection.");
+      router.push("/");
+    } else if (fetchedUser) {
+      setUser(fetchedUser);
+      setProfileForm({
+        firstname: fetchedUser.firstname || "",
+        lastname: fetchedUser.lastname || "",
+        tel: fetchedUser.tel || "",
+        bio: fetchedUser.bio || "",
+        avatar_ref: fetchedUser.avatar_ref || "default_01",
+      });
+    }
+  }, [fetchedUser, error, router]);
 
   const showFeedback = useCallback((type: "success" | "error", message: string) => {
     setFeedback({ type, message });

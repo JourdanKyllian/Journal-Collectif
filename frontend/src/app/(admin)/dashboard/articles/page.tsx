@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { 
   PenSquare, Trash2, Eye, CheckCircle2, 
   XCircle, Image as ImageIcon, Bold, 
@@ -10,36 +10,32 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Skeleton } from "@/components/ui/skeleton";
+import { SkeletonTableRow, SkeletonGrid } from "@/components/ui/skeleton";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useFetchApi } from "@/hooks/useFetchApi";
+
+interface AdminArticle {
+  id: number;
+  title: string;
+  category: string;
+  date: string;
+  views: string;
+  status: "published" | "pending" | "draft";
+}
 
 /**
- * Composant du tableau de bord pour la gestion des articles (publication, validation, création).
- * 
- * @returns {JSX.Element} Le composant de gestion des articles rendu.
+ * Interface d'administration globale du contenu éditorial.
+ * Permet aux rédacteurs de soumettre des brouillons et aux administrateurs de les valider.
  */
 export default function ArticlesDashboard() {
   const [activeTab, setActiveTab] = useState("published");
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const loadAdminArticles = async () => {
-      try {
-        setIsLoading(true);
-        // const data = await fetchApi('/v1/article/admin/all');
-      } catch (error) {
-        console.error("Erreur lors de la récupération des articles:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadAdminArticles();
-  }, []);
+  
+  // Requête API pour récupérer tous les articles d'un coup
+  const { isLoading } = useFetchApi<AdminArticle[]>('/v1/article/admin/all', { enabled: true });
 
   return (
     <div className="space-y-6 animate-slide-up">
@@ -86,20 +82,7 @@ export default function ArticlesDashboard() {
               </TableHeader>
               <TableBody>
                 {isLoading ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={i} className="hover:bg-transparent border-champagne/10">
-                      <TableCell><Skeleton className="h-5 w-48" /></TableCell>
-                      <TableCell className="hidden md:table-cell"><Skeleton className="h-6 w-24 rounded-full" /></TableCell>
-                      <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-16" /></TableCell>
-                      <TableCell className="hidden md:table-cell"><Skeleton className="h-4 w-12" /></TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end">
-                          <Skeleton className="h-8 w-8 rounded-lg" />
-                          <Skeleton className="h-8 w-8 rounded-lg" />
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  <SkeletonGrid count={5} Component={SkeletonTableRow} />
                 ) : (
                   [
                     { title: "Festival d'Été 2026", cat: "🎭 Culture", date: "15 fév.", views: "1 234" },
