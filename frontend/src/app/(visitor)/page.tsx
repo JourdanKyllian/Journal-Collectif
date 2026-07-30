@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowRight, LucideIcon } from "lucide-react";
+import { ArrowRight, LucideIcon, PenTool, ShieldCheck, CheckCircle2 } from "lucide-react";
 import ArticleCard from "@/components/features/ArticleCard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -37,6 +37,7 @@ interface ArticlePreview {
   readTime: string;
   icon: LucideIcon;
   gradientClass: string;
+  href?: string;
 }
 
 interface DashboardStats {
@@ -47,7 +48,7 @@ interface DashboardStats {
 
 /**
  * Page d'accueil du portail public.
- * Affiche les derniers articles publiés, les statistiques globales et le header éditorialisé.
+ * Affiche les derniers articles publiés, l'appel à contribution citoyenne et les statistiques.
  */
 export default function Home() {
   const [latestArticles, setLatestArticles] = useState<ArticlePreview[]>([]);
@@ -104,6 +105,7 @@ export default function Home() {
 
   return (
     <div className="w-full">
+      {/* --- HERO SECTION --- */}
       <section
         className="bg-linear-to-br from-vert via-vert/90 to-noir pt-16 pb-24 px-6 relative overflow-hidden"
         aria-label="Présentation du journal"
@@ -188,6 +190,7 @@ export default function Home() {
         </div>
       </section>
 
+      {/* --- DERNIERS ARTICLES --- */}
       <section className="max-w-7xl mx-auto px-6 py-16" aria-labelledby="recent-articles-heading">
         <div className="flex items-end justify-between mb-8 gap-4 flex-wrap">
           <div>
@@ -233,6 +236,55 @@ export default function Home() {
         </div>
       </section>
 
+      {/* --- APPEL À L'ACTION : PARTICIPATION CITOYENNE --- */}
+      <section className="bg-champagne/5 py-20 px-6 border-y border-champagne/20">
+        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center gap-12">
+          <div className="flex-1">
+            <h2 className="font-poppins font-black text-3xl md:text-4xl text-noir mb-4">
+              La plume est <span className="text-vert">à vous !</span>
+            </h2>
+            <p className="font-raleway text-lg text-noir/80 mb-8 leading-relaxed">
+              Ce journal est avant tout le vôtre. Vous avez organisé un événement local, 
+              remarqué une belle initiative citoyenne ou souhaitez partager une tribune ? 
+              Prenez la parole et publiez votre propre actualité.
+            </p>
+            
+            <ul className="space-y-5 mb-10 font-montserrat text-sm text-noir/80">
+              <li className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-champagne/20 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="text-vert" size={20} />
+                </div>
+                <span><strong>Créez un compte vérifié</strong> en complétant votre profil avec de vraies données (possibilité de publier anonymement via le RGPD).</span>
+              </li>
+              <li className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-champagne/20 flex items-center justify-center shrink-0">
+                  <PenTool className="text-or" size={20} />
+                </div>
+                <span><strong>Rédigez votre article</strong> grâce à notre éditeur en ligne professionnel (intégration de photos et de mise en forme).</span>
+              </li>
+              <li className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-champagne/20 flex items-center justify-center shrink-0">
+                  <CheckCircle2 className="text-vert" size={20} />
+                </div>
+                <span><strong>Validation par la mairie :</strong> Le comité de rédaction relit et publie votre actualité pour tous les citoyens.</span>
+              </li>
+            </ul>
+
+            <Link href="/articles/soumettre">
+              <Button className="bg-noir text-blanc font-montserrat font-bold px-8 py-6 text-base rounded-xl transition-all hover:bg-vert hover:-translate-y-0.5 hover:shadow-lg shadow-vert/20">
+                Proposer mon premier article
+              </Button>
+            </Link>
+          </div>
+          
+          <div className="hidden md:flex w-72 h-72 bg-linear-to-br from-vert to-noir rounded-full shrink-0 items-center justify-center shadow-2xl relative">
+            <div className="absolute inset-2 border-2 border-or/30 rounded-full border-dashed animate-[spin_20s_linear_infinite]" />
+            <PenTool size={64} className="text-or" />
+          </div>
+        </div>
+      </section>
+
+      {/* --- STATISTIQUES --- */}
       <section className="bg-linear-to-r from-noir to-vert py-16 px-6" aria-label="Statistiques du journal">
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
           {isLoading ? (

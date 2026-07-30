@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { Search, X, CalendarDays, LucideIcon, PenTool } from "lucide-react";
 import Link from "next/link";
-import { Search, X, CalendarDays, LucideIcon, Plus } from "lucide-react";
 import ArticleCard from "@/components/features/ArticleCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -204,6 +204,25 @@ export default function ArticlesPage() {
       </header>
 
       <div className="max-w-7xl mx-auto px-6 py-10">
+        
+        {/* --- BANNIÈRE DE CONTRIBUTION --- */}
+        <div className="bg-linear-to-r from-vert to-noir rounded-3xl p-6 md:p-8 mb-10 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl shadow-vert/10 border border-vert/30">
+           <div className="text-blanc text-center md:text-left">
+             <h2 className="font-poppins font-black text-xl mb-2 flex items-center justify-center md:justify-start gap-3">
+               <PenTool className="text-or"/> Vous avez une info à partager ?
+             </h2>
+             <p className="font-montserrat text-sm text-blanc/80 max-w-xl">
+               Le journal appartient aux citoyens. Si votre profil est complet, vous pouvez soumettre vos propres articles au comité de rédaction.
+             </p>
+           </div>
+           <Link href="/articles/soumettre" className="shrink-0 w-full md:w-auto">
+             <Button className="w-full bg-or text-noir font-montserrat font-bold py-6 px-8 hover:bg-or/90 rounded-xl hover:-translate-y-0.5 transition-all text-base">
+               Rédiger un article
+             </Button>
+           </Link>
+        </div>
+
+        {/* --- FILTRES --- */}
         <section aria-label="Filtres de recherche" className="space-y-4 mb-10">
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
             
@@ -272,6 +291,7 @@ export default function ArticlesPage() {
           </div>
         </section>
 
+        {/* --- RÉSULTATS --- */}
         <div className="mb-5 flex items-center justify-between flex-wrap gap-2">
           <p className="font-montserrat text-sm text-champagne">
             {isLoading 
@@ -325,15 +345,6 @@ export default function ArticlesPage() {
           </div>
         )}
       </div>
-
-      {/* BOUTON D'ACTION FLOTTANT (FAB) */}
-      <Link href="/articles/soumettre">
-        <Button 
-          className="fixed bottom-7 right-7 z-40 flex items-center gap-2 bg-or text-noir hover:bg-or/90 font-montserrat font-bold px-6 py-6 h-auto rounded-full shadow-2xl shadow-or/40 transition-all hover:-translate-y-1 hover:shadow-or/50"
-        >
-          <Plus size={20} /> Proposer un article
-        </Button>
-      </Link>
     </div>
   );
 }
