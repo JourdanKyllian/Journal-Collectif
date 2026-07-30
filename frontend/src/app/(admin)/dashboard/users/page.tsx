@@ -53,7 +53,24 @@ export default function UsersDashboard() {
       setCurrentUser(me);
       const allUsers = await fetchApi<DashboardUser[]>('/v1/users/all');
       const authorizedRoles = ['super_admin', 'admin', 'redacteur', 'journaliste'];
-      setUsers(allUsers.filter(u => authorizedRoles.includes(getRoleName(u.role))));
+      
+      // 1. On filtre les rôles autorisés
+      const filteredUsers = allUsers.filter(u => authorizedRoles.includes(getRoleName(u.role)));
+
+      // 2. On place l'utilisateur connecté tout en haut
+      if (me) {
+        const currentUserData = filteredUsers.find(u => u.id === me.id);
+        const otherUsers = filteredUsers.filter(u => u.id !== me.id);
+        
+        if (currentUserData) {
+          setUsers([currentUserData, ...otherUsers]);
+        } else {
+          setUsers(filteredUsers);
+        }
+      } else {
+        setUsers(filteredUsers);
+      }
+
     } catch (error) {
       console.error("Erreur de chargement", error);
     } finally {
