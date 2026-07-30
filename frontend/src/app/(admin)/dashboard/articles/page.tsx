@@ -3,39 +3,134 @@
 import { useState } from "react";
 import { 
   PenSquare, Trash2, Eye, CheckCircle2, 
-  XCircle, Image as ImageIcon, Bold, 
-  Italic, Underline, Heading2, Link as LinkIcon 
+  XCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { SkeletonTableRow, SkeletonGrid } from "@/components/ui/skeleton";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FeedbackAlert, FeedbackMessage } from "@/components/ui/feedback-alert";
 import { useFetchApi } from "@/hooks/useFetchApi";
+import { fetchApi } from "@/lib/api";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { formatDateToFrench } from "@/lib/formatters";
 
+// === TYPES ===
 interface AdminArticle {
   id: number;
-  title: string;
-  category: string;
-  date: string;
-  views: string;
-  status: "published" | "pending" | "draft";
+  titre: string;
+  contenu: string;
+  published_at: string;
+  statut: "brouillon" | "en_attente" | "publie" | "corbeille";
+  categorie?: { libelle: string };
+}
+
+interface Categorie {
+  id: number;
+  libelle: string;
+  icon: string;
 }
 
 /**
  * Interface d'administration globale du contenu éditorial.
- * Permet aux rédacteurs de soumettre des brouillons et aux administrateurs de les valider.
+ * Permet aux rédacteurs de créer des articles (avec éditeur riche) et aux administrateurs de les valider.
  */
 export default function ArticlesDashboard() {
   const [activeTab, setActiveTab] = useState("published");
   
-  // Requête API pour récupérer tous les articles d'un coup
-  const { isLoading } = useFetchApi<AdminArticle[]>('/v1/article/admin/all', { enabled: true });
+  // Requêtes API DRY
+  const { data: articles, isLoading, refetch: refetchArticles } = useFetchApi<AdminArticle[]>('/v1/article/admin/all');
+  const { data: categories } = useFetchApi<Categorie[]>('/v1/categorie');
+
+  // États du formulaire
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [feedback, setFeedback] = useState<FeedbackMessage | null>(null);
+  const [formData, setFormData] = useState({
+    titre: "",
+    contenu: "",
+    categorieId: "",
+  });
+
+  // Filtrage local des articles par statut
+  const publishedArticles = articles?.filter(a => a.statut === "publie") || [];
+  const pendingArticles = articles?.filter(a => a.statut === "en_attente") || [];
+  const draftArticles = articles?.filter(a => a.statut === "brouillon") || [];
+
+  /**
+   * Gère la soumission du formulaire pour créer un article.
+   * 
+   * @param {boolean} isDraft - Indique si l'utilisateur souhaite sauvegarder en brouillon ou publier.
+   */
+  const handleSubmit = async (e: React.FormEvent, isDraft: boolean) => {
+    e.preventDefault();
+    
+    if (!formData.categorieId) {
+      setFeedback({ type: "error", message: "Veuillez sélectionner une catégorie." });
+      return;
+    }
+
+    setIsSubmitting(true);
+    setFeedback(null);
+
+    try {
+      const payload = {
+        titre: formData.titre,
+        contenu: formData.contenu,
+        categorieId: Number(formData.categorieId),
+        // Le backend gérera automatiquement la restriction de droits (en_attente vs publie)
+        statut: isDraft ? "brouillon" : "publie" 
+      };
+
+      await fetchApi('/v1/article', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+
+      setFeedback({ type: "success", message: isDraft ? "Brouillon sauvegardé !" : "Article soumis avec succès !" });
+      
+      // Réinitialisation et rechargement
+      setFormData({ titre: "", contenu: "", categorieId: "" });
+      await refetchArticles();
+      
+      // Redirection visuelle
+      setTimeout(() => setActiveTab(isDraft ? "drafts" : "pending"), 1000);
+
+    } catch (error: unknown) {
+      setFeedback({ type: "error", message: (error as Error).message || "Erreur de sauvegarde" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  /**
+   * Action administrateur pour valider un article en attente.
+   */
+  const handlePublish = async (id: number) => {
+    try {
+      await fetchApi(`/v1/article/${id}/publish`, { method: 'PATCH' });
+      await refetchArticles();
+    } catch (error: unknown) {
+      alert((error as Error).message || "Erreur lors de la publication");
+    }
+  };
+
+  /**
+   * Action pour supprimer un article (Soft Delete).
+   */
+  const handleDelete = async (id: number) => {
+    if (!confirm("Voulez-vous vraiment supprimer cet article ?")) return;
+    try {
+      await fetchApi(`/v1/article/${id}`, { method: 'DELETE' });
+      await refetchArticles();
+    } catch (error: unknown) {
+      alert((error as Error).message || "Erreur lors de la suppression");
+    }
+  };
 
   return (
     <div className="space-y-6 animate-slide-up">
@@ -55,19 +150,20 @@ export default function ArticlesDashboard() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex flex-col">
         <TabsList className="bg-champagne/15 rounded-xl p-1 h-auto mb-6 flex flex-wrap justify-start gap-1">
           <TabsTrigger value="published" className="py-2.5 px-5 rounded-lg font-montserrat font-bold text-sm data-[state=active]:bg-blanc data-[state=active]:shadow-sm data-[state=active]:text-noir text-champagne">
-            ✅ Publiés <Badge variant="secondary" className="ml-2 bg-green-100 text-green-700 hover:bg-green-100 border-0">12</Badge>
+            ✅ Publiés <Badge variant="secondary" className="ml-2 bg-green-100 text-green-700 hover:bg-green-100 border-0">{publishedArticles.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="pending" className="py-2.5 px-5 rounded-lg font-montserrat font-bold text-sm data-[state=active]:bg-blanc data-[state=active]:shadow-sm data-[state=active]:text-noir text-champagne">
-            ⏳ En attente <Badge variant="secondary" className="ml-2 bg-yellow-100 text-yellow-700 hover:bg-yellow-100 border-0">7</Badge>
+            ⏳ En attente <Badge variant="secondary" className="ml-2 bg-yellow-100 text-yellow-700 hover:bg-yellow-100 border-0">{pendingArticles.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="drafts" className="py-2.5 px-5 rounded-lg font-montserrat font-bold text-sm data-[state=active]:bg-blanc data-[state=active]:shadow-sm data-[state=active]:text-noir text-champagne">
-            📝 Brouillons <Badge variant="secondary" className="ml-2 bg-champagne/30 text-vert hover:bg-champagne/30 border-0">3</Badge>
+            📝 Brouillons <Badge variant="secondary" className="ml-2 bg-champagne/30 text-vert hover:bg-champagne/30 border-0">{draftArticles.length}</Badge>
           </TabsTrigger>
           <TabsTrigger value="create" className="py-2.5 px-5 rounded-lg font-montserrat font-bold text-sm data-[state=active]:bg-blanc data-[state=active]:shadow-sm data-[state=active]:text-noir text-champagne">
             ＋ Créer
           </TabsTrigger>
         </TabsList>
 
+        {/* --- ONGLET PUBLIÉS --- */}
         <TabsContent value="published" className="outline-none">
           <div className="bg-blanc rounded-2xl border border-champagne/20 overflow-hidden">
             <Table>
@@ -76,32 +172,28 @@ export default function ArticlesDashboard() {
                   <TableHead className="font-raleway font-semibold text-xs text-champagne tracking-widest uppercase">Titre</TableHead>
                   <TableHead className="font-raleway font-semibold text-xs text-champagne tracking-widest uppercase hidden md:table-cell">Catégorie</TableHead>
                   <TableHead className="font-raleway font-semibold text-xs text-champagne tracking-widest uppercase hidden md:table-cell">Date</TableHead>
-                  <TableHead className="font-raleway font-semibold text-xs text-champagne tracking-widest uppercase hidden md:table-cell">Vues</TableHead>
                   <TableHead className="font-raleway font-semibold text-xs text-champagne tracking-widest uppercase text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <SkeletonGrid count={5} Component={SkeletonTableRow} />
+                ) : publishedArticles.length === 0 ? (
+                  <TableRow><TableCell colSpan={4} className="text-center py-6 text-champagne">Aucun article publié.</TableCell></TableRow>
                 ) : (
-                  [
-                    { title: "Festival d'Été 2026", cat: "🎭 Culture", date: "15 fév.", views: "1 234" },
-                    { title: "Rénovation Route Nationale", cat: "🏗️ Travaux", date: "14 fév.", views: "892" },
-                    { title: "Victoire en demi-finale", cat: "⚽ Sport", date: "13 fév.", views: "456" },
-                  ].map((row, i) => (
-                    <TableRow key={i} className="hover:bg-champagne/5 border-champagne/10 transition-colors">
-                      <TableCell className="font-montserrat font-semibold text-sm">{row.title}</TableCell>
+                  publishedArticles.map((row) => (
+                    <TableRow key={row.id} className="hover:bg-champagne/5 border-champagne/10 transition-colors">
+                      <TableCell className="font-montserrat font-semibold text-sm">{row.titre}</TableCell>
                       <TableCell className="hidden md:table-cell">
-                        <Badge className="bg-or/15 text-vert hover:bg-or/20 border-0 font-montserrat font-bold">{row.cat}</Badge>
+                        <Badge className="bg-or/15 text-vert hover:bg-or/20 border-0 font-montserrat font-bold">{row.categorie?.libelle || "Général"}</Badge>
                       </TableCell>
-                      <TableCell className="font-montserrat text-xs text-champagne hidden md:table-cell">{row.date}</TableCell>
-                      <TableCell className="font-montserrat text-xs font-semibold hidden md:table-cell">{row.views}</TableCell>
+                      <TableCell className="font-montserrat text-xs text-champagne hidden md:table-cell">{formatDateToFrench(row.published_at)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex gap-2 justify-end">
                           <Button variant="ghost" size="icon" className="bg-champagne/20 text-vert hover:bg-champagne/40 rounded-lg h-8 w-8">
-                            <PenSquare size={14} />
+                            <Eye size={14} />
                           </Button>
-                          <Button variant="ghost" size="icon" className="bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 rounded-lg h-8 w-8">
+                          <Button onClick={() => handleDelete(row.id)} variant="ghost" size="icon" className="bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 rounded-lg h-8 w-8">
                             <Trash2 size={14} />
                           </Button>
                         </div>
@@ -114,108 +206,120 @@ export default function ArticlesDashboard() {
           </div>
         </TabsContent>
 
+        {/* --- ONGLET EN ATTENTE --- */}
         <TabsContent value="pending" className="space-y-4 outline-none">
-          <div className="bg-blanc border border-yellow-200 rounded-2xl p-5 flex flex-col sm:flex-row items-start gap-4 hover:shadow-md transition-all">
-            <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center text-xl shrink-0">📝</div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <h3 className="font-montserrat font-bold text-sm">Marché de printemps — Appel aux exposants</h3>
-                <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100 border-0 font-poppins font-black text-xs">En attente</Badge>
+          {isLoading ? (
+             <SkeletonGrid count={2} Component={SkeletonTableRow} />
+          ) : pendingArticles.length === 0 ? (
+            <div className="text-center py-10 bg-champagne/5 rounded-xl border border-champagne/20 text-champagne">Aucun article en attente de validation.</div>
+          ) : (
+            pendingArticles.map(article => (
+              <div key={article.id} className="bg-blanc border border-yellow-200 rounded-2xl p-5 flex flex-col sm:flex-row items-start gap-4 hover:shadow-md transition-all">
+                <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center text-xl shrink-0">📝</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <h3 className="font-montserrat font-bold text-sm">{article.titre}</h3>
+                    <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100 border-0 font-poppins font-black text-xs">En attente</Badge>
+                  </div>
+                  <div className="font-montserrat text-xs text-champagne mb-3">Thématique : {article.categorie?.libelle || "Général"}</div>
+                </div>
+                <div className="flex sm:flex-col gap-2 shrink-0 w-full sm:w-auto mt-4 sm:mt-0">
+                  <Button onClick={() => handlePublish(article.id)} size="sm" className="bg-green-500 hover:bg-green-600 text-blanc font-montserrat font-bold rounded-lg flex-1 sm:flex-none">
+                    <CheckCircle2 size={14} className="mr-1.5" /> Publier
+                  </Button>
+                  <Button onClick={() => handleDelete(article.id)} size="sm" variant="outline" className="bg-red-50 border-0 text-red-500 hover:bg-red-100 font-montserrat font-bold rounded-lg flex-1 sm:flex-none">
+                    <XCircle size={14} className="mr-1.5" /> Refuser
+                  </Button>
+                </div>
               </div>
-              <div className="font-montserrat text-xs text-champagne mb-3">🎉 Événements · Soumis par Marie Dupont · il y a 2h</div>
-              <p className="font-montserrat text-xs text-noir/70 line-clamp-2">La municipalité lance les inscriptions pour le marché de printemps 2026. Les exposants peuvent s&apos;inscrire jusqu&apos;au 15 mars...</p>
-            </div>
-            <div className="flex sm:flex-col gap-2 shrink-0 w-full sm:w-auto mt-4 sm:mt-0">
-              <Button size="sm" className="bg-green-500 hover:bg-green-600 text-blanc font-montserrat font-bold rounded-lg flex-1 sm:flex-none">
-                <CheckCircle2 size={14} className="mr-1.5" /> Publier
-              </Button>
-              <Button size="sm" variant="outline" className="bg-champagne/20 border-0 text-vert hover:bg-champagne/40 font-montserrat font-bold rounded-lg flex-1 sm:flex-none">
-                <Eye size={14} className="mr-1.5" /> Aperçu
-              </Button>
-              <Button size="sm" variant="outline" className="bg-red-50 border-0 text-red-500 hover:bg-red-100 font-montserrat font-bold rounded-lg flex-1 sm:flex-none">
-                <XCircle size={14} className="mr-1.5" /> Refuser
-              </Button>
-            </div>
-          </div>
+            ))
+          )}
         </TabsContent>
 
-        <TabsContent value="drafts" className="outline-none">
-          <div className="bg-blanc border border-champagne/30 rounded-2xl p-5 flex items-center gap-4 hover:shadow-md transition-all opacity-80">
-            <div className="w-12 h-12 bg-champagne/20 rounded-xl flex items-center justify-center text-xl shrink-0 text-champagne"><PenSquare size={20} /></div>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-montserrat font-bold text-sm mb-1">Brouillon — Conseil municipal mars 2026</h3>
-              <div className="font-montserrat text-xs text-champagne">📢 Annonces · Modifié il y a 1j</div>
-            </div>
-            <div className="flex gap-2">
-              <Button size="sm" className="bg-or text-noir hover:bg-or/80 font-montserrat font-bold rounded-lg"><PenSquare size={14} className="mr-1.5" /> Éditer</Button>
-              <Button size="icon" variant="ghost" className="bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 rounded-lg h-9 w-9"><Trash2 size={14} /></Button>
-            </div>
-          </div>
+        {/* --- ONGLET BROUILLONS --- */}
+        <TabsContent value="drafts" className="outline-none space-y-4">
+           {isLoading ? (
+             <SkeletonGrid count={2} Component={SkeletonTableRow} />
+          ) : draftArticles.length === 0 ? (
+            <div className="text-center py-10 bg-champagne/5 rounded-xl border border-champagne/20 text-champagne">Aucun brouillon enregistré.</div>
+          ) : (
+            draftArticles.map(article => (
+              <div key={article.id} className="bg-blanc border border-champagne/30 rounded-2xl p-5 flex items-center gap-4 hover:shadow-md transition-all opacity-80">
+                <div className="w-12 h-12 bg-champagne/20 rounded-xl flex items-center justify-center text-xl shrink-0 text-champagne"><PenSquare size={20} /></div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-montserrat font-bold text-sm mb-1">{article.titre}</h3>
+                  <div className="font-montserrat text-xs text-champagne">Catégorie : {article.categorie?.libelle || "Non classé"}</div>
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={() => handlePublish(article.id)} size="sm" className="bg-or text-noir hover:bg-or/80 font-montserrat font-bold rounded-lg"><CheckCircle2 size={14} className="mr-1.5" /> Soumettre</Button>
+                  <Button onClick={() => handleDelete(article.id)} size="icon" variant="ghost" className="bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 rounded-lg h-9 w-9"><Trash2 size={14} /></Button>
+                </div>
+              </div>
+            ))
+          )}
         </TabsContent>
 
+        {/* --- ONGLET CRÉER --- */}
         <TabsContent value="create" className="outline-none">
-          <div className="bg-blanc rounded-2xl border border-champagne/20 p-6 max-w-3xl">
+          <div className="bg-blanc rounded-2xl border border-champagne/20 p-6 max-w-4xl">
             <h2 className="font-poppins font-black text-xl text-noir mb-6 flex items-center gap-2"><PenSquare size={20} className="text-or" /> Nouvel article</h2>
             
-            <div className="space-y-5">
+            <FeedbackAlert feedback={feedback} />
+
+            <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-5">
               <div className="space-y-2">
                 <label className="font-montserrat font-bold text-xs text-vert tracking-wide uppercase">Titre *</label>
-                <Input placeholder="Titre accrocheur de l'article" className="px-4 py-6 border-champagne/40 rounded-xl bg-blanc focus-visible:ring-or/30 focus-visible:border-or" />
+                <Input 
+                  required 
+                  value={formData.titre} 
+                  onChange={(e) => setFormData({...formData, titre: e.target.value})} 
+                  placeholder="Titre accrocheur de l'article" 
+                  className="px-4 py-6 border-champagne/40 rounded-xl bg-blanc focus-visible:ring-or/30 focus-visible:border-or text-lg font-bold" 
+                />
               </div>
 
               <div className="space-y-2">
-                <label className="font-montserrat font-bold text-xs text-vert tracking-wide uppercase">Résumé / Chapô *</label>
-                <Textarea rows={3} placeholder="2-3 phrases qui donnent envie de lire..." className="px-4 py-3 border-champagne/40 rounded-xl bg-blanc focus-visible:ring-or/30 focus-visible:border-or resize-none" />
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="font-montserrat font-bold text-xs text-vert tracking-wide uppercase">Catégorie *</label>
-                  <Select>
-                    <SelectTrigger className="px-4 py-6 border-champagne/40 rounded-xl bg-blanc focus:ring-or/30 focus:border-or font-montserrat text-sm">
-                      <SelectValue placeholder="Sélectionner..." />
-                    </SelectTrigger>
-                    <SelectContent className="bg-blanc border-champagne/40 rounded-xl font-montserrat">
-                      <SelectItem value="culture">🎭 Culture</SelectItem>
-                      <SelectItem value="sport">⚽ Sport</SelectItem>
-                      <SelectItem value="travaux">🏗️ Travaux</SelectItem>
-                      <SelectItem value="faits">🚨 Faits divers</SelectItem>
-                      <SelectItem value="events">🎉 Événements</SelectItem>
-                      <SelectItem value="annonces">📢 Annonces</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <label className="font-montserrat font-bold text-xs text-vert tracking-wide uppercase">Tags</label>
-                  <Input placeholder="festival, été (séparés par ,)" className="px-4 py-6 border-champagne/40 rounded-xl bg-blanc focus-visible:ring-or/30 focus-visible:border-or" />
-                </div>
+                <label className="font-montserrat font-bold text-xs text-vert tracking-wide uppercase">Catégorie *</label>
+                <Select required value={formData.categorieId} onValueChange={(val) => setFormData({...formData, categorieId: val})}>
+                  <SelectTrigger className="px-4 py-6 border-champagne/40 rounded-xl bg-blanc focus:ring-or/30 focus:border-or font-montserrat text-sm w-full md:w-1/2">
+                    <SelectValue placeholder="Sélectionnez une thématique..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-blanc border-champagne/40 rounded-xl font-montserrat">
+                    {categories?.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id.toString()}>{cat.icon} {cat.libelle}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
-                <label className="font-montserrat font-bold text-xs text-vert tracking-wide uppercase">Contenu *</label>
-                <div className="border border-champagne/40 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-or/30 focus-within:border-or transition-all">
-                  <div className="bg-champagne/15 px-4 py-2.5 border-b border-champagne/30 flex gap-2 overflow-x-auto">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 bg-blanc border border-champagne/30 text-noir hover:bg-or/20 rounded-lg"><Bold size={14} /></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 bg-blanc border border-champagne/30 text-noir hover:bg-or/20 rounded-lg"><Italic size={14} /></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 bg-blanc border border-champagne/30 text-noir hover:bg-or/20 rounded-lg"><Underline size={14} /></Button>
-                    <span className="w-px bg-champagne/30 mx-1 shrink-0"></span>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 bg-blanc border border-champagne/30 text-noir hover:bg-or/20 rounded-lg"><Heading2 size={14} /></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 bg-blanc border border-champagne/30 text-noir hover:bg-or/20 rounded-lg"><ImageIcon size={14} /></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 bg-blanc border border-champagne/30 text-noir hover:bg-or/20 rounded-lg"><LinkIcon size={14} /></Button>
-                  </div>
-                  <Textarea rows={8} placeholder="Rédigez le contenu complet ici..." className="w-full border-0 focus-visible:ring-0 rounded-none bg-blanc font-montserrat text-sm resize-y" />
-                </div>
+                <label className="font-montserrat font-bold text-xs text-vert tracking-wide uppercase">Contenu de l&apos;article *</label>
+                {/* === NOTRE NOUVEL ÉDITEUR TIPTAP === */}
+                <RichTextEditor 
+                  value={formData.contenu} 
+                  onChange={(html) => setFormData({...formData, contenu: html})} 
+                />
               </div>
 
-              <div className="flex gap-3 pt-4">
-                <Button variant="outline" className="flex-1 py-6 border-champagne/40 text-noir font-montserrat font-bold rounded-xl hover:bg-champagne/10">
-                  <Eye size={16} className="mr-2" /> Aperçu
+              <div className="flex gap-3 pt-4 border-t border-champagne/20">
+                <Button 
+                  type="button" 
+                  onClick={(e) => handleSubmit(e, true)}
+                  disabled={isSubmitting || !formData.titre} 
+                  variant="outline" 
+                  className="flex-1 py-6 border-champagne/40 text-noir font-montserrat font-bold rounded-xl hover:bg-champagne/10"
+                >
+                  <PenSquare size={16} className="mr-2" /> Sauvegarder le brouillon
                 </Button>
-                <Button className="flex-1 py-6 bg-noir text-blanc font-montserrat font-bold rounded-xl hover:bg-vert hover:-translate-y-0.5 transition-all">
-                  <CheckCircle2 size={16} className="mr-2" /> Publier l&apos;article
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting || !formData.titre || !formData.categorieId || !formData.contenu} 
+                  className="flex-1 py-6 bg-noir text-blanc font-montserrat font-bold rounded-xl hover:bg-vert hover:-translate-y-0.5 transition-all"
+                >
+                  <CheckCircle2 size={16} className="mr-2" /> Soumettre l&apos;article
                 </Button>
               </div>
-            </div>
+            </form>
           </div>
         </TabsContent>
       </Tabs>
