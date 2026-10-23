@@ -45,9 +45,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           : 'Erreur interne du serveur';
 
     // Cast explicite pour satisfaire le linter strict
-    const message = Array.isArray(rawMessage)
+    const detailedMessage = Array.isArray(rawMessage)
       ? String(rawMessage[0])
       : String(rawMessage);
+
+    // Une erreur non maîtrisée (SQL, bug) ne doit jamais exposer son message interne au client.
+    const isInternalError = Number(status) === 500;
+    const message = isInternalError
+      ? 'Erreur interne du serveur'
+      : detailedMessage;
 
     const rawErrorType =
       exceptionResponse &&
@@ -59,7 +65,9 @@ export class GlobalExceptionFilter implements ExceptionFilter {
           : 'InternalServerError';
 
     // Cast explicite pour satisfaire le linter strict
-    const errorType = String(rawErrorType);
+    const errorType = isInternalError
+      ? 'InternalServerError'
+      : String(rawErrorType);
 
     // Comparaison stricte avec la valeur numérique 500 pour éviter le conflit d'énumération
     if (status === 500) {

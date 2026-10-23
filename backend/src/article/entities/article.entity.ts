@@ -36,6 +36,10 @@ export class Article extends CustomBaseEntity {
   @Column({ type: 'timestamp', nullable: true })
   published_at!: Date | null;
 
+  /** Date de publication souhaitée (programmation, 7 jours max). Jamais antidatée à la validation. */
+  @Column({ type: 'timestamptz', nullable: true })
+  scheduled_at!: Date | null;
+
   // --- RELATIONS ---
 
   @ManyToOne(() => Categorie, (categorie) => categorie.articles)

@@ -58,6 +58,7 @@ export class AdminSeedService {
       // 1. Compte SUPER ADMIN
       let superAdminUser = await this.usersRepository.findOne({
         where: { email: 'superadmin@journal.fr' },
+        relations: ['profile'],
       });
       if (!superAdminUser) {
         superAdminUser = this.usersRepository.create({
@@ -80,6 +81,7 @@ export class AdminSeedService {
       // 2. Compte ADMIN
       let adminUser = await this.usersRepository.findOne({
         where: { email: 'admin@journal.fr' },
+        relations: ['profile'],
       });
       if (!adminUser) {
         adminUser = this.usersRepository.create({ email: 'admin@journal.fr' });
@@ -100,6 +102,7 @@ export class AdminSeedService {
       // 3. Compte RÉDACTEUR
       let redacteurUser = await this.usersRepository.findOne({
         where: { email: 'redacteur@journal.fr' },
+        relations: ['profile'],
       });
       if (!redacteurUser) {
         redacteurUser = this.usersRepository.create({
@@ -122,6 +125,7 @@ export class AdminSeedService {
       // 4. Compte VISITEUR INCOMPLET
       let userIncomplet = await this.usersRepository.findOne({
         where: { email: 'visiteur.incomplet@exemple.fr' },
+        relations: ['profile'],
       });
       if (!userIncomplet) {
         userIncomplet = this.usersRepository.create({
@@ -142,6 +146,7 @@ export class AdminSeedService {
       // 5. Compte VISITEUR COMPLET
       let visiteurComplet = await this.usersRepository.findOne({
         where: { email: 'visiteur.complet@exemple.fr' },
+        relations: ['profile'],
       });
       if (!visiteurComplet) {
         visiteurComplet = this.usersRepository.create({
@@ -241,6 +246,7 @@ export class AdminSeedService {
               contenu: artData.contenu,
               categorie: artData.categorie,
               statut: ArticleStatus.PUBLIE,
+              published_at: new Date(),
             }),
           );
           this.logger.log(`Article créé : "${artData.titre}"`);

@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Profile } from './entities/profile.entity';
+import { Users } from '../users/entities/user.entity';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
@@ -23,7 +24,19 @@ export class ProfileService {
       throw new NotFoundException('Profil introuvable pour cet utilisateur.');
     }
 
+    const phoneChanged =
+      updateProfileDto.tel !== undefined &&
+      updateProfileDto.tel !== profile.tel;
+
     Object.assign(profile, updateProfileDto);
-    return this.profileRepository.save(profile);
+    const saved = await this.profileRepository.save(profile);
+
+    // Un nouveau numéro doit être revérifié avant de pouvoir proposer des articles.
+    if (phoneChanged) {
+      await this.profileRepository.manager.update(Users, userId, {
+        is_phone_verified: false,
+      });
+    }
+    return saved;
   }
 }

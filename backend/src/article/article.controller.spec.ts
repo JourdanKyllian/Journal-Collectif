@@ -6,6 +6,8 @@ import { Article } from './entities/article.entity';
 import { Users } from '../users/entities/user.entity';
 import { Categorie } from '../categorie/entities/categorie.entity';
 import { AuteurArticle } from '../auteur-article/entities/auteur-article.entity/auteur-article.entity';
+import { ArticleRevision } from './entities/article-revision.entity';
+import { ArticleHistory } from './entities/article-history.entity';
 
 describe('ArticleController', () => {
   let controller: ArticleController;
@@ -20,6 +22,8 @@ describe('ArticleController', () => {
         { provide: getRepositoryToken(Users), useValue: {} },
         { provide: getRepositoryToken(Categorie), useValue: {} },
         { provide: getRepositoryToken(AuteurArticle), useValue: {} },
+        { provide: getRepositoryToken(ArticleRevision), useValue: {} },
+        { provide: getRepositoryToken(ArticleHistory), useValue: {} },
       ],
     }).compile();
 

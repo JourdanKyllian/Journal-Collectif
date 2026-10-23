@@ -1,11 +1,9 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { ValidationPipe, VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
-import cookieParser from 'cookie-parser';
-import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { configureApp } from './app.setup';
 import * as express from 'express';
 import { join } from 'path';
 import * as fs from 'fs';
@@ -32,8 +30,6 @@ async function bootstrap() {
   // On récupère le logger tout de suite pour l'utiliser dans le bootstrap
   const logger = app.get(Logger);
   app.useLogger(logger);
-  app.use(cookieParser());
-
   // exposition du dossier des uploads
   const uploadDir = join(process.cwd(), 'uploads');
   if (!fs.existsSync(uploadDir)) {
@@ -78,15 +74,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  app.setGlobalPrefix('api');
-
-  app.enableVersioning({
-    type: VersioningType.URI,
-    defaultVersion: '1',
-  });
-
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
-  app.useGlobalFilters(new GlobalExceptionFilter());
+  configureApp(app);
 
   const config = new DocumentBuilder()
     .setTitle('Journal API')
@@ -113,17 +101,19 @@ async function bootstrap() {
     logger.error('❌ Erreur critique lors des migrations :', error);
   }
 
-  // --- 2. EXÉCUTION DU SEEDING ---
-  try {
-    logger.log('Vérification et exécution du seeding...');
-    const tableSeedService = app.get(TableSeedService);
-    const adminSeedService = app.get(AdminSeedService);
-
-    await tableSeedService.seed();
-    await adminSeedService.seed();
-    logger.log('✅ Seeding terminé avec succès.');
-  } catch (error) {
-    logger.error('❌ Erreur lors du seeding :', error);
+  // --- 2. SEEDING (uniquement sur demande explicite : RUN_SEED=true) ---
+  // Le seed crée des comptes aux mots de passe connus : il ne doit jamais partir tout seul.
+  if (process.env.RUN_SEED === 'true') {
+    try {
+      logger.log('RUN_SEED=true : exécution du seeding...');
+      await app.get(TableSeedService).seed();
+      await app.get(AdminSeedService).seed();
+      logger.log('✅ Seeding terminé avec succès.');
+    } catch (error) {
+      logger.error('❌ Erreur lors du seeding :', error);
+    }
+  } else {
+    logger.log('Seeding ignoré (définir RUN_SEED=true pour l’exécuter).');
   }
 
   const port = process.env.PORT ?? 3000;

@@ -19,6 +19,7 @@ describe('ProfileService', () => {
   const mockProfileRepository = {
     findOne: jest.fn<(...args: any[]) => Promise<any>>(),
     save: jest.fn<(...args: any[]) => Promise<any>>(),
+    manager: { update: jest.fn<(...args: any[]) => Promise<any>>() },
   };
 
   beforeEach(async () => {

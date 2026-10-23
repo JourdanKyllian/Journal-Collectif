@@ -5,12 +5,25 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { FindOptionsWhere, ILike, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Users } from './entities/user.entity';
 import { Role } from '../roles/entities/roles.entity';
+import { UserListQueryDto } from './dto/user-list-query.dto';
+import {
+  buildPaginated,
+  escapeLike,
+  toSkipTake,
+} from '../common/pagination/pagination';
+
+/** Retire du résultat tout ce qui est secret : mot de passe haché et jeton de rafraîchissement haché. */
+function toPublicUser(user: Users) {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { password, token_auth, ...safe } = user;
+  return safe;
+}
 
 @Injectable()
 export class UsersService {
@@ -68,22 +81,28 @@ export class UsersService {
       },
     });
 
-    const savedUser = await this.usersRepository.save(newUser);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...userWithoutPassword } = savedUser;
-    return userWithoutPassword;
+    return toPublicUser(await this.usersRepository.save(newUser));
   }
 
-  async findAll() {
-    const users = await this.usersRepository.find({
+  async findAll(query: UserListQueryDto) {
+    let where: FindOptionsWhere<Users>[] | undefined;
+    if (query.q) {
+      const pattern = ILike(`%${escapeLike(query.q)}%`);
+      where = [
+        { email: pattern },
+        { profile: { firstname: pattern } },
+        { profile: { lastname: pattern } },
+      ];
+    }
+
+    const [users, total] = await this.usersRepository.findAndCount({
+      where,
       relations: ['role', 'profile'],
-      order: { created_at: 'DESC' },
+      order: { created_at: 'DESC', id: 'DESC' },
+      ...toSkipTake(query),
     });
-    return users.map((user) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { password, ...userWithoutPassword } = user;
-      return userWithoutPassword;
-    });
+
+    return buildPaginated(users.map(toPublicUser), total, query);
   }
 
   // --- MODIFICATION D'UN UTILISATEUR ---
@@ -138,7 +157,13 @@ export class UsersService {
         user.profile.firstname = updateUserDto.firstname;
       if (updateUserDto.lastname)
         user.profile.lastname = updateUserDto.lastname;
-      if (updateUserDto.tel) user.profile.tel = updateUserDto.tel;
+      if (updateUserDto.tel) {
+        // Un nouveau numéro doit être revérifié.
+        if (updateUserDto.tel !== user.profile.tel) {
+          user.is_phone_verified = false;
+        }
+        user.profile.tel = updateUserDto.tel;
+      }
     }
 
     if (updateUserDto.email) user.email = updateUserDto.email;
@@ -146,10 +171,22 @@ export class UsersService {
       user.password = await bcrypt.hash(updateUserDto.password, 10);
     }
 
-    const savedUser = await this.usersRepository.save(user);
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...result } = savedUser;
-    return result;
+    return toPublicUser(await this.usersRepository.save(user));
+  }
+
+  /**
+   * Vérifie (ou retire la vérification d') un compte citoyen. Étape manuelle en attendant
+   * la vérification par code SMS.
+   */
+  async setPhoneVerified(id: number, verified: boolean) {
+    const user = await this.usersRepository.findOne({
+      where: { id },
+      relations: ['role', 'profile'],
+    });
+    if (!user) throw new NotFoundException('Utilisateur introuvable');
+
+    user.is_phone_verified = verified;
+    return toPublicUser(await this.usersRepository.save(user));
   }
 
   // --- SUPPRESSION D'UN UTILISATEUR ---

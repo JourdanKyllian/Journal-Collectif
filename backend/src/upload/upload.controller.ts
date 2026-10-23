@@ -8,8 +8,8 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
+import { randomUUID } from 'crypto';
 import { extname } from 'path';
-import { v4 as uuidv4 } from 'uuid';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { validateImageFile } from '../common/validators/image.validator';
 
@@ -34,7 +34,7 @@ export class UploadController {
       storage: diskStorage({
         destination: './uploads',
         filename: (req, file, cb) => {
-          const uniqueName = `${uuidv4()}${extname(file.originalname)}`;
+          const uniqueName = `${randomUUID()}${extname(file.originalname)}`;
           cb(null, uniqueName);
         },
       }),

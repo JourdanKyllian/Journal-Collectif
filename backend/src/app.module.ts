@@ -25,6 +25,7 @@ import { ProfileModule } from './profile/profile.module';
 import { SettingsModule } from './settings/settings.module';
 import { AlertsModule } from './alerts/alerts.module';
 import { UploadModule } from './upload/upload.module';
+import { getJwtSecret } from './common/config/jwt-secret';
 
 @Module({
   imports: [
@@ -47,7 +48,7 @@ import { UploadModule } from './upload/upload.module';
 
     JwtModule.register({
       global: true,
-      secret: process.env.JWT_SECRET || 'fallback_insecure_key',
+      secret: getJwtSecret(),
       signOptions: { expiresIn: '1h' },
     }),
 
