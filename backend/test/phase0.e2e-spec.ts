@@ -16,12 +16,7 @@ import { TableSeedService } from '../src/common/database/seed/table.seed';
 const PASSWORD = 'E2e-Passw0rd!';
 
 type Persona =
-  | 'super_admin'
-  | 'admin'
-  | 'redacteur'
-  | 'auteur'
-  | 'tiers'
-  | 'nouveau';
+  'super_admin' | 'admin' | 'redacteur' | 'auteur' | 'tiers' | 'nouveau';
 
 /**
  * Nécessite une base PostgreSQL DÉDIÉE aux tests (le nom doit contenir « test »), les variables
@@ -658,11 +653,9 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
     });
 
     it('un citoyen ne voit pas les contributions des autres', async () => {
-      const res = await api(
-        'get',
-        '/article/mine?limit=100',
-        'tiers',
-      ).expect(200);
+      const res = await api('get', '/article/mine?limit=100', 'tiers').expect(
+        200,
+      );
       expect(
         res.body.data.map((a: { titre: string }) => a.titre),
       ).not.toContain('E2E-ATTENTE');
@@ -782,9 +775,11 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
             throw new Error(`register: ${res.status}`);
         });
       cookies.nouveau = await login('e2e-nouveau@test.local', password);
-      const found = await api('get', '/users/all?q=e2e-nouveau', 'admin').expect(
-        200,
-      );
+      const found = await api(
+        'get',
+        '/users/all?q=e2e-nouveau',
+        'admin',
+      ).expect(200);
       userId = found.body.data[0].id;
       await api('patch', `/users/${userId}/verification`, 'admin')
         .send({ verified: false })
