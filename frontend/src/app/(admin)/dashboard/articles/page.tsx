@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { 
   PenSquare, Trash2, Eye, CheckCircle2, 
-  XCircle, Plus, Clock, FileText, FileEdit, FolderTree
+  XCircle, Plus, Clock, FileText, FileEdit, FolderTree, UserX, ArchiveRestore
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,16 +20,25 @@ import { FeedbackAlert, FeedbackMessage } from "@/components/ui/feedback-alert";
 import { FileUpload } from "@/components/ui/file-upload";
 import { useFetchApi } from "@/hooks/useFetchApi";
 import { fetchApi } from "@/lib/api";
+import { PaginatedResponse } from "@/lib/types";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { formatDateToFrench, getCategoryUI } from "@/lib/formatters";
+
+interface ArticleCredit {
+  role: string;
+  name: string;
+  anonymous?: boolean;
+}
 
 interface AdminArticle {
   id: number;
   titre: string;
   contenu: string;
-  published_at: string;
+  published_at: string | null;
+  scheduled_at?: string | null;
   statut: "brouillon" | "en_attente" | "publie" | "corbeille";
-  categorie?: { libelle: string };
+  categorie?: { id?: number; libelle: string };
+  credits?: ArticleCredit[];
 }
 
 interface AdminCategorie {
@@ -46,14 +56,12 @@ interface AuthUser {
 /**
  * Interface d'administration globale du contenu éditorial.
  * Gère la création d'articles, la modération et l'arborescence des catégories.
- *
- * @returns {JSX.Element} L'interface du tableau de bord éditorial.
  */
 export default function ArticlesDashboard() {
   const [activeTab, setActiveTab] = useState<string>("published");
   
   const { data: user } = useFetchApi<AuthUser>('/v1/auth/me');
-  const { data: articles, isLoading: isArticlesLoading, refetch: refetchArticles } = useFetchApi<AdminArticle[]>('/v1/article/admin/all');
+  const { data: articlesPage, isLoading: isArticlesLoading, refetch: refetchArticles } = useFetchApi<PaginatedResponse<AdminArticle>>('/v1/article/admin/all?limit=100');
   const { data: categories, isLoading: isCatsLoading, refetch: refetchCategories } = useFetchApi<AdminCategorie[]>('/v1/categorie');
 
   const [isSubmittingArticle, setIsSubmittingArticle] = useState<boolean>(false);
@@ -64,19 +72,17 @@ export default function ArticlesDashboard() {
   const [catFeedback, setCatFeedback] = useState<FeedbackMessage | null>(null);
   const [catData, setCatData] = useState({ libelle: "", description: "", icon: "", image_bandeau_url: "" });
 
-  const userRole = typeof user?.role === 'string' ? user.role : user?.role?.libelle || '';
-  const canManageCategories = ['super_admin', 'admin'].includes(userRole.toLowerCase());
+  const userRole = (typeof user?.role === 'string' ? user.role : user?.role?.libelle || '').toLowerCase();
+  const isAdmin = ['super_admin', 'admin'].includes(userRole);
+  const canManageCategories = isAdmin;
 
-  const publishedArticles = articles?.filter(a => a.statut === "publie") || [];
-  const pendingArticles = articles?.filter(a => a.statut === "en_attente") || [];
-  const draftArticles = articles?.filter(a => a.statut === "brouillon") || [];
+  const articles = articlesPage?.data || [];
+  const publishedArticles = articles.filter(a => a.statut === "publie");
+  const pendingArticles = articles.filter(a => a.statut === "en_attente");
+  const draftArticles = articles.filter(a => a.statut === "brouillon");
 
   /**
    * Soumet les données du formulaire pour créer ou sauvegarder un article.
-   *
-   * @param {React.FormEvent} e - L'événement de soumission du formulaire.
-   * @param {boolean} isDraft - Détermine si l'article est enregistré en tant que brouillon.
-   * @returns {Promise<void>}
    */
   const handleArticleSubmit = async (e: React.FormEvent, isDraft: boolean): Promise<void> => {
     e.preventDefault();
@@ -96,15 +102,22 @@ export default function ArticlesDashboard() {
           titre: articleData.titre,
           contenu: articleData.contenu,
           categorieId: Number(articleData.categorieId),
-          statut: isDraft ? "brouillon" : "publie" 
+          statut: isDraft ? "brouillon" : (isAdmin ? "publie" : "en_attente")
         })
       });
 
-      setArticleFeedback({ type: "success", message: isDraft ? "Brouillon sauvegardé." : "Article soumis avec succès." });
+      setArticleFeedback({
+        type: "success",
+        message: isDraft
+          ? "Brouillon sauvegardé."
+          : isAdmin
+            ? "Article publié avec succès."
+            : "Article soumis à la validation d'un administrateur.",
+      });
       setArticleData({ titre: "", contenu: "", categorieId: "" });
       await refetchArticles();
       
-      setTimeout(() => setActiveTab(isDraft ? "drafts" : "pending"), 1000);
+      setTimeout(() => setActiveTab(isDraft ? "drafts" : (isAdmin ? "published" : "pending")), 1000);
     } catch (error: unknown) {
       setArticleFeedback({ type: "error", message: (error as Error).message || "Erreur de sauvegarde." });
     } finally {
@@ -113,10 +126,7 @@ export default function ArticlesDashboard() {
   };
 
   /**
-   * Valide et publie publiquement un article en attente.
-   *
-   * @param {number} id - L'identifiant de l'article à publier.
-   * @returns {Promise<void>}
+   * Valide et publie publiquement un article (Réservé Admin / Super Admin).
    */
   const handlePublishArticle = async (id: number): Promise<void> => {
     try {
@@ -128,13 +138,54 @@ export default function ArticlesDashboard() {
   };
 
   /**
-   * Supprime un article (Soft Delete).
-   *
-   * @param {number} id - L'identifiant de l'article à supprimer.
-   * @returns {Promise<void>}
+   * Soumet un brouillon en attente de modération (Rédacteur ou Admin).
+   */
+  const handleSubmitDraftForReview = async (id: number): Promise<void> => {
+    try {
+      if (isAdmin) {
+        await fetchApi(`/v1/article/${id}/publish`, { method: 'PATCH' });
+      } else {
+        await fetchApi(`/v1/article/${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ statut: 'en_attente' }),
+        });
+      }
+      await refetchArticles();
+    } catch (error: unknown) {
+      alert((error as Error).message || "Erreur lors de la soumission du brouillon.");
+    }
+  };
+
+  /**
+   * Dépublie un article et le renvoie en brouillon (Réservé Admin).
+   */
+  const handleUnpublishArticle = async (id: number): Promise<void> => {
+    try {
+      await fetchApi(`/v1/article/${id}/unpublish`, { method: 'PATCH' });
+      await refetchArticles();
+    } catch (error: unknown) {
+      alert((error as Error).message || "Erreur lors de la dépublication.");
+    }
+  };
+
+  /**
+   * Anonymise l'auteur d'un article sur demande RGPD sans supprimer le contenu (Réservé Admin).
+   */
+  const handleAnonymizeArticle = async (id: number): Promise<void> => {
+    if (!confirm("Retirer le nom de l'auteur sur cet article (demande RGPD) ? L'article restera en ligne.")) return;
+    try {
+      await fetchApi(`/v1/article/${id}/anonymize`, { method: 'PATCH' });
+      await refetchArticles();
+    } catch (error: unknown) {
+      alert((error as Error).message || "Erreur lors de l'anonymisation.");
+    }
+  };
+
+  /**
+   * Supprime ou refuse un article (Soft Delete réservé Admin).
    */
   const handleDeleteArticle = async (id: number): Promise<void> => {
-    if (!confirm("Confirmer la suppression de cet article ?")) return;
+    if (!confirm("Confirmer la suppression (ou le refus) de cet article ?")) return;
     try {
       await fetchApi(`/v1/article/${id}`, { method: 'DELETE' });
       await refetchArticles();
@@ -143,12 +194,6 @@ export default function ArticlesDashboard() {
     }
   };
 
-  /**
-   * Soumet les données du formulaire pour créer une nouvelle catégorie.
-   *
-   * @param {React.FormEvent} e - L'événement de soumission du formulaire.
-   * @returns {Promise<void>}
-   */
   const handleCategorySubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setIsSubmittingCat(true);
@@ -169,12 +214,6 @@ export default function ArticlesDashboard() {
     }
   };
 
-  /**
-   * Supprime une catégorie existante.
-   *
-   * @param {number} id - L'identifiant de la catégorie à supprimer.
-   * @returns {Promise<void>}
-   */
   const handleDeleteCategory = async (id: number): Promise<void> => {
     if (!confirm("Attention : supprimer cette catégorie affectera les articles liés. Confirmer ?")) return;
     try {
@@ -240,6 +279,7 @@ export default function ArticlesDashboard() {
                 ) : (
                   publishedArticles.map((row) => {
                     const CatIcon = getCategoryUI(row.categorie?.libelle || "Général").icon;
+                    const hasIdentifiedAuthor = row.credits?.some(c => c.role === 'Auteur' && !c.anonymous && c.name !== 'Citoyen Anonyme');
                     return (
                       <TableRow key={row.id} className="hover:bg-champagne/5 border-champagne/10 transition-colors">
                         <TableCell className="font-montserrat font-semibold text-sm">{row.titre}</TableCell>
@@ -252,12 +292,26 @@ export default function ArticlesDashboard() {
                         <TableCell className="font-montserrat text-xs text-champagne hidden md:table-cell">{formatDateToFrench(row.published_at)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex gap-2 justify-end">
-                            <Button variant="ghost" size="icon" className="bg-champagne/20 text-vert hover:bg-champagne/40 rounded-lg h-8 w-8">
-                              <Eye size={14} />
-                            </Button>
-                            <Button onClick={() => handleDeleteArticle(row.id)} variant="ghost" size="icon" className="bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 rounded-lg h-8 w-8">
-                              <Trash2 size={14} />
-                            </Button>
+                            <Link href={`/articles/${row.id}`}>
+                              <Button variant="ghost" size="icon" className="bg-champagne/20 text-vert hover:bg-champagne/40 rounded-lg h-8 w-8" title="Voir l'article">
+                                <Eye size={14} />
+                              </Button>
+                            </Link>
+                            {isAdmin && hasIdentifiedAuthor && (
+                              <Button onClick={() => handleAnonymizeArticle(row.id)} variant="ghost" size="icon" className="bg-champagne/20 text-noir hover:bg-or/30 rounded-lg h-8 w-8" title="Anonymiser l'auteur (RGPD)">
+                                <UserX size={14} />
+                              </Button>
+                            )}
+                            {isAdmin && (
+                              <>
+                                <Button onClick={() => handleUnpublishArticle(row.id)} variant="ghost" size="icon" className="bg-yellow-50 text-yellow-700 hover:bg-yellow-100 rounded-lg h-8 w-8" title="Dépublier (repasser en brouillon)">
+                                  <ArchiveRestore size={14} />
+                                </Button>
+                                <Button onClick={() => handleDeleteArticle(row.id)} variant="ghost" size="icon" className="bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 rounded-lg h-8 w-8" title="Supprimer">
+                                  <Trash2 size={14} />
+                                </Button>
+                              </>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -292,12 +346,21 @@ export default function ArticlesDashboard() {
                     </div>
                   </div>
                   <div className="flex sm:flex-col gap-2 shrink-0 w-full sm:w-auto mt-4 sm:mt-0">
-                    <Button onClick={() => handlePublishArticle(article.id)} size="sm" className="bg-green-500 hover:bg-green-600 text-blanc font-montserrat font-bold rounded-lg flex-1 sm:flex-none">
-                      <CheckCircle2 size={14} className="mr-1.5" /> Publier
-                    </Button>
-                    <Button onClick={() => handleDeleteArticle(article.id)} size="sm" variant="outline" className="bg-red-50 border-0 text-red-500 hover:bg-red-100 font-montserrat font-bold rounded-lg flex-1 sm:flex-none">
-                      <XCircle size={14} className="mr-1.5" /> Refuser
-                    </Button>
+                    <Link href={`/articles/${article.id}`} className="flex-1 sm:flex-none">
+                      <Button size="sm" variant="outline" className="w-full border-champagne/40 text-noir font-montserrat font-bold rounded-lg">
+                        <Eye size={14} className="mr-1.5" /> Aperçu
+                      </Button>
+                    </Link>
+                    {isAdmin && (
+                      <>
+                        <Button onClick={() => handlePublishArticle(article.id)} size="sm" className="bg-green-500 hover:bg-green-600 text-blanc font-montserrat font-bold rounded-lg flex-1 sm:flex-none">
+                          <CheckCircle2 size={14} className="mr-1.5" /> Publier
+                        </Button>
+                        <Button onClick={() => handleDeleteArticle(article.id)} size="sm" variant="outline" className="bg-red-50 border-0 text-red-500 hover:bg-red-100 font-montserrat font-bold rounded-lg flex-1 sm:flex-none">
+                          <XCircle size={14} className="mr-1.5" /> Refuser
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               );
@@ -325,12 +388,14 @@ export default function ArticlesDashboard() {
                     </div>
                   </div>
                   <div className="flex gap-2 w-full sm:w-auto mt-4 sm:mt-0">
-                    <Button onClick={() => handlePublishArticle(article.id)} size="sm" className="bg-or text-noir hover:bg-or/80 font-montserrat font-bold rounded-lg flex-1 sm:flex-none">
-                      <CheckCircle2 size={14} className="mr-1.5" /> Soumettre
+                    <Button onClick={() => handleSubmitDraftForReview(article.id)} size="sm" className="bg-or text-noir hover:bg-or/80 font-montserrat font-bold rounded-lg flex-1 sm:flex-none">
+                      <CheckCircle2 size={14} className="mr-1.5" /> {isAdmin ? "Publier" : "Soumettre"}
                     </Button>
-                    <Button onClick={() => handleDeleteArticle(article.id)} size="icon" variant="ghost" className="bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 rounded-lg h-9 w-9 shrink-0">
-                      <Trash2 size={14} />
-                    </Button>
+                    {isAdmin && (
+                      <Button onClick={() => handleDeleteArticle(article.id)} size="icon" variant="ghost" className="bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-600 rounded-lg h-9 w-9 shrink-0">
+                        <Trash2 size={14} />
+                      </Button>
+                    )}
                   </div>
                 </div>
               );
@@ -474,7 +539,7 @@ export default function ArticlesDashboard() {
                   disabled={isSubmittingArticle || !articleData.titre || !articleData.categorieId || !articleData.contenu} 
                   className="flex-1 py-6 bg-noir text-blanc font-montserrat font-bold rounded-xl hover:bg-vert hover:-translate-y-0.5 transition-all"
                 >
-                  <CheckCircle2 size={16} className="mr-2" /> Soumettre l&apos;article
+                  <CheckCircle2 size={16} className="mr-2" /> {isAdmin ? "Publier l'article" : "Soumettre l'article"}
                 </Button>
               </div>
             </form>

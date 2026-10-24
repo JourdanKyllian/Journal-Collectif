@@ -15,6 +15,14 @@ import { TableSeedService } from '../src/common/database/seed/table.seed';
 
 const PASSWORD = 'E2e-Passw0rd!';
 
+type Persona =
+  | 'super_admin'
+  | 'admin'
+  | 'redacteur'
+  | 'auteur'
+  | 'tiers'
+  | 'nouveau';
+
 /**
  * Nécessite une base PostgreSQL DÉDIÉE aux tests (le nom doit contenir « test »), les variables
  * DB_* (ou DATABASE_URL) et JWT_SECRET (32 caractères minimum).
@@ -25,14 +33,13 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
   let categorieId: number;
   let otherCategorieId: number;
 
-  const cookies: Record<
-    'admin' | 'redacteur' | 'author' | 'stranger' | 'newbie',
-    string
-  > = {
+  const cookies: Record<Persona, string> = {
+    super_admin: '',
     admin: '',
     redacteur: '',
-    author: '',
-    stranger: '',
+    auteur: '',
+    tiers: '',
+    nouveau: '',
   };
 
   async function login(email: string, password: string): Promise<string> {
@@ -49,13 +56,13 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
   const api = (
     method: 'get' | 'post' | 'patch' | 'delete',
     url: string,
-    as?: keyof typeof cookies,
+    as?: Persona,
   ) => {
     const req = request(app.getHttpServer())[method](`/api/v1${url}`);
     return as ? req.set('Cookie', cookies[as]) : req;
   };
 
-  const createArticle = async (as: keyof typeof cookies, body: object) =>
+  const createArticle = async (as: Persona, body: object) =>
     (await api('post', '/article', as).send(body).expect(201)).body as {
       id: number;
     };
@@ -113,21 +120,23 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
         }),
       );
 
-    const [admin, redacteur, citoyen] = await Promise.all(
-      ['admin', 'redacteur', 'utilisateur'].map(ensureRole),
+    const [superAdmin, admin, redacteur, citoyen] = await Promise.all(
+      ['super_admin', 'admin', 'redacteur', 'utilisateur'].map(ensureRole),
     );
+    await ensureUser('e2e-superadmin@test.local', superAdmin, true);
     await ensureUser('e2e-admin@test.local', admin, true);
     await ensureUser('e2e-redacteur@test.local', redacteur, true);
-    await ensureUser('e2e-author@test.local', citoyen, true);
-    await ensureUser('e2e-stranger@test.local', citoyen, false);
+    await ensureUser('e2e-auteur@test.local', citoyen, true);
+    await ensureUser('e2e-tiers@test.local', citoyen, false);
 
     categorieId = (await ensureCategorie('E2E-CAT-A')).id;
     otherCategorieId = (await ensureCategorie('E2E-CAT-B')).id;
 
+    cookies.super_admin = await login('e2e-superadmin@test.local', PASSWORD);
     cookies.admin = await login('e2e-admin@test.local', PASSWORD);
     cookies.redacteur = await login('e2e-redacteur@test.local', PASSWORD);
-    cookies.author = await login('e2e-author@test.local', PASSWORD);
-    cookies.stranger = await login('e2e-stranger@test.local', PASSWORD);
+    cookies.auteur = await login('e2e-auteur@test.local', PASSWORD);
+    cookies.tiers = await login('e2e-tiers@test.local', PASSWORD);
   });
 
   afterAll(async () => {
@@ -216,7 +225,7 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
 
     beforeAll(async () => {
       pendingId = (
-        await createArticle('author', {
+        await createArticle('auteur', {
           titre: 'E2E-ATTENTE',
           contenu: '<p>x</p>',
           categorieId,
@@ -228,11 +237,11 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
       await api('get', `/article/${pendingId}`).expect(404);
     });
 
-    it('est introuvable pour un autre citoyen', async () => {
-      await api('get', `/article/${pendingId}`, 'stranger').expect(404);
+    it('est introuvable pour un autre citoyen (tiers)', async () => {
+      await api('get', `/article/${pendingId}`, 'tiers').expect(404);
     });
 
-    it.each(['author', 'redacteur', 'admin'] as const)(
+    it.each(['auteur', 'redacteur', 'admin', 'super_admin'] as const)(
       'est visible par %s',
       async (who) => {
         const res = await api('get', `/article/${pendingId}`, who).expect(200);
@@ -274,7 +283,7 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
 
     beforeEach(async () => {
       id = (
-        await createArticle('author', {
+        await createArticle('auteur', {
           titre: 'E2E-EDIT',
           contenu: '<p>v1</p>',
           categorieId,
@@ -282,8 +291,8 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
       ).id;
     });
 
-    it("interdit à un autre citoyen de modifier l'article", async () => {
-      await api('patch', `/article/${id}`, 'stranger')
+    it("interdit à un autre citoyen (tiers) de modifier l'article", async () => {
+      await api('patch', `/article/${id}`, 'tiers')
         .send({ titre: 'Piraté' })
         .expect(403);
     });
@@ -295,7 +304,7 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
     });
 
     it("ignore statut=publie envoyé par l'auteur : pas d'auto-publication", async () => {
-      const res = await api('patch', `/article/${id}`, 'author')
+      const res = await api('patch', `/article/${id}`, 'auteur')
         .send({ titre: 'E2E-EDIT-2', statut: 'publie' })
         .expect(200);
       expect(res.body.mode).toBe('direct');
@@ -306,14 +315,14 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
     });
 
     it('permet à l’auteur de changer la catégorie', async () => {
-      const res = await api('patch', `/article/${id}`, 'author')
+      const res = await api('patch', `/article/${id}`, 'auteur')
         .send({ categorieId: otherCategorieId })
         .expect(200);
       expect(res.body.article.categorie.id).toBe(otherCategorieId);
     });
 
     it('refuse une catégorie inexistante avec une 400', async () => {
-      await api('patch', `/article/${id}`, 'author')
+      await api('patch', `/article/${id}`, 'auteur')
         .send({ categorieId: 999999 })
         .expect(400);
     });
@@ -328,7 +337,7 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
       await api('patch', `/article/${id}/publish`, 'redacteur').expect(403);
       await api('patch', `/article/${id}/publish`, 'admin').expect(200);
       await api('get', `/article/${id}`).expect(200);
-      await api('patch', `/article/${id}`, 'author')
+      await api('patch', `/article/${id}`, 'auteur')
         .send({ titre: 'Trop tard' })
         .expect(403);
     });
@@ -336,48 +345,48 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
 
   describe('assainissement du HTML', () => {
     it('retire script, handlers et liens javascript: à la création', async () => {
-      const { id } = await createArticle('author', {
+      const { id } = await createArticle('auteur', {
         titre: 'E2E-XSS',
         categorieId,
         contenu:
           '<p>ok</p><script>alert(1)</script><img src="/uploads/a.jpg" onerror="alert(2)"><a href="javascript:alert(3)">x</a>',
       });
-      const res = await api('get', `/article/${id}`, 'author').expect(200);
+      const res = await api('get', `/article/${id}`, 'auteur').expect(200);
       expect(res.body.contenu).not.toMatch(/script|onerror|javascript/i);
       expect(res.body.contenu).toContain('<p>ok</p>');
     });
 
     it('refuse un contenu qui est vide une fois nettoyé', async () => {
-      await api('post', '/article', 'author')
+      await api('post', '/article', 'auteur')
         .send({ titre: 'T', contenu: '<script>alert(1)</script>', categorieId })
         .expect(400);
     });
 
     it('refuse un titre contenant des balises, mais garde le & intact', async () => {
-      await api('post', '/article', 'author')
+      await api('post', '/article', 'auteur')
         .send({ titre: 'E2E <b>gras</b>', contenu: '<p>x</p>', categorieId })
         .expect(400);
-      const { id } = await createArticle('author', {
+      const { id } = await createArticle('auteur', {
         titre: 'E2E-Fish & Chips',
         contenu: '<p>x</p>',
         categorieId,
       });
-      const res = await api('get', `/article/${id}`, 'author').expect(200);
+      const res = await api('get', `/article/${id}`, 'auteur').expect(200);
       expect(res.body.titre).toBe('E2E-Fish & Chips');
     });
 
     it('conserve le souligné de l’éditeur', async () => {
-      const { id } = await createArticle('author', {
+      const { id } = await createArticle('auteur', {
         titre: 'E2E-UNDERLINE',
         contenu: '<p><u>souligné</u></p>',
         categorieId,
       });
-      const res = await api('get', `/article/${id}`, 'author').expect(200);
+      const res = await api('get', `/article/${id}`, 'auteur').expect(200);
       expect(res.body.contenu).toBe('<p><u>souligné</u></p>');
     });
 
     it('refuse une URL source ou image non http(s)', async () => {
-      await api('post', '/article', 'author')
+      await api('post', '/article', 'auteur')
         .send({
           titre: 'T',
           contenu: '<p>x</p>',
@@ -385,7 +394,7 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
           source_link: 'javascript:alert(1)',
         })
         .expect(400);
-      await api('post', '/article', 'author')
+      await api('post', '/article', 'auteur')
         .send({
           titre: 'T',
           contenu: '<p>x</p>',
@@ -419,7 +428,7 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
     });
 
     it('est interdit à un simple citoyen', async () => {
-      await api('get', '/users/all', 'author').expect(403);
+      await api('get', '/users/all', 'auteur').expect(403);
     });
   });
 
@@ -470,7 +479,7 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
 
     it('la révision est invisible du citoyen et de l’anonyme', async () => {
       await api('get', `/article/${id}/revision`).expect(401);
-      await api('get', `/article/${id}/revision`, 'author').expect(403);
+      await api('get', `/article/${id}/revision`, 'auteur').expect(403);
     });
 
     it('un rédacteur ne peut pas appliquer la révision', async () => {
@@ -509,7 +518,7 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
 
     it('l’historique, réservé aux admins, retrace tout, daté, avec l’auteur de chaque action', async () => {
       await api('get', `/article/${id}/history`, 'redacteur').expect(403);
-      await api('get', `/article/${id}/history`, 'author').expect(403);
+      await api('get', `/article/${id}/history`, 'auteur').expect(403);
       await api('get', `/article/${id}/history`).expect(401);
 
       const res = await api('get', `/article/${id}/history`, 'admin').expect(
@@ -568,13 +577,13 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
       await api('post', '/article', 'admin')
         .send({ ...base, scheduled_at: inHours(24 * 8) })
         .expect(400);
-      await api('post', '/article', 'author')
+      await api('post', '/article', 'auteur')
         .send({ ...base, scheduled_at: inHours(24) })
         .expect(403);
     });
 
     it('ne publie jamais dans le passé : une date dépassée devient « maintenant »', async () => {
-      const scheduled = new Date(Date.now() + 1500);
+      const scheduled = new Date(Date.now() + 3000);
       const { id } = await createArticle('redacteur', {
         titre: 'E2E-ANTIDATE',
         contenu: '<p>x</p>',
@@ -583,7 +592,7 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
       });
 
       // la validation arrive après la date visée
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 3500));
       const res = await api('patch', `/article/${id}/publish`, 'admin').expect(
         200,
       );
@@ -606,14 +615,14 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
 
   describe('suppression, refus et historique du citoyen', () => {
     it('seul un admin supprime ; la suppression est logique et tracée', async () => {
-      const { id } = await createArticle('author', {
+      const { id } = await createArticle('auteur', {
         titre: 'E2E-SUPPR',
         contenu: '<p>x</p>',
         categorieId,
       });
 
       await api('delete', `/article/${id}`).expect(401);
-      await api('delete', `/article/${id}`, 'author').expect(403);
+      await api('delete', `/article/${id}`, 'auteur').expect(403);
       await api('delete', `/article/${id}`, 'redacteur').expect(403);
       await api('delete', `/article/${id}`, 'admin').expect(200);
       await api('get', `/article/${id}`, 'admin').expect(410);
@@ -626,7 +635,7 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
     });
 
     it('le citoyen voit ses contributions : titre, date et statut, rien d’autre', async () => {
-      const res = await api('get', '/article/mine?limit=100', 'author').expect(
+      const res = await api('get', '/article/mine?limit=100', 'auteur').expect(
         200,
       );
       const byTitle = Object.fromEntries(
@@ -652,7 +661,7 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
       const res = await api(
         'get',
         '/article/mine?limit=100',
-        'stranger',
+        'tiers',
       ).expect(200);
       expect(
         res.body.data.map((a: { titre: string }) => a.titre),
@@ -661,13 +670,13 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
     });
 
     it('un article publié puis approuvé apparaît « approuvé »', async () => {
-      const { id } = await createArticle('author', {
+      const { id } = await createArticle('auteur', {
         titre: 'E2E-APPROUVE',
         contenu: '<p>x</p>',
         categorieId,
       });
       await api('patch', `/article/${id}/publish`, 'admin').expect(200);
-      const res = await api('get', '/article/mine?limit=100', 'author').expect(
+      const res = await api('get', '/article/mine?limit=100', 'auteur').expect(
         200,
       );
       expect(
@@ -690,7 +699,7 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
 
   describe('anonymat', () => {
     it('masque l’auteur au public et au rédacteur, le révèle aux admins', async () => {
-      const { id } = await createArticle('author', {
+      const { id } = await createArticle('auteur', {
         titre: 'E2E-ANONYME',
         contenu: '<p>x</p>',
         categorieId,
@@ -714,6 +723,16 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
         anonymous: true,
       });
 
+      const asSuperAdmin = await api(
+        'get',
+        `/article/${id}`,
+        'super_admin',
+      ).expect(200);
+      expect(asSuperAdmin.body.credits[0]).toMatchObject({
+        name: 'E2E utilisateur',
+        anonymous: true,
+      });
+
       const list = await api(
         'get',
         '/article/admin/all?q=E2E-ANONYME',
@@ -723,7 +742,7 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
     });
 
     it('un admin retire le nom d’un auteur identifié sans supprimer l’article', async () => {
-      const { id } = await createArticle('author', {
+      const { id } = await createArticle('auteur', {
         titre: 'E2E-RGPD',
         contenu: '<p>x</p>',
         categorieId,
@@ -746,7 +765,6 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
 
   describe('vérification d’un compte citoyen', () => {
     const password = 'E2e-Passw0rd!-Long-2026';
-    // un numéro différent à chaque passage : le test reste rejouable sur la même base
     const random2 = () => String(Math.floor(10 + Math.random() * 90));
     let userId: number;
 
@@ -754,8 +772,8 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
       await request(app.getHttpServer())
         .post('/api/v1/auth/register')
         .send({
-          username: 'e2e-newbie',
-          email: 'e2e-newbie@test.local',
+          username: 'e2e-nouveau',
+          email: 'e2e-nouveau@test.local',
           password,
           confirmPassword: password,
         })
@@ -763,8 +781,8 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
           if (![201, 409].includes(res.status))
             throw new Error(`register: ${res.status}`);
         });
-      cookies.newbie = await login('e2e-newbie@test.local', password);
-      const found = await api('get', '/users/all?q=e2e-newbie', 'admin').expect(
+      cookies.nouveau = await login('e2e-nouveau@test.local', password);
+      const found = await api('get', '/users/all?q=e2e-nouveau', 'admin').expect(
         200,
       );
       userId = found.body.data[0].id;
@@ -773,22 +791,21 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
         .expect(200);
     });
 
-    // lu à l'exécution : `categorieId` n'est connu qu'après le beforeAll global
     const article = () => ({
-      titre: 'E2E-NEWBIE',
+      titre: 'E2E-NOUVEAU',
       contenu: '<p>x</p>',
       categorieId,
     });
 
     it('un citoyen fraîchement inscrit ne peut pas proposer d’article', async () => {
-      await api('post', '/article', 'newbie').send(article()).expect(403);
+      await api('post', '/article', 'nouveau').send(article()).expect(403);
     });
 
     it('seuls les admins vérifient un compte', async () => {
       await api('patch', `/users/${userId}/verification`, 'redacteur')
         .send({ verified: true })
         .expect(403);
-      await api('patch', `/users/${userId}/verification`, 'newbie')
+      await api('patch', `/users/${userId}/verification`, 'nouveau')
         .send({ verified: true })
         .expect(403);
       await api('patch', `/users/${userId}/verification`, 'admin')
@@ -800,17 +817,17 @@ describe('Phase 0 : sécurité des articles, pagination (e2e)', () => {
       await api('patch', `/users/${userId}/verification`, 'admin')
         .send({ verified: true })
         .expect(200);
-      const res = await api('post', '/article', 'newbie')
+      const res = await api('post', '/article', 'nouveau')
         .send(article())
         .expect(201);
       expect(res.body.statut).toBe('en_attente');
     });
 
     it('changer de numéro de téléphone annule la vérification', async () => {
-      await api('patch', '/profile/me', 'newbie')
+      await api('patch', '/profile/me', 'nouveau')
         .send({ tel: `+33 6 12 34 ${random2()} ${random2()}` })
         .expect(200);
-      await api('post', '/article', 'newbie').send(article()).expect(403);
+      await api('post', '/article', 'nouveau').send(article()).expect(403);
     });
   });
 

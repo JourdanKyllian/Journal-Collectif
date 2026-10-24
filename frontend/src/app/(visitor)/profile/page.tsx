@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { User, LogOut, Star, Bell, Save, Key, Shield, UserCog } from "lucide-react";
+import { User, LogOut, Star, Bell, Save, Key, Shield, UserCog, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -13,6 +13,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { FeedbackAlert, FeedbackMessage } from "@/components/ui/feedback-alert";
 import { fetchApi } from "@/lib/api";
 import { useFetchApi } from "@/hooks/useFetchApi";
+import { PaginatedResponse } from "@/lib/types";
+import { formatDateToFrench } from "@/lib/formatters";
 
 interface UserProfileData {
   id: number;
@@ -25,15 +27,23 @@ interface UserProfileData {
   tel: string | null;
 }
 
+interface CitizenContribution {
+  id: number;
+  titre: string;
+  date: string;
+  statut: "brouillon" | "en_attente" | "approuve" | "refuse_ou_supprime";
+}
+
 /**
- * Page de gestion du compte utilisateur (données personnelles, sécurité, abonnements).
+ * Page de gestion du compte utilisateur (données personnelles, sécurité, contributions, abonnements).
  */
 export default function ProfilePage() {
   const router = useRouter();
 
   const { data: fetchedUser, isLoading, error } = useFetchApi<UserProfileData>("/v1/auth/me");
+  const { data: contributionsPage, isLoading: isContribLoading } = useFetchApi<PaginatedResponse<CitizenContribution>>("/v1/article/mine?limit=50");
 
-  const [activeTab, setActiveTab] = useState<"public" | "security" | "preferences">("public");
+  const [activeTab, setActiveTab] = useState<"public" | "contributions" | "security" | "preferences">("public");
   const [user, setUser] = useState<UserProfileData | null>(null);
   const [feedback, setFeedback] = useState<FeedbackMessage | null>(null);
 
@@ -121,6 +131,19 @@ export default function ProfilePage() {
     { id: "default_04", color: "bg-champagne", label: "Champagne" },
   ];
 
+  const getContributionStatusBadge = (statut: CitizenContribution["statut"]) => {
+    switch (statut) {
+      case "approuve":
+        return <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-0 font-poppins font-black text-xs">Approuvé</Badge>;
+      case "en_attente":
+        return <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100 border-0 font-poppins font-black text-xs">En attente</Badge>;
+      case "refuse_ou_supprime":
+        return <Badge className="bg-red-100 text-red-600 hover:bg-red-100 border-0 font-poppins font-black text-xs">Refusé / Supprimé</Badge>;
+      default:
+        return <Badge className="bg-champagne/20 text-noir hover:bg-champagne/20 border-0 font-poppins font-black text-xs">Brouillon</Badge>;
+    }
+  };
+
   if (isLoading || !user) {
     return (
       <div className="w-full min-h-[calc(100vh-70px)] bg-blanc py-12 px-6 flex justify-center">
@@ -141,6 +164,8 @@ export default function ProfilePage() {
     if (role === 'redacteur') return 'Rédacteur';
     return '';
   };
+
+  const contributions = contributionsPage?.data || [];
 
   return (
     <div className="w-full min-h-[calc(100vh-70px)] bg-blanc py-8 md:py-12 px-4 sm:px-6">
@@ -165,6 +190,7 @@ export default function ProfilePage() {
 
             <nav className="flex md:flex-col gap-1.5 overflow-x-auto pb-1 md:pb-0">
               <button onClick={() => setActiveTab("public")} className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-montserrat font-bold text-xs transition-all text-left whitespace-nowrap shrink-0 md:shrink md:w-full ${activeTab === "public" ? "bg-or text-noir shadow-sm" : "text-champagne hover:text-noir hover:bg-champagne/10"}`}><UserCog size={15} /> Identité</button>
+              <button onClick={() => setActiveTab("contributions")} className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-montserrat font-bold text-xs transition-all text-left whitespace-nowrap shrink-0 md:shrink md:w-full ${activeTab === "contributions" ? "bg-or text-noir shadow-sm" : "text-champagne hover:text-noir hover:bg-champagne/10"}`}><FileText size={15} /> Mes contributions</button>
               <button onClick={() => setActiveTab("security")} className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-montserrat font-bold text-xs transition-all text-left whitespace-nowrap shrink-0 md:shrink md:w-full ${activeTab === "security" ? "bg-or text-noir shadow-sm" : "text-champagne hover:text-noir hover:bg-champagne/10"}`}><Shield size={15} /> Sécurité</button>
               <button onClick={() => setActiveTab("preferences")} className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl font-montserrat font-bold text-xs transition-all text-left whitespace-nowrap shrink-0 md:shrink md:w-full ${activeTab === "preferences" ? "bg-or text-noir shadow-sm" : "text-champagne hover:text-noir hover:bg-champagne/10"}`}><Star size={15} /> Abonnements</button>
             </nav>
@@ -215,6 +241,38 @@ export default function ProfilePage() {
                   </div>
                 </div>
               </form>
+            )}
+
+            {activeTab === "contributions" && (
+              <div className="bg-blanc border border-champagne/30 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6 animate-in fade-in duration-300">
+                <div className="border-b border-champagne/20 pb-4">
+                  <h3 className="font-poppins font-black text-lg text-noir">Historique de mes contributions</h3>
+                  <p className="font-raleway text-xs text-champagne">Suivez l&apos;état de modération des articles que vous avez soumis au journal</p>
+                </div>
+
+                {isContribLoading ? (
+                  <div className="space-y-3">
+                    <Skeleton className="h-14 w-full rounded-xl" />
+                    <Skeleton className="h-14 w-full rounded-xl" />
+                  </div>
+                ) : contributions.length === 0 ? (
+                  <p className="font-montserrat text-sm text-champagne py-6 text-center">
+                    Vous n&apos;avez pas encore proposé d&apos;article.
+                  </p>
+                ) : (
+                  <div className="divide-y divide-champagne/15">
+                    {contributions.map((item) => (
+                      <div key={item.id} className="py-4 flex items-center justify-between gap-4 flex-wrap">
+                        <div className="min-w-0">
+                          <div className="font-montserrat font-bold text-sm text-noir truncate">{item.titre}</div>
+                          <div className="font-montserrat text-xs text-champagne mt-0.5">{formatDateToFrench(item.date)}</div>
+                        </div>
+                        {getContributionStatusBadge(item.statut)}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
 
             {activeTab === "security" && (

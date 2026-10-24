@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { User as UserIcon, PenSquare, Trash2, ShieldCheck, Pen, Plus } from "lucide-react";
+import { User as UserIcon, PenSquare, Trash2, ShieldCheck, Pen, Plus, CheckCircle2, XCircle } from "lucide-react";
 import { SkeletonGrid, SkeletonTableRow } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { FeedbackAlert, FeedbackMessage } from "@/components/ui/feedback-alert";
 import AdminGuard from "@/components/layout/AdminGuard";
 import { fetchApi } from "@/lib/api";
 import { useFetchApi } from "@/hooks/useFetchApi";
+import { PaginatedResponse } from "@/lib/types";
 import { PERMISSIONS, hasPermission } from "@/lib/permissions";
 
 interface Role { id: number; libelle: string; }
@@ -21,22 +22,18 @@ interface DashboardUser {
   name?: string;
   profile?: Profile;
   email: string;
-  role: string | Role; 
+  role: string | Role;
+  is_phone_verified?: boolean;
   created_at: string;
 }
 
-/**
- * Récupère le nom complet affichable de l'utilisateur.
- */
 const getDisplayName = (user: DashboardUser | null): string => {
   if (!user) return "";
   if (user.profile?.firstname && user.profile?.lastname) return `${user.profile.firstname} ${user.profile.lastname}`;
+  if (user.profile?.firstname) return user.profile.firstname;
   return user.name || "Utilisateur inconnu";
 };
 
-/**
- * Normalise l'extraction du nom de rôle en minuscules, qu'il provienne d'une string ou d'un objet.
- */
 const getRoleName = (roleData: string | Role | undefined): string => {
   if (!roleData) return "";
   if (typeof roleData === 'string') return roleData.toLowerCase();
@@ -44,12 +41,13 @@ const getRoleName = (roleData: string | Role | undefined): string => {
 };
 
 /**
- * Tableau de bord d'administration pour la gestion des utilisateurs et de la gouvernance.
+ * Tableau de bord d'administration pour la gestion des utilisateurs, de l'équipe et de la vérification citoyenne.
  */
 export default function UsersDashboard() {
-  const { data: allUsers, isLoading: isUsersLoading, refetch } = useFetchApi<DashboardUser[]>('/v1/users/all');
+  const { data: usersPage, isLoading: isUsersLoading, refetch } = useFetchApi<PaginatedResponse<DashboardUser>>('/v1/users/all?limit=100');
   const { data: currentUser, isLoading: isUserLoading } = useFetchApi<DashboardUser>('/v1/auth/me');
   
+  const [filterMode, setFilterMode] = useState<"staff" | "citizens">("staff");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUserId, setEditingUserId] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -59,22 +57,23 @@ export default function UsersDashboard() {
 
   const isLoading = isUsersLoading || isUserLoading;
   const currentRole = getRoleName(currentUser?.role);
+  const allUsers = useMemo(() => usersPage?.data || [], [usersPage]);
 
-  /**
-   * Trie et filtre la liste des utilisateurs de manière à toujours épingler
-   * le compte de la session courante tout en haut du tableau.
-   */
   const processedUsers = useMemo(() => {
-    if (!allUsers) return [];
+    if (!allUsers.length) return [];
+
+    if (filterMode === "citizens") {
+      return allUsers.filter(u => !hasPermission(getRoleName(u.role), PERMISSIONS.dashboardAccess));
+    }
+
     const filtered = allUsers.filter(u => hasPermission(getRoleName(u.role), PERMISSIONS.dashboardAccess));
-    
     if (currentUser) {
       const me = filtered.find(u => u.id === currentUser.id);
       const others = filtered.filter(u => u.id !== currentUser.id);
       return me ? [me, ...others] : filtered;
     }
     return filtered;
-  }, [allUsers, currentUser]);
+  }, [allUsers, currentUser, filterMode]);
 
   const openModal = (user?: DashboardUser) => {
     setFeedback(null);
@@ -100,7 +99,6 @@ export default function UsersDashboard() {
     setFeedback(null);
 
     try {
-      // Typage strict du payload pour éviter les "any"
       const payload: Record<string, string> = {
         firstname: formData.firstname,
         lastname: formData.lastname,
@@ -108,7 +106,6 @@ export default function UsersDashboard() {
         role: formData.role
       };
       
-      // On n'envoie le mot de passe que lors d'une création ou s'il a été expressément modifié
       if (!editingUserId || formData.password) {
         payload.password = formData.password;
       }
@@ -127,6 +124,18 @@ export default function UsersDashboard() {
     }
   };
 
+  const handleToggleVerification = async (user: DashboardUser) => {
+    try {
+      await fetchApi(`/v1/users/${user.id}/verification`, {
+        method: 'PATCH',
+        body: JSON.stringify({ verified: !user.is_phone_verified }),
+      });
+      await refetch();
+    } catch (error: unknown) {
+      alert((error as Error).message || "Erreur lors de la modification du statut de vérification.");
+    }
+  };
+
   const handleDelete = async (id: number, name: string) => {
     if (!confirm(`Voulez-vous retirer les accès de ${name} ?`)) return;
     try {
@@ -141,7 +150,7 @@ export default function UsersDashboard() {
     const r = getRoleName(roleData);
     if (['super_admin', 'admin'].includes(r)) return <span className="inline-flex items-center gap-1.5 bg-or text-noir font-poppins font-black text-xs px-3 py-1 rounded-full"><ShieldCheck size={14} />{r === 'super_admin' ? 'Super Admin' : 'Admin'}</span>;
     if (['redacteur', 'journaliste'].includes(r)) return <span className="inline-flex items-center gap-1.5 bg-vert/10 text-vert border border-vert/20 font-poppins font-black text-xs px-3 py-1 rounded-full"><Pen size={14} />Rédacteur</span>;
-    return <span className="inline-flex items-center gap-1.5 bg-champagne/20 text-noir font-poppins font-black text-xs px-3 py-1 rounded-full capitalize"><UserIcon size={14} />{r}</span>;
+    return <span className="inline-flex items-center gap-1.5 bg-champagne/20 text-noir font-poppins font-black text-xs px-3 py-1 rounded-full capitalize"><UserIcon size={14} />Citoyen</span>;
   };
 
   return (
@@ -152,17 +161,35 @@ export default function UsersDashboard() {
             <h1 className="font-poppins font-black text-2xl text-noir mb-1 flex items-center gap-2">
               <UserIcon className="text-noir" size={28} /> Utilisateurs
             </h1>
-            <p className="font-raleway text-champagne text-sm">Gérez les accès et les rôles de la plateforme</p>
+            <p className="font-raleway text-champagne text-sm">Gérez les accès de la rédaction et vérifiez les comptes citoyens</p>
           </div>
-          <Button onClick={() => openModal()} className="bg-noir text-blanc font-montserrat font-bold rounded-xl hover:bg-vert transition-all">
-            <Plus size={16} className="mr-2" /> Nouvel utilisateur
-          </Button>
+          <div className="flex items-center gap-3">
+            <div className="bg-champagne/15 p-1 rounded-xl flex gap-1">
+              <button
+                type="button"
+                onClick={() => setFilterMode("staff")}
+                className={`px-4 py-2 rounded-lg font-montserrat font-bold text-xs transition-all ${filterMode === "staff" ? "bg-blanc text-noir shadow-xs" : "text-champagne hover:text-noir"}`}
+              >
+                Équipe
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterMode("citizens")}
+                className={`px-4 py-2 rounded-lg font-montserrat font-bold text-xs transition-all ${filterMode === "citizens" ? "bg-blanc text-noir shadow-xs" : "text-champagne hover:text-noir"}`}
+              >
+                Citoyens
+              </button>
+            </div>
+            <Button onClick={() => openModal()} className="bg-noir text-blanc font-montserrat font-bold rounded-xl hover:bg-vert transition-all">
+              <Plus size={16} className="mr-2" /> Nouveau membre
+            </Button>
+          </div>
         </div>
 
         <div className="bg-blanc border border-champagne/20 rounded-2xl overflow-hidden shadow-sm">
           <div className="grid grid-cols-[2fr_1fr_1fr_auto] gap-4 p-4 border-b border-champagne/20 bg-blanc/50">
             <div className="font-montserrat font-bold text-xs text-champagne tracking-widest uppercase">Utilisateur</div>
-            <div className="font-montserrat font-bold text-xs text-champagne tracking-widest uppercase">Rôle</div>
+            <div className="font-montserrat font-bold text-xs text-champagne tracking-widest uppercase">Rôle / Statut</div>
             <div className="font-montserrat font-bold text-xs text-champagne tracking-widest uppercase">Inscription</div>
             <div className="font-montserrat font-bold text-xs text-champagne tracking-widest uppercase text-right">Actions</div>
           </div>
@@ -170,6 +197,8 @@ export default function UsersDashboard() {
           <div className="divide-y divide-champagne/10">
             {isLoading ? (
               <SkeletonGrid count={5} Component={SkeletonTableRow} />
+            ) : processedUsers.length === 0 ? (
+              <div className="p-8 text-center font-montserrat text-sm text-champagne">Aucun utilisateur dans cette vue.</div>
             ) : (
               processedUsers.map((user) => {
                 const targetRole = getRoleName(user.role);
@@ -183,13 +212,38 @@ export default function UsersDashboard() {
                       <span className="font-montserrat font-bold text-noir text-sm truncate capitalize">
                         {getDisplayName(user)} {isSelf && "(Vous)"}
                       </span>
-                      <span className="font-montserrat text-xs text-champagne truncate">{user.email}</span>
+                      <span className="font-montserrat text-xs text-champagne truncate">
+                        {user.email} {user.profile?.tel ? `· ${user.profile.tel}` : ""}
+                      </span>
                     </div>
-                    <div className="flex items-center">{getRoleBadge(user.role)}</div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {getRoleBadge(user.role)}
+                      {filterMode === "citizens" && (
+                        user.is_phone_verified ? (
+                          <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 font-montserrat font-bold text-[10px] px-2.5 py-0.5 rounded-full">
+                            <CheckCircle2 size={12} /> Vérifié
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 bg-yellow-100 text-yellow-700 font-montserrat font-bold text-[10px] px-2.5 py-0.5 rounded-full">
+                            <XCircle size={12} /> Non vérifié
+                          </span>
+                        )
+                      )}
+                    </div>
                     <div className="font-montserrat text-sm text-champagne">{new Date(user.created_at).toLocaleDateString('fr-FR')}</div>
                     
                     <div className="flex items-center justify-end gap-2">
-                      {canManage && (
+                      {filterMode === "citizens" && (
+                        <Button
+                          onClick={() => handleToggleVerification(user)}
+                          variant="outline"
+                          size="sm"
+                          className={`font-montserrat font-bold text-xs rounded-lg border-0 ${user.is_phone_verified ? "bg-yellow-50 text-yellow-700 hover:bg-yellow-100" : "bg-green-50 text-green-700 hover:bg-green-100"}`}
+                        >
+                          {user.is_phone_verified ? "Retirer vérif." : "Vérifier"}
+                        </Button>
+                      )}
+                      {canManage && filterMode === "staff" && (
                         <Button onClick={() => openModal(user)} variant="ghost" size="icon" className="h-8 w-8 bg-champagne/10 text-noir hover:bg-champagne/20 rounded-md"><PenSquare size={14} /></Button>
                       )}
                       {canDelete && (

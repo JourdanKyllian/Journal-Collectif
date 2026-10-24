@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchApi } from "@/lib/api";
+import { PaginatedResponse } from "@/lib/types";
 import { getCategoryUI, formatDateToFrench, generateSlug, calculateReadTime } from "@/lib/formatters";
 
 interface RawArticle {
@@ -114,8 +115,8 @@ export default function ArticlesPage() {
     const loadData = async () => {
       try {
         setIsLoading(true);
-        const [rawArticles, rawCategories] = await Promise.all([
-          fetchApi<RawArticle[]>('/v1/article/published'),
+        const [rawArticlesPage, rawCategories] = await Promise.all([
+          fetchApi<PaginatedResponse<RawArticle>>('/v1/article/published?limit=100'),
           fetchApi<BackendCategorie[]>('/v1/categorie')
         ]);
 
@@ -128,7 +129,7 @@ export default function ArticlesPage() {
         ];
         setCategorieFilters(formattedCategories);
 
-        const formattedArticles: ArticleUI[] = rawArticles.map((item) => {
+        const formattedArticles: ArticleUI[] = (rawArticlesPage.data || []).map((item) => {
           const categorieName = typeof item.categorie === 'object' && item.categorie !== null 
             ? (item.categorie as { libelle?: string }).libelle || 'Annonces' 
             : item.categorie || 'Annonces';
@@ -138,17 +139,18 @@ export default function ArticlesPage() {
           const pubDate = new Date(rawDate);
 
           const titleText = item.title || item.titre || '';
-          const bodyText = item.excerpt || item.content || item.contenu || '';
+          const bodyHtml = item.excerpt || item.content || item.contenu || '';
+          const plainBody = bodyHtml.replace(/<[^>]+>/g, '');
 
           return {
             id: item.id,
             title: titleText,
-            excerpt: bodyText.length > 100 ? bodyText.substring(0, 100) + '...' : bodyText, 
+            excerpt: plainBody.length > 100 ? plainBody.substring(0, 100) + '...' : plainBody, 
             categorie: categorieName,
             categorieSlug: uiStyles.slug,
             date: formatDateToFrench(pubDate),
             dateIso: pubDate.toISOString().split('T')[0],
-            readTime: calculateReadTime(bodyText), 
+            readTime: calculateReadTime(bodyHtml), 
             icon: uiStyles.icon,
             gradientClass: uiStyles.gradient,
             href: `/articles/${item.id}`,

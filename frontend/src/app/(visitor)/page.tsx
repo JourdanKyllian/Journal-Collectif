@@ -7,6 +7,7 @@ import ArticleCard from "@/components/features/ArticleCard";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchApi } from "@/lib/api";
+import { PaginatedResponse } from "@/lib/types";
 import { getCategoryUI, getGradientClassByIndex, calculateReadTime, formatDateToFrench } from "@/lib/formatters";
 
 interface BackendArticle {
@@ -60,19 +61,23 @@ export default function Home() {
     const loadData = async () => {
       try {
         const [articlesRes, categoriesRes, settingsRes] = await Promise.all([
-          fetchApi<BackendArticle[]>('/v1/article/published').catch(() => []),
+          fetchApi<PaginatedResponse<BackendArticle>>('/v1/article/published?limit=6').catch(() => ({
+            data: [],
+            meta: { page: 1, limit: 6, total: 0, totalPages: 0, hasNextPage: false },
+          })),
           fetchApi<BackendCategorie[]>('/v1/categorie').catch(() => []),
           fetchApi<AppSettings>('/v1/settings').catch(() => ({ nom_journal: "Collectif", nom_ville: "la commune" }))
         ]);
 
-        const formattedArticles = articlesRes.slice(0, 6).map((article, index) => {
+        const formattedArticles = articlesRes.data.slice(0, 6).map((article, index) => {
           const catName = article.categorie?.libelle || "Général";
           const uiConfig = getCategoryUI(catName);
+          const plainExcerpt = article.contenu ? article.contenu.replace(/<[^>]+>/g, '') : '';
 
           return {
             id: article.id,
             title: article.titre,
-            excerpt: article.contenu ? article.contenu.substring(0, 100) + "..." : "Pas de résumé disponible...",
+            excerpt: plainExcerpt ? plainExcerpt.substring(0, 100) + "..." : "Pas de résumé disponible...",
             categorie: catName,
             date: formatDateToFrench(article.published_at),
             dateIso: article.published_at,
@@ -86,7 +91,7 @@ export default function Home() {
         setLatestArticles(formattedArticles);
         setSettings(settingsRes);
         setStats({
-          articles: articlesRes.length,
+          articles: articlesRes.meta.total,
           categories: categoriesRes.length,
           subscribers: 0, 
         });

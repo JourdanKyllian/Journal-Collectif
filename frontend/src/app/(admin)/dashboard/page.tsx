@@ -2,24 +2,52 @@
 
 import { useState, useEffect } from "react";
 import { fetchApi } from "@/lib/api";
-import { Newspaper, Clock, Search, AlertTriangle } from "lucide-react";
+import { Newspaper, Clock, CalendarClock, AlertTriangle, Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 
+interface ArticleAdminStats {
+  brouillon: number;
+  en_attente: number;
+  publie: number;
+  planifie: number;
+  total: number;
+}
+
 export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [role, setRole] = useState<string | null>(null);
+  const [articleStats, setArticleStats] = useState<ArticleAdminStats>({
+    brouillon: 0,
+    en_attente: 0,
+    publie: 0,
+    planifie: 0,
+    total: 0,
+  });
+  const [alertsCount, setAlertsCount] = useState<number>(0);
 
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
         setIsLoading(true);
-        const user = await fetchApi<{ role: string | { libelle: string } }>('/v1/auth/me');
+        const [user, statsRes, alertsRes] = await Promise.all([
+          fetchApi<{ role: string | { libelle: string } }>('/v1/auth/me'),
+          fetchApi<ArticleAdminStats>('/v1/article/admin/stats').catch(() => ({
+            brouillon: 0,
+            en_attente: 0,
+            publie: 0,
+            planifie: 0,
+            total: 0,
+          })),
+          fetchApi<unknown[]>('/v1/alerts').catch(() => []),
+        ]);
+
         const roleStr = typeof user.role === 'string' ? user.role : user.role?.libelle || '';
         setRole(roleStr.toLowerCase());
-        
+        setArticleStats(statsRes);
+        setAlertsCount(alertsRes.length);
       } catch (error) {
         console.error("Erreur de récupération :", error);
       } finally {
@@ -31,10 +59,10 @@ export default function DashboardPage() {
   }, []);
 
   const stats = [
-    { title: "Articles publiés", value: "382", sub: "+12 ce mois", icon: Newspaper, color: "text-green-600", bg: "bg-green-50", roles: ['super_admin', 'admin', 'redacteur'] },
-    { title: "En attente", value: "7", sub: "À valider", icon: Clock, color: "text-yellow-600", bg: "bg-yellow-50", roles: ['super_admin', 'admin', 'redacteur'] },
-    { title: "Objets déclarés", value: "36", sub: "4 nouveaux", icon: Search, color: "text-blue-600", bg: "bg-blue-50", roles: ['super_admin', 'admin'] },
-    { title: "Alertes actives", value: "2", sub: "En ligne", icon: AlertTriangle, color: "text-red-500", bg: "bg-red-50", roles: ['super_admin', 'admin', 'redacteur'] },
+    { title: "Articles publiés", value: articleStats.publie.toString(), sub: `${articleStats.brouillon} brouillon(s)`, icon: Newspaper, color: "text-green-600", bg: "bg-green-50", roles: ['super_admin', 'admin', 'redacteur'] },
+    { title: "En attente", value: articleStats.en_attente.toString(), sub: "À modérer", icon: Clock, color: "text-yellow-600", bg: "bg-yellow-50", roles: ['super_admin', 'admin', 'redacteur'] },
+    { title: "Planifiés", value: articleStats.planifie.toString(), sub: "Sur 7 jours max", icon: CalendarClock, color: "text-blue-600", bg: "bg-blue-50", roles: ['super_admin', 'admin', 'redacteur'] },
+    { title: "Alertes actives", value: alertsCount.toString(), sub: "Bannières", icon: AlertTriangle, color: "text-red-500", bg: "bg-red-50", roles: ['super_admin', 'admin', 'redacteur'] },
   ];
 
   const visibleStats = stats.filter(s => role && s.roles.includes(role));

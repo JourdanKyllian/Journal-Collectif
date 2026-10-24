@@ -1,14 +1,5 @@
 /**
  * Interface représentant un article du journal municipal.
- * 
- * @interface Article
- * @property {string} id - Identifiant unique de l'article.
- * @property {string} title - Titre de l'article.
- * @property {string} excerpt - Résumé ou court extrait de l'article.
- * @property {string} content - Contenu complet de l'article.
- * @property {string} categorie - Catégorie de l'article.
- * @property {string} publishedAt - Date de publication.
- * @property {string} readTime - Temps de lecture estimé.
  */
 export interface Article {
   id: string;
@@ -21,12 +12,26 @@ export interface Article {
 }
 
 /**
+ * Métadonnées de pagination renvoyées par le backend NestJS.
+ */
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+}
+
+/**
+ * Enveloppe générique des listes paginées de l'API.
+ */
+export interface PaginatedResponse<T> {
+  data: T[];
+  meta: PaginationMeta;
+}
+
+/**
  * Interface représentant la structure d'une réponse d'erreur de l'API NestJS.
- * 
- * @interface ApiErrorResponse
- * @property {number} statusCode - Code d'état HTTP de l'erreur.
- * @property {string} message - Message explicatif de l'erreur.
- * @property {string} [error] - Type ou libellé optionnel de l'erreur.
  */
 export interface ApiErrorResponse {
   statusCode: number;
