@@ -13,6 +13,7 @@ import { AuteurArticle } from '../../auteur-article/entities/auteur-article.enti
 import { FavorisCategorie } from '../../favoris-categorie/entities/favoris-categorie.entity/favoris-categorie.entity';
 import { CustomBaseEntity } from '../../common/base/base.entity';
 import { Profile } from '../../profile/entities/profile.entity';
+import { Session } from '../../auth/entities/session.entity';
 
 /**
  * Entité gérant le périmètre d'authentification et les habilitations de l'utilisateur.
@@ -29,12 +30,12 @@ export class Users extends CustomBaseEntity {
   is_phone_verified!: boolean;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  token_auth!: string | null;
-
-  @Column({ type: 'varchar', length: 255, nullable: true })
   token_notification!: string | null;
 
   // --- RELATIONS ---
+
+  @OneToMany(() => Session, (session) => session.user)
+  sessions!: Session[];
 
   @ManyToOne(() => Role, (role) => role.users)
   @JoinColumn({ name: 'role_id' })

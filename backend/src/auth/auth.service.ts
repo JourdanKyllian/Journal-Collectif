@@ -1,89 +1,93 @@
 import {
-  Injectable,
-  UnauthorizedException,
-  ConflictException,
-  NotFoundException,
   BadRequestException,
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, MoreThan, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { Users } from '../users/entities/user.entity';
-import { RegisterDto } from './dto/register.dto';
 import { Role } from '../roles/entities/roles.entity';
+import { Session } from './entities/session.entity';
+import { RegisterDto } from './dto/register.dto';
 import { UpdateSecurityDto } from './dto/update-security.dto';
+import {
+  DUMMY_PASSWORD_HASH,
+  MAX_SESSIONS_PER_USER,
+  REVOKED_RETENTION_MS,
+  ROTATION_GRACE_MS,
+  sessionTtls,
+} from './auth.constants';
+import {
+  generateRefreshToken,
+  generateSecret,
+  formatRefreshToken,
+  hashSecret,
+  parseRefreshToken,
+  safeEqualHex,
+} from './refresh-token';
+
+/** Contexte de la requête qui ouvre ou renouvelle une session. */
+export interface SessionContext {
+  ip?: string;
+  userAgent?: string;
+  deviceId?: string;
+}
+
+export interface AuthResult {
+  accessToken: string;
+  accessTtlMs: number;
+  /** Absent si la rotation a été ignorée (refresh concurrent dans la fenêtre de grâce). */
+  refreshToken?: string;
+  refreshTtlMs: number;
+  sessionId: string;
+}
 
 /**
- * Service gérant la logique métier liée à l'authentification,
- * aux sessions et aux profils utilisateurs.
+ * Authentification par sessions : un access token JWT court `{ sub, sid }` et un refresh token
+ * opaque `idSession.secret`, rotatif, propre à chaque appareil.
  */
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @InjectRepository(Users)
     private usersRepository: Repository<Users>,
     @InjectRepository(Role)
     private roleRepository: Repository<Role>,
+    @InjectRepository(Session)
+    private sessionRepository: Repository<Session>,
     private jwtService: JwtService,
   ) {}
 
   /**
-   * Retourne la configuration stricte des cookies (HTTPOnly, SameSite, Secure).
+   * Ouvre une session pour un e-mail et un mot de passe valides.
+   * Le temps de réponse est identique que l'e-mail existe ou non.
    */
-  private get cookieOptions() {
-    const isProduction = process.env.NODE_ENV === 'production';
-    return {
-      httpOnly: true,
-      secure: isProduction,
-      // 'none' est obligatoire pour que Vercel puisse envoyer le cookie à Render
-      sameSite: isProduction ? ('none' as const) : ('lax' as const),
-      path: '/',
-    };
-  }
-
-  /**
-   * Authentifie un utilisateur via son email et son mot de passe.
-   *
-   * @param {string} email - L'adresse email de l'utilisateur.
-   * @param {string} pass - Le mot de passe en clair .
-   * @returns {Promise<{ access_token: string; refresh_token: string }>} Les jetons d'accès .
-   * @throws {UnauthorizedException} Si les identifiants sont invalides .
-   */
-  async login(email: string, pass: string) {
+  async login(
+    email: string,
+    pass: string,
+    context: SessionContext = {},
+  ): Promise<AuthResult> {
     const user = await this.usersRepository.findOne({
       where: { email },
       relations: ['role'],
     });
-    if (!user) throw new UnauthorizedException('Identifiants invalides');
 
-    const isMatch = await bcrypt.compare(pass, user.password);
-    if (!isMatch) throw new UnauthorizedException('Identifiants invalides');
+    const isMatch = await bcrypt.compare(
+      pass,
+      user?.password ?? DUMMY_PASSWORD_HASH,
+    );
+    if (!user || !isMatch) {
+      throw new UnauthorizedException('Identifiants invalides');
+    }
 
-    const roleName = user.role?.libelle;
-    const payload = { sub: user.id, email: user.email, role: roleName };
-
-    const isStaff = ['super_admin', 'admin', 'redacteur'].includes(roleName);
-    const accessTokenExpiresIn = isStaff ? '15m' : '1h';
-    const refreshTokenExpiresIn = isStaff ? '8h' : '7d';
-
-    const accessToken = await this.jwtService.signAsync(payload, {
-      expiresIn: accessTokenExpiresIn,
-    });
-    const refreshToken = await this.jwtService.signAsync(payload, {
-      expiresIn: refreshTokenExpiresIn,
-    });
-
-    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
-
-    await this.usersRepository.update(user.id, {
-      token_auth: hashedRefreshToken,
-    });
-
-    return {
-      access_token: accessToken,
-      refresh_token: refreshToken,
-    };
+    return this.openSession(user, context);
   }
 
   /**
@@ -132,79 +136,240 @@ export class AuthService {
   }
 
   /**
-   * Renouvelle les jetons d'authentification à l'aide d'un refresh token .
+   * Renouvelle une session à partir de son refresh token et fait tourner le secret.
    *
-   * @param {string} refreshToken - Le jeton de rafraîchissement .
-   * @returns {Promise<{ access_token: string; refresh_token: string }>} De nouveaux jetons .
+   * - Secret courant → rotation atomique (compare-and-swap) : un seul de deux appels simultanés gagne.
+   * - Secret précédent, dans la fenêtre de grâce → nouvel access token, sans rotation.
+   * - Tout autre secret périmé → rejeu probable d'un token volé : la session est révoquée.
    */
-  async refreshToken(refreshToken: string) {
-    try {
-      const payload = await this.jwtService.verifyAsync<{
-        sub: number;
-        email: string;
-        role: string;
-      }>(refreshToken);
+  async refresh(
+    rawToken: string,
+    context: SessionContext = {},
+  ): Promise<AuthResult> {
+    const parsed = parseRefreshToken(rawToken);
+    if (!parsed) throw this.invalidRefresh();
 
-      const user = await this.usersRepository.findOne({
-        where: { id: payload.sub },
-        relations: ['role'],
-      });
+    const session = await this.findActiveSession(parsed.sessionId);
+    if (!session) throw this.invalidRefresh();
 
-      if (!user || !user.token_auth) {
-        throw new UnauthorizedException('Accès refusé');
+    const presented = hashSecret(parsed.secret);
+
+    if (safeEqualHex(presented, session.refreshTokenHash)) {
+      const now = new Date();
+      const ttl = sessionTtls(session.user.role?.libelle);
+      const secret = generateSecret();
+
+      const swap = await this.sessionRepository.update(
+        {
+          id: session.id,
+          refreshTokenHash: session.refreshTokenHash,
+          revokedAt: IsNull(),
+        },
+        {
+          refreshTokenHash: hashSecret(secret),
+          previousRefreshTokenHash: session.refreshTokenHash,
+          rotatedAt: now,
+          lastUsedAt: now,
+          expiresAt: new Date(now.getTime() + ttl.refreshMs),
+          ipAddress: context.ip ?? session.ipAddress,
+          userAgent: context.userAgent ?? session.userAgent,
+        },
+      );
+
+      if (swap.affected === 1) {
+        return {
+          accessToken: await this.signAccessToken(
+            session.userId,
+            session.id,
+            ttl.accessMs,
+          ),
+          accessTtlMs: ttl.accessMs,
+          refreshToken: formatRefreshToken(session.id, secret),
+          refreshTtlMs: ttl.refreshMs,
+          sessionId: session.id,
+        };
       }
 
-      const isMatch = await bcrypt.compare(refreshToken, user.token_auth);
-      if (!isMatch) {
-        throw new UnauthorizedException('Accès refusé');
-      }
+      // Course perdue contre un refresh concurrent : on retombe sur la fenêtre de grâce.
+      const reloaded = await this.findActiveSession(session.id);
+      if (!reloaded) throw this.invalidRefresh();
+      return this.graceOrReuse(reloaded, presented);
+    }
 
-      const roleName = user.role?.libelle;
-      const newPayload = { sub: user.id, email: user.email, role: roleName };
+    return this.graceOrReuse(session, presented);
+  }
 
-      const isStaff = ['super_admin', 'admin', 'redacteur'].includes(roleName);
-      const accessTokenExpiresIn = isStaff ? '15m' : '1h';
-      const refreshTokenExpiresIn = isStaff ? '8h' : '7d';
+  private async graceOrReuse(
+    session: Session,
+    presentedHash: string,
+  ): Promise<AuthResult> {
+    const now = new Date();
+    const inGrace =
+      session.rotatedAt !== null &&
+      now.getTime() - new Date(session.rotatedAt).getTime() <=
+        ROTATION_GRACE_MS &&
+      safeEqualHex(presentedHash, session.previousRefreshTokenHash);
 
-      const newAccessToken = await this.jwtService.signAsync(newPayload, {
-        expiresIn: accessTokenExpiresIn,
-      });
-      const newRefreshToken = await this.jwtService.signAsync(newPayload, {
-        expiresIn: refreshTokenExpiresIn,
-      });
+    if (!inGrace) {
+      await this.sessionRepository.update(
+        { id: session.id },
+        { revokedAt: now },
+      );
+      this.logger.warn(
+        `Refresh token rejoué : session ${session.id} révoquée (utilisateur ${session.userId}).`,
+      );
+      throw this.invalidRefresh();
+    }
 
-      const hashedRefreshToken = await bcrypt.hash(newRefreshToken, 10);
-      await this.usersRepository.update(user.id, {
-        token_auth: hashedRefreshToken,
-      });
+    const ttl = sessionTtls(session.user.role?.libelle);
+    await this.sessionRepository.update(
+      { id: session.id },
+      { lastUsedAt: now },
+    );
+    return {
+      accessToken: await this.signAccessToken(
+        session.userId,
+        session.id,
+        ttl.accessMs,
+      ),
+      accessTtlMs: ttl.accessMs,
+      refreshTtlMs: ttl.refreshMs,
+      sessionId: session.id,
+    };
+  }
 
-      return {
-        access_token: newAccessToken,
-        refresh_token: newRefreshToken,
-      };
-    } catch {
-      throw new UnauthorizedException(
-        'Refresh token invalide ou expiré. Veuillez vous reconnecter.',
+  /** Révoque une session. Idempotent. */
+  async logout(sessionId: string): Promise<void> {
+    await this.sessionRepository.update(
+      { id: sessionId, revokedAt: IsNull() },
+      { revokedAt: new Date() },
+    );
+  }
+
+  /**
+   * Déconnexion quand l'access token a déjà expiré : le refresh token prouve la possession
+   * de la session. Un secret invalide ne révoque rien.
+   */
+  async logoutWithRefreshToken(rawToken: string): Promise<void> {
+    const parsed = parseRefreshToken(rawToken);
+    if (!parsed) return;
+
+    const session = await this.sessionRepository.findOne({
+      where: { id: parsed.sessionId },
+    });
+    if (!session) return;
+
+    const presented = hashSecret(parsed.secret);
+    if (
+      safeEqualHex(presented, session.refreshTokenHash) ||
+      safeEqualHex(presented, session.previousRefreshTokenHash)
+    ) {
+      await this.logout(session.id);
+    }
+  }
+
+  /** Révoque toutes les sessions d'un utilisateur sauf, éventuellement, la courante. */
+  async revokeOtherSessions(
+    userId: number,
+    exceptSessionId?: string,
+  ): Promise<void> {
+    const qb = this.sessionRepository
+      .createQueryBuilder()
+      .update()
+      .set({ revokedAt: new Date() })
+      .where('user_id = :userId AND revoked_at IS NULL', { userId });
+    if (exceptSessionId)
+      qb.andWhere('id != :exceptSessionId', { exceptSessionId });
+    await qb.execute();
+  }
+
+  private invalidRefresh(): UnauthorizedException {
+    return new UnauthorizedException(
+      'Refresh token invalide ou expiré. Veuillez vous reconnecter.',
+    );
+  }
+
+  private findActiveSession(id: string): Promise<Session | null> {
+    return this.sessionRepository
+      .findOne({ where: { id }, relations: ['user', 'user.role'] })
+      .then((session) =>
+        session &&
+        session.user &&
+        !session.revokedAt &&
+        new Date(session.expiresAt).getTime() > Date.now()
+          ? session
+          : null,
+      );
+  }
+
+  private async openSession(
+    user: Users,
+    context: SessionContext,
+  ): Promise<AuthResult> {
+    const ttl = sessionTtls(user.role?.libelle);
+    const { sessionId, secret, token } = generateRefreshToken();
+    const now = new Date();
+
+    await this.pruneSessions(user.id, now);
+    await this.sessionRepository.save(
+      this.sessionRepository.create({
+        id: sessionId,
+        userId: user.id,
+        refreshTokenHash: hashSecret(secret),
+        previousRefreshTokenHash: null,
+        rotatedAt: null,
+        deviceIdentifier: context.deviceId ?? null,
+        userAgent: context.userAgent ?? null,
+        ipAddress: context.ip ?? null,
+        lastUsedAt: now,
+        expiresAt: new Date(now.getTime() + ttl.refreshMs),
+        revokedAt: null,
+      }),
+    );
+
+    return {
+      accessToken: await this.signAccessToken(user.id, sessionId, ttl.accessMs),
+      accessTtlMs: ttl.accessMs,
+      refreshToken: token,
+      refreshTtlMs: ttl.refreshMs,
+      sessionId,
+    };
+  }
+
+  /** Purge les sessions mortes et plafonne le nombre d'appareils actifs (les plus anciens sautent). */
+  private async pruneSessions(userId: number, now: Date): Promise<void> {
+    await this.sessionRepository
+      .createQueryBuilder()
+      .delete()
+      .where('user_id = :userId', { userId })
+      .andWhere('(expires_at < :now OR revoked_at < :cutoff)', {
+        now,
+        cutoff: new Date(now.getTime() - REVOKED_RETENTION_MS),
+      })
+      .execute();
+
+    const active = await this.sessionRepository.find({
+      where: { userId, revokedAt: IsNull(), expiresAt: MoreThan(now) },
+      order: { lastUsedAt: 'ASC' },
+      select: ['id'],
+    });
+    const excess = active.length - (MAX_SESSIONS_PER_USER - 1);
+    if (excess > 0) {
+      await this.sessionRepository.delete(
+        active.slice(0, excess).map((session) => session.id),
       );
     }
   }
 
-  /**
-   * Déconnecte l'utilisateur en invalidant son jeton en base .
-   *
-   * @param {number} userId - L'identifiant de l'utilisateur .
-   * @returns {Promise<object>} Un message de confirmation .
-   */
-  async logout(userId: number) {
-    await this.usersRepository.update(userId, {
-      token_auth: null,
-    });
-
-    return {
-      message: 'Déconnexion réussie.',
-      instruction:
-        'Le frontend doit maintenant supprimer les tokens de son stockage local.',
-    };
+  private signAccessToken(
+    userId: number,
+    sessionId: string,
+    ttlMs: number,
+  ): Promise<string> {
+    return this.jwtService.signAsync(
+      { sub: userId, sid: sessionId },
+      { expiresIn: Math.floor(ttlMs / 1000) },
+    );
   }
 
   /**
@@ -243,7 +408,11 @@ export class AuthService {
    * @param {UpdateSecurityDto} dto - Le DTO contenant le mot de passe actuel et les modifications .
    * @returns {Promise<object>} Un message de succès .
    */
-  async updateSecurity(userId: number, dto: UpdateSecurityDto) {
+  async updateSecurity(
+    userId: number,
+    dto: UpdateSecurityDto,
+    currentSessionId?: string,
+  ) {
     const user = await this.usersRepository.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('Utilisateur introuvable.');
 
@@ -272,6 +441,11 @@ export class AuthService {
 
     if (hasChanges) {
       await this.usersRepository.save(user);
+    }
+
+    // Un mot de passe qui change doit couper les autres appareils (mot de passe compromis).
+    if (dto.newPassword) {
+      await this.revokeOtherSessions(userId, currentSessionId);
     }
 
     return { message: 'Paramètres de sécurité mis à jour avec succès.' };

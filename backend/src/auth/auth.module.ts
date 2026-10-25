@@ -1,14 +1,21 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { PassportModule } from '@nestjs/passport';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { Users } from 'src/users/entities/user.entity';
 import { JwtStrategy } from './jwt.strategy';
-import { PassportModule } from '@nestjs/passport';
-import { Role } from 'src/roles/entities/roles.entity';
+import { authThrottlerOptions } from './auth.throttle';
+import { Users } from '../users/entities/user.entity';
+import { Role } from '../roles/entities/roles.entity';
+import { Session } from './entities/session.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Users, Role]), PassportModule],
+  imports: [
+    TypeOrmModule.forFeature([Users, Role, Session]),
+    PassportModule,
+    ThrottlerModule.forRootAsync({ useFactory: authThrottlerOptions }),
+  ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],
 })

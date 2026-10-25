@@ -10,15 +10,17 @@
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.20",
-    "@tiptap/extension-image": "^3.29.2",
-    "@tiptap/extension-link": "^3.29.2",
-    "@tiptap/react": "^3.29.2",
-    "@tiptap/starter-kit": "^3.29.2",
+    "@tiptap/core": "^3.30.5",
+    "@tiptap/extension-image": "^3.30.5",
+    "@tiptap/extension-link": "^3.30.5",
+    "@tiptap/pm": "^3.30.5",
+    "@tiptap/react": "^3.30.5",
+    "@tiptap/starter-kit": "^3.30.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "jwt-decode": "^4.0.0",
     "lucide-react": "^1.8.0",
-    "next": "16.2.4",
+    "next": "^16.4.3",
     "radix-ui": "^1.4.3",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -34,8 +36,13 @@
     "@types/react-dom": "^19",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
-    "eslint-config-next": "16.2.4",
+    "eslint-config-next": "^16.4.3",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "postcss-selector-parser": "^7.1.6",
+    "@tiptap/core": "^3.30.5",
+    "@tiptap/pm": "^3.30.5"
   }
 }

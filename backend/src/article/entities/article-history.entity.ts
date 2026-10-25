@@ -31,14 +31,20 @@ export class ArticleHistory {
   articleId!: number;
 
   @ManyToOne(() => Article, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'article_id' })
+  @JoinColumn({
+    name: 'article_id',
+    foreignKeyConstraintName: 'FK_article_history_article',
+  })
   article!: Article;
 
   @Column({ name: 'user_id', type: 'int', nullable: true })
   userId!: number | null;
 
   @ManyToOne(() => Users, { onDelete: 'SET NULL', nullable: true })
-  @JoinColumn({ name: 'user_id' })
+  @JoinColumn({
+    name: 'user_id',
+    foreignKeyConstraintName: 'FK_article_history_user',
+  })
   user!: Users | null;
 
   @Column({ type: 'varchar', length: 40 })

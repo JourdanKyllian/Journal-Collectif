@@ -2,6 +2,7 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
@@ -21,6 +22,10 @@ export enum RevisionStatus {
  * inchangé, jusqu'à ce qu'un admin applique la révision. Une seule révision `en_cours` par article.
  */
 @Entity('article_revision')
+@Index('UQ_article_revision_open', ['articleId'], {
+  unique: true,
+  where: `"status" = 'en_cours'`,
+})
 export class ArticleRevision {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -29,14 +34,20 @@ export class ArticleRevision {
   articleId!: number;
 
   @ManyToOne(() => Article, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'article_id' })
+  @JoinColumn({
+    name: 'article_id',
+    foreignKeyConstraintName: 'FK_article_revision_article',
+  })
   article!: Article;
 
   @Column({ name: 'author_id', type: 'int', nullable: true })
   authorId!: number | null;
 
   @ManyToOne(() => Users, { onDelete: 'SET NULL', nullable: true })
-  @JoinColumn({ name: 'author_id' })
+  @JoinColumn({
+    name: 'author_id',
+    foreignKeyConstraintName: 'FK_article_revision_author',
+  })
   author!: Users | null;
 
   @Column({ type: 'varchar', length: 255 })

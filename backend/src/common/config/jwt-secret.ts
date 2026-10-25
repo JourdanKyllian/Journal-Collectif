@@ -1,3 +1,5 @@
+import 'dotenv/config';
+
 /**
  * Secret de signature des JWT. Aucune valeur de repli : un secret par défaut
  * connu permettrait à n'importe qui de forger des tokens.

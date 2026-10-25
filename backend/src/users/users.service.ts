@@ -18,10 +18,10 @@ import {
   toSkipTake,
 } from '../common/pagination/pagination';
 
-/** Retire du résultat tout ce qui est secret : mot de passe haché et jeton de rafraîchissement haché. */
+/** Retire du résultat le mot de passe haché. */
 function toPublicUser(user: Users) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { password, token_auth, ...safe } = user;
+  const { password, ...safe } = user;
   return safe;
 }
 
