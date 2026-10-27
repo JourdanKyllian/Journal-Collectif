@@ -1,34 +1,64 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "Journal Collectif",
+    "slug": "journal-collectif-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
-    "userInterfaceStyle": "automatic",
+    "scheme": "journalcollectif",
+    "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "bundleIdentifier": "com.kylliandev.journalmobile",
+      "icon": "./assets/expo.icon",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Journal Collectif utilise votre appareil photo pour illustrer vos propositions d'articles et déclarations d'objets perdus.",
+        "NSPhotoLibraryUsageDescription": "Journal Collectif accède à votre galerie pour joindre une photo à votre publication."
+      }
     },
     "android": {
+      "package": "com.kylliandev.journalmobile",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#0B1C10",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
-    },
-    "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.POST_NOTIFICATIONS"
+      ]
     },
     "plugins": [
       "expo-router",
       [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "17.0",
+            "enableSceneSupport": true
+          }
+        }
+      ],
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permet de joindre une photo à un article ou un objet perdu.",
+          "cameraPermission": "Permet de prendre une photo en direct depuis l'application."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#0B1C10"
+        }
+      ],
+      [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
+          "backgroundColor": "#0B1C10",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
