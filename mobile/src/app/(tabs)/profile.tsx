@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Alert, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { UserCheck, LogIn, Globe, BellRing } from 'lucide-react-native';
 import * as Notifications from 'expo-notifications';
 import { COLORS, FONTS } from '@/theme/tokens';
 import { TenantStorage } from '@/lib/api';
+import PageHeader from '@/components/navigation/PageHeader';
 
 export default function ProfileScreen() {
   const [tenant, setTenant] = useState('collectif-chalonnais');
@@ -28,13 +29,16 @@ export default function ProfileScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Espace Citoyen</Text>
-        <Text style={styles.subtitle}>Authentification Bearer & Multi-Tenant</Text>
-      </View>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
+      <PageHeader 
+        title="Espace Citoyen" 
+        subtitle="Authentification Bearer & Multi-Tenant" 
+      />
 
-      <View style={styles.content}>
+      <ScrollView 
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.profileCard}>
           <View style={styles.avatar}>
             <UserCheck size={28} color={COLORS.or} />
@@ -68,20 +72,17 @@ export default function ProfileScreen() {
         <Pressable onPress={triggerInstantNotification} style={styles.demoBtn}>
           <BellRing size={18} color={COLORS.or} />
           <Text style={styles.demoBtnText}>
-            Tester une notification immédiate (ou réduisez l&apos;app 5s)
+            Tester une notification immédiate (ou réduisez l'app 5s)
           </Text>
         </Pressable>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.blanc },
-  header: { backgroundColor: COLORS.vert, padding: 20 },
-  title: { fontFamily: FONTS.heading, fontSize: 24, color: COLORS.or },
-  subtitle: { fontFamily: FONTS.body, fontSize: 13, color: COLORS.blanc, marginTop: 4 },
-  content: { padding: 20 },
+  content: { padding: 20, paddingBottom: 120 },
   profileCard: {
     backgroundColor: COLORS.vert,
     padding: 18,

@@ -5,6 +5,7 @@ import { Bell } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { COLORS, FONTS } from '@/theme/tokens';
 import { MOCK_CATEGORIES } from '@/lib/mock-data';
+import PageHeader from '@/components/navigation/PageHeader';
 
 export default function CategoriesScreen() {
   const [subscribedIds, setSubscribedIds] = useState<number[]>([1]);
@@ -18,16 +19,17 @@ export default function CategoriesScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Catégories</Text>
-        <Text style={styles.subtitle}>Abonnez-vous aux alertes push par thématique</Text>
-      </View>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
+      <PageHeader 
+        title="Catégories" 
+        subtitle="Abonnez-vous aux alertes push par thématique" 
+      />
 
       <FlatList
         data={MOCK_CATEGORIES.filter((c) => c.id !== 0)}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
         renderItem={({ item }) => {
           const isSub = subscribedIds.includes(item.id);
           return (
@@ -56,10 +58,7 @@ export default function CategoriesScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.blanc },
-  header: { backgroundColor: COLORS.vert, padding: 20 },
-  title: { fontFamily: FONTS.heading, fontSize: 24, color: COLORS.or },
-  subtitle: { fontFamily: FONTS.body, fontSize: 13, color: COLORS.blanc, marginTop: 4 },
-  list: { padding: 20, gap: 14 },
+  list: { padding: 20, gap: 14, paddingBottom: 120 },
   card: {
     backgroundColor: COLORS.surface,
     padding: 16,

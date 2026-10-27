@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import { MapPin, Calendar, Plus } from 'lucide-react-native';
+import { MapPin, Calendar } from 'lucide-react-native';
 import { COLORS, FONTS } from '@/theme/tokens';
 import { MOCK_LOST_OBJECTS } from '@/lib/mock-data';
+import PageHeader from '@/components/navigation/PageHeader';
 
 export default function LostObjectsScreen() {
   const [filter, setFilter] = useState<'all' | 'perdu' | 'trouve'>('all');
@@ -15,11 +15,11 @@ export default function LostObjectsScreen() {
       : MOCK_LOST_OBJECTS.filter((o) => o.status === filter);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Objets Perdus</Text>
-        <Text style={styles.subtitle}>Entraide citoyenne dans la commune</Text>
-      </View>
+    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
+      <PageHeader 
+        title="Objets Perdus" 
+        subtitle="Entraide citoyenne dans la commune" 
+      />
 
       <View style={styles.filterRow}>
         {(['all', 'perdu', 'trouve'] as const).map((status) => (
@@ -39,6 +39,7 @@ export default function LostObjectsScreen() {
         data={data}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
           <View style={styles.card}>
             <View style={styles.cardTop}>
@@ -62,20 +63,12 @@ export default function LostObjectsScreen() {
           </View>
         )}
       />
-
-      <Pressable onPress={() => router.push('/modals/submit')} style={styles.fab}>
-        <Plus size={20} color={COLORS.noir} />
-        <Text style={styles.fabText}>Déclarer un objet</Text>
-      </Pressable>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.blanc },
-  header: { backgroundColor: COLORS.vert, padding: 20 },
-  title: { fontFamily: FONTS.heading, fontSize: 24, color: COLORS.or },
-  subtitle: { fontFamily: FONTS.body, fontSize: 13, color: COLORS.blanc, marginTop: 4 },
   filterRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, paddingTop: 16 },
   pill: {
     paddingHorizontal: 16,
@@ -86,7 +79,7 @@ const styles = StyleSheet.create({
   pillActive: { backgroundColor: COLORS.or },
   pillText: { fontFamily: FONTS.bodyBold, fontSize: 12, color: COLORS.champagne },
   pillTextActive: { color: COLORS.noir },
-  list: { padding: 20, gap: 14, paddingBottom: 100 },
+  list: { padding: 20, gap: 14, paddingBottom: 120 },
   card: {
     backgroundColor: COLORS.surface,
     padding: 16,
@@ -106,17 +99,4 @@ const styles = StyleSheet.create({
   objTitle: { fontFamily: FONTS.bodyBold, fontSize: 16, color: COLORS.noir, marginBottom: 10 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   metaText: { fontFamily: FONTS.body, fontSize: 12, color: COLORS.champagne },
-  fab: {
-    position: 'absolute',
-    bottom: 20,
-    right: 20,
-    backgroundColor: COLORS.or,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    borderRadius: 99,
-  },
-  fabText: { fontFamily: FONTS.bodyBold, fontSize: 13, color: COLORS.noir },
 });
