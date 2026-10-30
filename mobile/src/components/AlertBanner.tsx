@@ -36,7 +36,7 @@ export default function AlertBanner({ alerts }: AlertBannerProps) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [dismissed, setDismissed] = useState(false);
   const [containerWidth, setContainerWidth] = useState(0);
-  const [textWidth, setTextWidth] = useState(0);
+  const [measuredWidths, setMeasuredWidths] = useState<Record<number, number>>({});
 
   const translateX = useSharedValue(0);
 
@@ -87,10 +87,13 @@ export default function AlertBanner({ alerts }: AlertBannerProps) {
     setUnderBg(prevBg);
   }
 
+  // Largeur réelle du texte de l'alerte en cours
+  const textWidth = alert ? measuredWidths[alert.id] || 0 : 0;
+
   // Calcul dynamique de la distance et de la durée de défilement
   const scrollDistance =
     containerWidth > 0 && textWidth > containerWidth
-      ? Math.round(textWidth - containerWidth + 28)
+      ? Math.round(textWidth - containerWidth + 32)
       : 0;
 
   const scrollDuration =
@@ -217,25 +220,27 @@ export default function AlertBanner({ alerts }: AlertBannerProps) {
         </Text>
       </Animated.View>
 
-      {/* Mesure de la largeur réelle du texte hors-champ (sans tronquage) */}
+      {/* Mesure hors-champ de la largeur réelle complète du texte (sans troncature) */}
       <View
-        key={`measure-${currentIdx}-${alert.id}`}
+        key={`measure-${alert.id}`}
         style={styles.measureBox}
         pointerEvents="none"
       >
         <Text
           onLayout={(e) => {
-            setTextWidth(e.nativeEvent.layout.width);
+            const width = Math.ceil(e.nativeEvent.layout.width);
+            if (width > 0 && measuredWidths[alert.id] !== width) {
+              setMeasuredWidths((prev) => ({ ...prev, [alert.id]: width }));
+            }
           }}
           style={[styles.text, styles.measureText]}
-          numberOfLines={1}
         >
           <Text style={styles.titleText}>{alert.title} — </Text>
           {alert.message}
         </Text>
       </View>
 
-      {/* Slot du message avec défilement fluide et masquage des bords */}
+      {/* Slot du message avec masquage des débordements et défilement complet */}
       <View
         style={styles.messageSlot}
         onLayout={(e) => {
@@ -248,11 +253,14 @@ export default function AlertBanner({ alerts }: AlertBannerProps) {
           exiting={FadeOutUp.duration(280).easing(Easing.in(Easing.quad))}
           style={styles.animatedMessageInner}
         >
-          <Animated.View style={[styles.textRow, animatedTextStyle]}>
-            <Text
-              style={[styles.text, { color: config.textColor }]}
-              numberOfLines={1}
-            >
+          <Animated.View
+            style={[
+              styles.textRow,
+              textWidth > 0 ? { minWidth: textWidth + 16 } : null,
+              animatedTextStyle,
+            ]}
+          >
+            <Text style={[styles.text, { color: config.textColor }]}>
               <Text style={styles.titleText}>{alert.title} — </Text>
               {alert.message}
             </Text>
@@ -346,7 +354,8 @@ const styles = StyleSheet.create({
     left: 0,
     opacity: 0,
     flexDirection: 'row',
-    alignSelf: 'flex-start',
+    alignItems: 'center',
+    flexWrap: 'nowrap',
   },
   measureText: {
     flexShrink: 0,
@@ -360,18 +369,22 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   animatedMessageInner: {
-    ...StyleSheet.absoluteFill,
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
     justifyContent: 'center',
   },
   textRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
+    flexWrap: 'nowrap',
     flexShrink: 0,
   },
   text: {
     fontFamily: FONTS.body,
     fontSize: 12,
+    flexShrink: 0,
   },
   titleText: {
     fontFamily: FONTS.bodyBold,
