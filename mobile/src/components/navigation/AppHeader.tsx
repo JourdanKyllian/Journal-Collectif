@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Platform, ScrollView } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -10,6 +10,8 @@ import {
   ChevronDown,
   LayoutDashboard,
   ShieldCheck,
+  Star,
+  Plus,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import Toast from 'react-native-toast-message';
@@ -29,7 +31,7 @@ export default function AppHeader({
   pageContextTitle,
   onDashboardPress,
 }: AppHeaderProps) {
-  const { currentCity } = useCity();
+  const { currentCity, followedCities, selectCity, isPrimary } = useCity();
   const { user } = useAuth();
   const [isCitySheetOpen, setIsCitySheetOpen] = useState(false);
 
@@ -54,6 +56,14 @@ export default function AppHeader({
     setIsCitySheetOpen(true);
   };
 
+  const handleQuickSwitch = async (slug: string) => {
+    if (slug === currentCity.slug) return;
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    await selectCity(slug);
+  };
+
   const isStaffMember =
     user?.is_platform_admin === true ||
     user?.role === 'admin' ||
@@ -74,6 +84,8 @@ export default function AppHeader({
       });
     }
   };
+
+  const isCurrentPrimary = isPrimary(currentCity.slug);
 
   return (
     <>
@@ -98,8 +110,13 @@ export default function AppHeader({
               <Text style={styles.brandPreTitle}>
                 {pageContextTitle
                   ? `ÉDITION • ${pageContextTitle.toUpperCase()}`
-                  : `JOURNAL LOCAL • ${currentCity.department.toUpperCase()}`}
+                  : `ÉDITION LOCALE • ${currentCity.shortName.toUpperCase()}`}
               </Text>
+              {isCurrentPrimary && (
+                <View style={styles.primaryIndicator}>
+                  <Star size={9} color={COLORS.or} fill={COLORS.or} />
+                </View>
+              )}
             </View>
 
             <View style={styles.brandTitleRow}>
@@ -146,6 +163,59 @@ export default function AppHeader({
           )}
         </View>
       </View>
+
+      {/* Raccourci rapide d'éditions : visible si l'utilisateur suit au moins 2 journaux */}
+      {followedCities.length > 1 && (
+        <View style={styles.quickBarContainer}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.quickBarContent}
+          >
+            {followedCities.map((city) => {
+              const isSelected = city.slug === currentCity.slug;
+              const isCityPrimary = isPrimary(city.slug);
+
+              return (
+                <Pressable
+                  key={city.slug}
+                  onPress={() => handleQuickSwitch(city.slug)}
+                  style={[
+                    styles.quickPill,
+                    isSelected && styles.quickPillSelected,
+                  ]}
+                  hitSlop={{ top: 4, bottom: 4 }}
+                >
+                  {isCityPrimary && (
+                    <Star
+                      size={9}
+                      color={isSelected ? COLORS.blanc : COLORS.or}
+                      fill={isSelected ? COLORS.blanc : COLORS.or}
+                    />
+                  )}
+                  <Text
+                    style={[
+                      styles.quickPillText,
+                      isSelected && styles.quickPillTextSelected,
+                    ]}
+                  >
+                    {city.shortName}
+                  </Text>
+                </Pressable>
+              );
+            })}
+
+            <Pressable
+              onPress={handleCityPress}
+              style={styles.quickAddBtn}
+              hitSlop={{ top: 4, bottom: 4 }}
+            >
+              <Plus size={12} color={COLORS.champagne} />
+              <Text style={styles.quickAddText}>Éditions</Text>
+            </Pressable>
+          </ScrollView>
+        </View>
+      )}
 
       {/* Feuille de sélection de commune intégrée et accessible partout */}
       <CitySelectorSheet
@@ -199,73 +269,124 @@ const styles = StyleSheet.create({
   preTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
+    marginBottom: 2,
   },
   brandPreTitle: {
     fontFamily: FONTS.bodyBold,
-    fontSize: 9,
-    color: COLORS.champagne,
+    fontSize: 9.5,
+    color: COLORS.or,
     letterSpacing: 0.8,
+  },
+  primaryIndicator: {
+    paddingHorizontal: 3,
   },
   brandTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginTop: 1,
   },
   journalTitle: {
     fontFamily: FONTS.headingBold,
-    fontSize: 17,
+    fontSize: 16,
     color: COLORS.noir,
-    letterSpacing: -0.4,
-    flexShrink: 1,
+    letterSpacing: -0.3,
   },
   chevronWrapper: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: 'rgba(11, 28, 16, 0.06)',
+    width: 18,
+    height: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
   rightActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 8,
   },
   dashboardPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     backgroundColor: COLORS.vert,
+    paddingVertical: 6,
     paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
+    borderRadius: 20,
     shadowColor: COLORS.vert,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.16,
+    shadowOpacity: 0.2,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 3,
   },
   dashboardPillText: {
     fontFamily: FONTS.bodyBold,
-    fontSize: 12,
+    fontSize: 11.5,
     color: COLORS.blanc,
-    letterSpacing: -0.2,
+    letterSpacing: 0.2,
   },
   postalCapsule: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(11, 28, 16, 0.06)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 99,
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 12,
+    backgroundColor: 'rgba(142, 134, 113, 0.14)',
   },
   postalText: {
-    fontFamily: FONTS.bodyBold,
+    fontFamily: FONTS.bodySemiBold,
     fontSize: 11,
     color: COLORS.vert,
-    letterSpacing: 0.5,
+  },
+  quickBarContainer: {
+    backgroundColor: COLORS.blanc,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(142, 134, 113, 0.08)',
+    paddingVertical: 6,
+  },
+  quickBarContent: {
+    paddingHorizontal: 18,
+    alignItems: 'center',
+    gap: 6,
+  },
+  quickPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 11,
+    paddingVertical: 4.5,
+    borderRadius: 20,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: 'rgba(142, 134, 113, 0.16)',
+  },
+  quickPillSelected: {
+    backgroundColor: COLORS.vert,
+    borderColor: COLORS.vert,
+  },
+  quickPillText: {
+    fontFamily: FONTS.bodySemiBold,
+    fontSize: 11.5,
+    color: COLORS.champagne,
+  },
+  quickPillTextSelected: {
+    fontFamily: FONTS.bodyBold,
+    color: COLORS.blanc,
+  },
+  quickAddBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 9,
+    paddingVertical: 4.5,
+    borderRadius: 20,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: 'rgba(142, 134, 113, 0.2)',
+    borderStyle: 'dashed',
+  },
+  quickAddText: {
+    fontFamily: FONTS.body,
+    fontSize: 11,
+    color: COLORS.champagne,
   },
 });
-

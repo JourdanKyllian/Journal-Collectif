@@ -1,5 +1,12 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { apiClient, TenantStorage } from '@/lib/api';
+import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
+import {
+  apiClient,
+  TenantStorage,
+  TerritoryStorage,
+  StoredTerritoryPreferences,
+} from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
+import Toast from 'react-native-toast-message';
 
 export interface City {
   slug: string;
@@ -9,6 +16,8 @@ export interface City {
   department: string;
   tagline: string;
   isPopular?: boolean;
+  typeJournal?: string;
+  nomJournal?: string;
 }
 
 export const CITIES: City[] = [
@@ -20,6 +29,8 @@ export const CITIES: City[] = [
     department: 'Marne (51)',
     tagline: 'Préfecture & Cité historique',
     isPopular: true,
+    typeJournal: 'Journal associatif indépendant',
+    nomJournal: 'Collectif Chalonnais',
   },
   {
     slug: 'chateau-thierry',
@@ -29,6 +40,8 @@ export const CITIES: City[] = [
     department: 'Aisne (02)',
     tagline: 'Cité des Fables & Portes de Champagne',
     isPopular: true,
+    typeJournal: 'Journal territorial citoyen',
+    nomJournal: 'Le Courrier Castel',
   },
   {
     slug: 'mairie-epernay',
@@ -37,6 +50,9 @@ export const CITIES: City[] = [
     postalCode: '51200',
     department: 'Marne (51)',
     tagline: 'Capitale du Champagne',
+    isPopular: true,
+    typeJournal: 'Journal municipal & associatif',
+    nomJournal: 'Épernay Actu',
   },
   {
     slug: 'vitry-le-francois',
@@ -45,6 +61,8 @@ export const CITIES: City[] = [
     postalCode: '51300',
     department: 'Marne (51)',
     tagline: 'Porte du Lac du Der',
+    typeJournal: 'Journal local participatif',
+    nomJournal: 'Vitry Ensemble',
   },
 ];
 
@@ -69,35 +87,95 @@ interface ApiJournalDirectoryResponse {
   data: ApiJournal[];
 }
 
-interface CityContextType {
+export interface CityContextType {
+  /** Ville / Journal actif (en-tête X-Journal pour les requêtes) */
   currentCity: City;
+  /** Tous les journaux disponibles dans le réseau */
   cities: City[];
+  /** Liste des journaux suivis par l'utilisateur */
+  followedCities: City[];
+  /** Slugs des journaux suivis */
+  followedSlugs: string[];
+  /** Slug du journal principal d'attache */
+  primarySlug: string;
+  /** Savoir si un journal est suivi */
+  isFollowed: (slug: string) => boolean;
+  /** Savoir si un journal est le principal */
+  isPrimary: (slug: string) => boolean;
+  /** Changer d'édition active dans l'application */
   selectCity: (slug: string) => Promise<void>;
+  /** Ajouter / retirer un journal de ses préférences suivies */
+  toggleFollowCity: (slug: string) => Promise<void>;
+  /** Définir une édition comme journal principal */
+  setPrimaryCity: (slug: string) => Promise<void>;
+  /** Activer ou désactiver les alertes pour un journal */
+  toggleAlertsForCity: (slug: string) => Promise<void>;
+  /** Vérifier si les alertes sont actives pour un journal */
+  hasAlertsEnabled: (slug: string) => boolean;
+  /** Recherche multi-critères dans les éditions disponibles */
+  searchCities: (query: string) => City[];
+  /** Rafraîchir les journaux et le tenant */
   refreshTenant: () => Promise<void>;
   isLoading: boolean;
 }
 
 const CityContext = createContext<CityContextType | undefined>(undefined);
 
+const DEFAULT_PREFS: StoredTerritoryPreferences = {
+  followedSlugs: ['collectif-chalonnais'],
+  primarySlug: 'collectif-chalonnais',
+  alertsBySlug: { 'collectif-chalonnais': true },
+};
+
 export function CityProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [citiesList, setCitiesList] = useState<City[]>(CITIES);
   const [currentCity, setCurrentCity] = useState<City>(CITIES[0]);
+  const [followedSlugs, setFollowedSlugs] = useState<string[]>(DEFAULT_PREFS.followedSlugs);
+  const [primarySlug, setPrimarySlug] = useState<string>(DEFAULT_PREFS.primarySlug);
+  const [alertsBySlug, setAlertsBySlug] = useState<Record<string, boolean>>(DEFAULT_PREFS.alertsBySlug);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  // 1. Initialisation des journaux distants + préférences utilisateur
   useEffect(() => {
     let isMounted = true;
 
-    async function initCityAndJournals() {
+    async function initTerritory() {
       try {
-        const savedSlug = await TenantStorage.getTenant();
-        if (!isMounted) return;
-        const matched = CITIES.find((c) => c.slug === savedSlug);
-        if (matched) {
-          setCurrentCity(matched);
+        // A. Chargement des préférences utilisateur spécifiques (ou invité)
+        const userPrefs = await TerritoryStorage.getPreferences(user?.id);
+        const prefs = userPrefs ?? DEFAULT_PREFS;
+
+        let activeFollowed = prefs.followedSlugs.length > 0 ? prefs.followedSlugs : ['collectif-chalonnais'];
+        let activePrimary = prefs.primarySlug || activeFollowed[0];
+        const activeAlerts = prefs.alertsBySlug || {};
+
+        // Si membre d'équipe (admin/redacteur), son journal assigné est prioritaire
+        if (user?.journal?.slug) {
+          if (!activeFollowed.includes(user.journal.slug)) {
+            activeFollowed = [user.journal.slug, ...activeFollowed];
+          }
+          activePrimary = user.journal.slug;
         }
 
+        if (isMounted) {
+          setFollowedSlugs(activeFollowed);
+          setPrimarySlug(activePrimary);
+          setAlertsBySlug(activeAlerts);
+        }
+
+        // B. Résolution du tenant actif sauvegardé (ou repli sur l'édition principale)
+        const savedSlug = await TenantStorage.getTenant();
+        const initialSlug = savedSlug || activePrimary;
+        const initialMatch = CITIES.find((c) => c.slug === initialSlug) || CITIES[0];
+        if (isMounted) {
+          setCurrentCity(initialMatch);
+        }
+
+        // C. Récupération de l'annuaire complet des journaux depuis l'API
         const response = await apiClient<ApiJournalDirectoryResponse | ApiJournal[]>('/journals');
         if (!isMounted) return;
+
         const journals = Array.isArray(response)
           ? response
           : response?.data && Array.isArray(response.data)
@@ -116,9 +194,12 @@ export function CityProvider({ children }: { children: ReactNode }) {
               department: localMatch?.department || 'Région Grand Est',
               tagline: localMatch?.tagline || `${j.type_journal || 'Journal'} d'information locale`,
               isPopular: localMatch?.isPopular ?? false,
+              typeJournal: j.type_journal || localMatch?.typeJournal || 'Édition locale',
+              nomJournal: j.nom_journal || localMatch?.nomJournal || j.nom_ville,
             };
           });
 
+          // Fusion avec les villes locales
           const merged = [...remoteCities];
           for (const local of CITIES) {
             if (!merged.some((m) => m.slug === local.slug)) {
@@ -126,9 +207,15 @@ export function CityProvider({ children }: { children: ReactNode }) {
             }
           }
           setCitiesList(merged);
+
+          // Actualisation de l'objet ville active avec les métadonnées distantes
+          const updatedActive = merged.find((c) => c.slug === initialSlug);
+          if (updatedActive) {
+            setCurrentCity(updatedActive);
+          }
         }
       } catch {
-        // Fallback silencieux sur villes locales
+        // Fallback silencieux sur les données locales
       } finally {
         if (isMounted) {
           setIsLoading(false);
@@ -136,18 +223,163 @@ export function CityProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    initCityAndJournals();
+    initTerritory();
 
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [user?.id, user?.journal?.slug]);
 
+  // Sauvegarde persistante des préférences
+  const persistPreferences = async (
+    nextFollowed: string[],
+    nextPrimary: string,
+    nextAlerts: Record<string, boolean>
+  ) => {
+    await TerritoryStorage.savePreferences(
+      {
+        followedSlugs: nextFollowed,
+        primarySlug: nextPrimary,
+        alertsBySlug: nextAlerts,
+      },
+      user?.id
+    );
+  };
+
+  // Liste ordonnée des objets City suivis par l'utilisateur
+  const followedCities = useMemo(() => {
+    return followedSlugs
+      .map((slug) => citiesList.find((c) => c.slug === slug))
+      .filter((c): c is City => Boolean(c));
+  }, [followedSlugs, citiesList]);
+
+  const isFollowed = (slug: string) => followedSlugs.includes(slug);
+  const isPrimary = (slug: string) => primarySlug === slug;
+  const hasAlertsEnabled = (slug: string) => alertsBySlug[slug] !== false;
+
+  // Sélectionner un journal comme édition active
   const selectCity = async (slug: string) => {
     const matched = citiesList.find((c) => c.slug === slug);
     if (!matched) return;
     setCurrentCity(matched);
     await TenantStorage.setTenant(slug);
+
+    Toast.show({
+      type: 'info',
+      text1: 'Édition territoriale active',
+      text2: matched.name,
+    });
+  };
+
+  // Ajouter / retirer un journal de ses préférences suivies
+  const toggleFollowCity = async (slug: string) => {
+    const matched = citiesList.find((c) => c.slug === slug);
+    if (!matched) return;
+
+    if (followedSlugs.includes(slug)) {
+      // Impossible de tout désélectionner (garder au moins 1 journal)
+      if (followedSlugs.length <= 1) {
+        Toast.show({
+          type: 'error',
+          text1: 'Action impossible',
+          text2: 'Vous devez suivre au moins une édition territoriale.',
+        });
+        return;
+      }
+
+      const nextFollowed = followedSlugs.filter((s) => s !== slug);
+      let nextPrimary = primarySlug;
+      if (primarySlug === slug) {
+        nextPrimary = nextFollowed[0];
+        setPrimarySlug(nextPrimary);
+      }
+
+      setFollowedSlugs(nextFollowed);
+
+      // Si le journal retiré était le journal actif, basculer sur le principal restant
+      if (currentCity.slug === slug) {
+        const fallbackCity = citiesList.find((c) => c.slug === nextPrimary);
+        if (fallbackCity) {
+          setCurrentCity(fallbackCity);
+          await TenantStorage.setTenant(nextPrimary);
+        }
+      }
+
+      await persistPreferences(nextFollowed, nextPrimary, alertsBySlug);
+
+      Toast.show({
+        type: 'info',
+        text1: 'Édition retirée',
+        text2: `${matched.name} ne fait plus partie de vos éditions suivies.`,
+      });
+    } else {
+      const nextFollowed = [...followedSlugs, slug];
+      const nextAlerts = { ...alertsBySlug, [slug]: true };
+
+      setFollowedSlugs(nextFollowed);
+      setAlertsBySlug(nextAlerts);
+
+      await persistPreferences(nextFollowed, primarySlug, nextAlerts);
+
+      Toast.show({
+        type: 'success',
+        text1: 'Édition ajoutée',
+        text2: `${matched.name} a été ajoutée à vos éditions suivies.`,
+      });
+    }
+  };
+
+  // Définir un journal comme édition principale
+  const setPrimaryCity = async (slug: string) => {
+    const matched = citiesList.find((c) => c.slug === slug);
+    if (!matched) return;
+
+    let nextFollowed = followedSlugs;
+    if (!followedSlugs.includes(slug)) {
+      nextFollowed = [...followedSlugs, slug];
+      setFollowedSlugs(nextFollowed);
+    }
+
+    setPrimarySlug(slug);
+    await persistPreferences(nextFollowed, slug, alertsBySlug);
+
+    Toast.show({
+      type: 'success',
+      text1: 'Édition principale définie',
+      text2: `${matched.name} est désormais votre journal par défaut.`,
+    });
+  };
+
+  // Activer / désactiver les notifications push locales d'un journal
+  const toggleAlertsForCity = async (slug: string) => {
+    const currentStatus = hasAlertsEnabled(slug);
+    const nextAlerts = {
+      ...alertsBySlug,
+      [slug]: !currentStatus,
+    };
+    setAlertsBySlug(nextAlerts);
+    await persistPreferences(followedSlugs, primarySlug, nextAlerts);
+
+    const matched = citiesList.find((c) => c.slug === slug);
+    Toast.show({
+      type: !currentStatus ? 'success' : 'info',
+      text1: !currentStatus ? 'Alertes activées' : 'Alertes désactivées',
+      text2: `${!currentStatus ? 'Notifications actives pour' : 'Plus de notifications pour'} ${matched?.name || slug}.`,
+    });
+  };
+
+  // Recherche textuelle d'éditions
+  const searchCities = (query: string): City[] => {
+    const trimmed = query.trim().toLowerCase();
+    if (!trimmed) return citiesList;
+    return citiesList.filter(
+      (c) =>
+        c.name.toLowerCase().includes(trimmed) ||
+        c.shortName.toLowerCase().includes(trimmed) ||
+        c.postalCode.includes(trimmed) ||
+        c.department.toLowerCase().includes(trimmed) ||
+        (c.nomJournal && c.nomJournal.toLowerCase().includes(trimmed))
+    );
   };
 
   const refreshTenant = async () => {
@@ -163,7 +395,17 @@ export function CityProvider({ children }: { children: ReactNode }) {
       value={{
         currentCity,
         cities: citiesList,
+        followedCities,
+        followedSlugs,
+        primarySlug,
+        isFollowed,
+        isPrimary,
         selectCity,
+        toggleFollowCity,
+        setPrimaryCity,
+        toggleAlertsForCity,
+        hasAlertsEnabled,
+        searchCities,
         refreshTenant,
         isLoading,
       }}

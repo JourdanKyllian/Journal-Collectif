@@ -48,6 +48,44 @@ export const TenantStorage = {
   },
 };
 
+export interface StoredTerritoryPreferences {
+  followedSlugs: string[];
+  primarySlug: string;
+  alertsBySlug: Record<string, boolean>;
+}
+
+export const TerritoryStorage = {
+  async getPreferences(userId?: number | string): Promise<StoredTerritoryPreferences | null> {
+    const key = `jc_prefs_${userId ?? 'guest'}`;
+    try {
+      if (Platform.OS === 'web') {
+        const val = typeof localStorage !== 'undefined' ? localStorage.getItem(key) : null;
+        return val ? JSON.parse(val) : null;
+      }
+      const val = await SecureStore.getItemAsync(key);
+      return val ? JSON.parse(val) : null;
+    } catch {
+      return null;
+    }
+  },
+
+  async savePreferences(prefs: StoredTerritoryPreferences, userId?: number | string): Promise<void> {
+    const key = `jc_prefs_${userId ?? 'guest'}`;
+    const serialized = JSON.stringify(prefs);
+    try {
+      if (Platform.OS === 'web') {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem(key, serialized);
+        }
+        return;
+      }
+      await SecureStore.setItemAsync(key, serialized);
+    } catch {
+      // Stockage silencieux
+    }
+  },
+};
+
 export const TokenStorage = {
   async getAccessToken(): Promise<string | null> {
     if (Platform.OS === 'web') return null;

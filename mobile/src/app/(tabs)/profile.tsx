@@ -10,7 +10,20 @@ import {
   Alert,
 } from 'react-native';
 import { router } from 'expo-router';
-import { UserCheck, LogIn, LogOut, Globe, BellRing, Bell, Shield, Sparkles } from 'lucide-react-native';
+import {
+  UserCheck,
+  LogIn,
+  LogOut,
+  BellRing,
+  Bell,
+  Shield,
+  Star,
+  Trash2,
+  Plus,
+  Landmark,
+  Check,
+  Compass,
+} from 'lucide-react-native';
 import * as Notifications from 'expo-notifications';
 import * as Haptics from 'expo-haptics';
 import Toast from 'react-native-toast-message';
@@ -20,12 +33,25 @@ import { useCity } from '@/context/CityContext';
 import { useAuth } from '@/context/AuthContext';
 import { MOCK_CATEGORIES } from '@/lib/mock-data';
 import ScreenContainer from '@/components/layout/ScreenContainer';
+import CitySelectorSheet from '@/components/CitySelectorSheet';
 
 export default function ProfileScreen() {
-  const { currentCity, cities, selectCity } = useCity();
-  const { user, isLoggedIn, logout } = useAuth();
+  const {
+    currentCity,
+    followedCities,
+    isPrimary,
+    selectCity,
+    setPrimaryCity,
+    toggleFollowCity,
+    toggleAlertsForCity,
+    hasAlertsEnabled,
+  } = useCity();
 
-  // Abonnements aux alertes push par thématique
+  const { user, isLoggedIn, logout } = useAuth();
+  const [isCitySheetOpen, setIsCitySheetOpen] = useState(false);
+  const [sheetInitialTab, setSheetInitialTab] = useState<'followed' | 'all'>('followed');
+
+  // Abonnements aux alertes push par thématique locale
   const [subscribedCategoryIds, setSubscribedCategoryIds] = useState<number[]>([1, 2, 3]);
 
   const categoryList = MOCK_CATEGORIES.filter((c) => c.id !== 0);
@@ -40,22 +66,65 @@ export default function ProfileScreen() {
       const next = isSub ? prev.filter((item) => item !== id) : [...prev, id];
       Toast.show({
         type: isSub ? 'info' : 'success',
-        text1: isSub ? 'Alerte désactivée' : 'Alerte activée',
+        text1: isSub ? 'Alerte thématique désactivée' : 'Alerte thématique activée',
         text2: isSub
-          ? `Plus de notifications push pour « ${label} ».`
+          ? `Plus de notifications pour « ${label} ».`
           : `Alertes push actives pour « ${label} ».`,
       });
       return next;
     });
   };
 
-  const switchTenant = async (newSlug: string) => {
-    await selectCity(newSlug);
-    Toast.show({
-      type: 'info',
-      text1: 'Édition territoriale',
-      text2: `Journal basculé sur : ${newSlug}`,
-    });
+  const handleOpenDirectory = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    setSheetInitialTab('all');
+    setIsCitySheetOpen(true);
+  };
+
+  const handleSwitchCity = async (slug: string) => {
+    if (slug === currentCity.slug) return;
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    await selectCity(slug);
+  };
+
+  const handleSetPrimary = async (slug: string) => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    await setPrimaryCity(slug);
+  };
+
+  const handleRemoveFollowed = (slug: string, name: string) => {
+    if (followedCities.length <= 1) {
+      Toast.show({
+        type: 'error',
+        text1: 'Action impossible',
+        text2: 'Vous devez suivre au moins une édition territoriale.',
+      });
+      return;
+    }
+
+    Alert.alert(
+      'Retirer cette édition ?',
+      `Êtes-vous sûr de ne plus vouloir suivre « ${name} » dans vos journaux d'intérêt ?`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Retirer',
+          style: 'destructive',
+          onPress: async () => {
+            if (Platform.OS !== 'web') {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            }
+            await toggleFollowCity(slug);
+          },
+        },
+      ]
+    );
   };
 
   const handleLogout = () => {
@@ -81,9 +150,9 @@ export default function ProfileScreen() {
   const triggerInstantNotification = async () => {
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: '🚨 Test Direct Jury : Alerte Mairie',
-        body: 'Démonstration instantanée du module natif expo-notifications.',
-        data: { articleId: '1' },
+        title: `🚨 Alerte Mairie • ${currentCity.name}`,
+        body: 'Démonstration des notifications locales paramétrées selon vos préférences territoriales.',
+        data: { citySlug: currentCity.slug },
       },
       trigger: null,
     });
@@ -115,41 +184,30 @@ export default function ProfileScreen() {
         <View style={styles.profileCard}>
           <View style={styles.avatar}>
             {user?.is_platform_admin ? (
-              <Shield size={26} color={COLORS.or} />
-            ) : isLoggedIn ? (
-              <UserCheck size={26} color={COLORS.or} />
+              <Shield size={24} color={COLORS.or} />
             ) : (
-              <Sparkles size={26} color={COLORS.champagne} />
+              <UserCheck size={24} color={COLORS.or} />
             )}
           </View>
-
           <View style={{ flex: 1 }}>
             <View style={styles.roleBadgeContainer}>
               <Text style={styles.roleBadgeText}>{roleBadge.toUpperCase()}</Text>
             </View>
-            <Text style={styles.name} numberOfLines={1}>
-              {displayName}
-            </Text>
-            <Text style={styles.email} numberOfLines={1}>
-              {user?.email ?? 'Connectez-vous pour participer'}
+            <Text style={styles.name}>{displayName}</Text>
+            <Text style={styles.email}>
+              {user?.email || 'Créez un compte pour synchroniser vos préférences'}
             </Text>
           </View>
 
           {isLoggedIn ? (
-            <Pressable
-              onPress={handleLogout}
-              style={styles.logoutBtn}
-              hitSlop={8}
-              accessibilityLabel="Se déconnecter"
-            >
-              <LogOut size={16} color={COLORS.urgent} />
+            <Pressable onPress={handleLogout} style={styles.logoutBtn}>
+              <LogOut size={16} color="#EF4444" />
               <Text style={styles.logoutBtnText}>Quitter</Text>
             </Pressable>
           ) : (
             <Pressable
               onPress={() => router.push('/modals/login')}
               style={styles.loginBtn}
-              accessibilityLabel="Se connecter"
             >
               <LogIn size={16} color={COLORS.noir} />
               <Text style={styles.loginBtnText}>Connexion</Text>
@@ -157,13 +215,172 @@ export default function ProfileScreen() {
           )}
         </View>
 
-        {/* Section 1 : Préférences de notifications push */}
+        {/* Section 1 : Gestion des éditions territoriales & Préférences */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionTitle}>NOTIFICATIONS PUSH PAR THÉMATIQUE</Text>
-          <Bell size={14} color={COLORS.vert} />
+          <Text style={styles.sectionTitle}>
+            MES ÉDITIONS TERRITORIALES ({followedCities.length})
+          </Text>
+          <Pressable
+            onPress={handleOpenDirectory}
+            style={styles.addEditionLink}
+            hitSlop={6}
+          >
+            <Plus size={14} color={COLORS.vert} />
+            <Text style={styles.addEditionLinkText}>Ajouter</Text>
+          </Pressable>
         </View>
         <Text style={styles.sectionHint}>
-          Choisissez les rubriques pour lesquelles vous souhaitez recevoir les alertes instantanées sur votre téléphone.
+          {"Sélectionnez les journaux locaux dont vous souhaitez suivre l'actualité et recevoir les alertes."}
+        </Text>
+
+        <View style={styles.editionsContainer}>
+          {followedCities.map((city) => {
+            const isSelected = city.slug === currentCity.slug;
+            const isThisPrimary = isPrimary(city.slug);
+            const alertsActive = hasAlertsEnabled(city.slug);
+
+            return (
+              <View
+                key={city.slug}
+                style={[
+                  styles.editionCard,
+                  isSelected && styles.editionCardActive,
+                ]}
+              >
+                {/* Ligne principale du journal */}
+                <Pressable
+                  onPress={() => handleSwitchCity(city.slug)}
+                  style={styles.editionTopRow}
+                >
+                  <View
+                    style={[
+                      styles.editionIconBox,
+                      isSelected && styles.editionIconBoxActive,
+                    ]}
+                  >
+                    <Landmark
+                      size={20}
+                      color={isSelected ? COLORS.blanc : COLORS.champagne}
+                    />
+                  </View>
+
+                  <View style={{ flex: 1, marginRight: 8 }}>
+                    <View style={styles.editionNameRow}>
+                      <Text
+                        style={[
+                          styles.editionName,
+                          isSelected && styles.editionNameActive,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {city.name}
+                      </Text>
+                      <View style={styles.postalBadge}>
+                        <Text style={styles.postalText}>{city.postalCode}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.editionJournalType} numberOfLines={1}>
+                      {city.nomJournal || city.typeJournal || 'Journal territorial'}
+                    </Text>
+                  </View>
+
+                  {/* Badges de statut */}
+                  <View style={styles.statusBadgesCol}>
+                    {isSelected ? (
+                      <View style={styles.activeTag}>
+                        <Check size={11} color={COLORS.blanc} strokeWidth={3} />
+                        <Text style={styles.activeTagText}>Actif</Text>
+                      </View>
+                    ) : (
+                      <Pressable
+                        onPress={() => handleSwitchCity(city.slug)}
+                        style={styles.activateBtn}
+                      >
+                        <Text style={styles.activateBtnText}>Consulter</Text>
+                      </Pressable>
+                    )}
+                  </View>
+                </Pressable>
+
+                {/* Séparateur interne */}
+                <View style={styles.editionDivider} />
+
+                {/* Barre d'options et préférences pour cette édition */}
+                <View style={styles.editionOptionsRow}>
+                  {/* Option : Édition principale */}
+                  <Pressable
+                    onPress={() => handleSetPrimary(city.slug)}
+                    style={[
+                      styles.primaryOptionBtn,
+                      isThisPrimary && styles.primaryOptionBtnActive,
+                    ]}
+                    hitSlop={6}
+                  >
+                    <Star
+                      size={13}
+                      color={isThisPrimary ? COLORS.or : COLORS.champagne}
+                      fill={isThisPrimary ? COLORS.or : 'transparent'}
+                    />
+                    <Text
+                      style={[
+                        styles.primaryOptionText,
+                        isThisPrimary && styles.primaryOptionTextActive,
+                      ]}
+                    >
+                      {isThisPrimary ? 'Édition principale' : 'Définir principale'}
+                    </Text>
+                  </Pressable>
+
+                  {/* Option : Notifications push de cette commune */}
+                  <View style={styles.notifToggleContainer}>
+                    <Bell
+                      size={13}
+                      color={alertsActive ? COLORS.vert : COLORS.champagne}
+                    />
+                    <Text style={styles.notifToggleLabel}>Alertes</Text>
+                    <Switch
+                      value={alertsActive}
+                      onValueChange={() => toggleAlertsForCity(city.slug)}
+                      trackColor={{ false: '#D1CFC9', true: COLORS.or }}
+                      thumbColor={alertsActive ? COLORS.vert : '#FFF'}
+                      style={{ transform: [{ scaleX: 0.75 }, { scaleY: 0.75 }] }}
+                    />
+                  </View>
+
+                  {/* Option : Retirer des éditions (si > 1) */}
+                  {followedCities.length > 1 && !isThisPrimary && (
+                    <Pressable
+                      onPress={() => handleRemoveFollowed(city.slug, city.name)}
+                      hitSlop={8}
+                      style={styles.deleteEditionBtn}
+                      accessibilityLabel={`Ne plus suivre ${city.name}`}
+                    >
+                      <Trash2 size={14} color="#EF4444" />
+                    </Pressable>
+                  )}
+                </View>
+              </View>
+            );
+          })}
+
+          {/* Bouton pour explorer l'annuaire et ajouter un journal */}
+          <Pressable
+            onPress={handleOpenDirectory}
+            style={styles.addJournalButton}
+          >
+            <Compass size={18} color={COLORS.vert} />
+            <Text style={styles.addJournalButtonText}>
+              {"Explorer l'annuaire des journaux locaux"}
+            </Text>
+          </Pressable>
+        </View>
+
+        {/* Section 2 : Préférences thématiques des notifications */}
+        <Text style={[styles.sectionTitle, { marginTop: 28 }]}>
+          ABONNEMENTS THÉMATIQUES
+        </Text>
+        <Text style={styles.sectionHint}>
+          {"Choisissez les rubriques prioritaires pour vos notifications sur l'ensemble de vos éditions."}
         </Text>
 
         <View style={styles.notifContainer}>
@@ -191,45 +408,24 @@ export default function ProfileScreen() {
           })}
         </View>
 
-        {/* Section 2 : Commune / Tenant actif */}
-        <Text style={[styles.sectionTitle, { marginTop: 26 }]}>
-          COMMUNE ACTIVE (EN-TÊTE X-JOURNAL)
-        </Text>
-        <View style={{ gap: 8, marginTop: 10 }}>
-          {cities.map((city) => (
-            <Pressable
-              key={city.slug}
-              onPress={() => switchTenant(city.slug)}
-              style={[
-                styles.tenantRow,
-                currentCity.slug === city.slug && styles.tenantActive,
-              ]}
-            >
-              <Globe
-                size={18}
-                color={currentCity.slug === city.slug ? COLORS.or : COLORS.champagne}
-              />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.tenantText}>{city.slug}</Text>
-                <Text style={{ fontFamily: FONTS.body, fontSize: 11, color: COLORS.champagne }}>
-                  {city.name}
-                </Text>
-              </View>
-            </Pressable>
-          ))}
-        </View>
-
-        {/* Section 3 : Outil de test jury */}
-        <Text style={[styles.sectionTitle, { marginTop: 26 }]}>
-          DÉMONSTRATION NOTIFICATIONS
+        {/* Section 3 : Démonstration notifications locales */}
+        <Text style={[styles.sectionTitle, { marginTop: 28 }]}>
+          {"TEST DU DISPOSITIF D'ALERTES"}
         </Text>
         <Pressable onPress={triggerInstantNotification} style={styles.demoBtn}>
           <BellRing size={18} color={COLORS.or} />
           <Text style={styles.demoBtnText}>
-            Déclencher une alerte test immédiate
+            Déclencher une alerte test sur {currentCity.shortName}
           </Text>
         </Pressable>
       </ScrollView>
+
+      {/* Feuille de sélection & annuaire */}
+      <CitySelectorSheet
+        visible={isCitySheetOpen}
+        initialTab={sheetInitialTab}
+        onClose={() => setIsCitySheetOpen(false)}
+      />
     </ScreenContainer>
   );
 }
@@ -313,9 +509,175 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.body,
     fontSize: 12,
     color: COLORS.champagne,
-    marginTop: 4,
+    marginTop: 3,
     marginBottom: 12,
     lineHeight: 16,
+  },
+  addEditionLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(11, 28, 16, 0.08)',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  addEditionLinkText: {
+    fontFamily: FONTS.bodyBold,
+    fontSize: 11,
+    color: COLORS.vert,
+  },
+  editionsContainer: {
+    gap: 10,
+  },
+  editionCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(142, 134, 113, 0.2)',
+    padding: 13,
+  },
+  editionCardActive: {
+    borderColor: COLORS.or,
+    backgroundColor: 'rgba(212, 175, 55, 0.06)',
+  },
+  editionTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  editionIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: 'rgba(142, 134, 113, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 11,
+  },
+  editionIconBoxActive: {
+    backgroundColor: COLORS.vert,
+  },
+  editionNameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  editionName: {
+    fontFamily: FONTS.bodyBold,
+    fontSize: 14.5,
+    color: COLORS.noir,
+  },
+  editionNameActive: {
+    color: COLORS.vert,
+  },
+  postalBadge: {
+    backgroundColor: 'rgba(142, 134, 113, 0.2)',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 5,
+  },
+  postalText: {
+    fontFamily: FONTS.bodySemiBold,
+    fontSize: 10,
+    color: COLORS.noir,
+  },
+  editionJournalType: {
+    fontFamily: FONTS.body,
+    fontSize: 11.5,
+    color: COLORS.champagne,
+    marginTop: 1,
+  },
+  statusBadgesCol: {
+    alignItems: 'flex-end',
+  },
+  activeTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: COLORS.vert,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  activeTagText: {
+    fontFamily: FONTS.bodyBold,
+    fontSize: 10.5,
+    color: COLORS.blanc,
+  },
+  activateBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    backgroundColor: 'rgba(142, 134, 113, 0.15)',
+  },
+  activateBtnText: {
+    fontFamily: FONTS.bodySemiBold,
+    fontSize: 11,
+    color: COLORS.champagne,
+  },
+  editionDivider: {
+    height: 1,
+    backgroundColor: 'rgba(142, 134, 113, 0.12)',
+    marginVertical: 10,
+  },
+  editionOptionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  primaryOptionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: 'rgba(142, 134, 113, 0.1)',
+  },
+  primaryOptionBtnActive: {
+    backgroundColor: 'rgba(212, 175, 55, 0.18)',
+  },
+  primaryOptionText: {
+    fontFamily: FONTS.bodySemiBold,
+    fontSize: 11,
+    color: COLORS.champagne,
+  },
+  primaryOptionTextActive: {
+    fontFamily: FONTS.bodyBold,
+    color: COLORS.or,
+  },
+  notifToggleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  notifToggleLabel: {
+    fontFamily: FONTS.body,
+    fontSize: 11,
+    color: COLORS.champagne,
+  },
+  deleteEditionBtn: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+  },
+  addJournalButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 13,
+    borderRadius: 16,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1.5,
+    borderColor: 'rgba(11, 28, 16, 0.2)',
+    borderStyle: 'dashed',
+    marginTop: 4,
+  },
+  addJournalButtonText: {
+    fontFamily: FONTS.bodyBold,
+    fontSize: 12.5,
+    color: COLORS.vert,
   },
   notifContainer: {
     backgroundColor: COLORS.surface,
@@ -355,22 +717,6 @@ const styles = StyleSheet.create({
     color: COLORS.champagne,
     marginTop: 1,
   },
-  tenantRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 14,
-    borderRadius: 14,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: 'rgba(142, 134, 113, 0.18)',
-  },
-  tenantActive: {
-    borderWidth: 1.5,
-    borderColor: COLORS.or,
-    backgroundColor: 'rgba(212, 175, 55, 0.08)',
-  },
-  tenantText: { fontFamily: FONTS.bodySemiBold, fontSize: 14, color: COLORS.noir },
   demoBtn: {
     backgroundColor: COLORS.noir,
     padding: 16,
@@ -379,7 +725,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
-    marginTop: 10,
+    marginTop: 8,
   },
   demoBtnText: { fontFamily: FONTS.bodyBold, fontSize: 12, color: COLORS.blanc },
 });
