@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Pressable, Platform, ScrollView } from 'react-native';
+import { router } from 'expo-router';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -14,7 +15,6 @@ import {
   Plus,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
-import Toast from 'react-native-toast-message';
 
 import { COLORS, FONTS } from '@/theme/tokens';
 import { useCity } from '@/context/CityContext';
@@ -77,11 +77,7 @@ export default function AppHeader({
     if (onDashboardPress) {
       onDashboardPress();
     } else {
-      Toast.show({
-        type: 'info',
-        text1: 'Espace Rédaction & Gestion',
-        text2: `Journal : ${currentCity.name} • Rôle : ${user?.role || 'Membre'}`,
-      });
+      router.push('/admin/dashboard');
     }
   };
 
@@ -149,7 +145,7 @@ export default function AppHeader({
               accessibilityLabel="Ouvrir le panneau de gestion municipale"
             >
               <LayoutDashboard size={15} color={COLORS.or} />
-              <Text style={styles.dashboardPillText}>Gestion</Text>
+              <Text style={styles.dashboardPillText}>Studio Pro</Text>
             </Pressable>
           ) : (
             <Pressable

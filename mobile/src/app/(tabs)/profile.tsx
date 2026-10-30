@@ -23,6 +23,7 @@ import {
   Landmark,
   Check,
   Compass,
+  Sparkles,
 } from 'lucide-react-native';
 import * as Notifications from 'expo-notifications';
 import * as Haptics from 'expo-haptics';
@@ -45,11 +46,17 @@ export default function ProfileScreen() {
     toggleFollowCity,
     toggleAlertsForCity,
     hasAlertsEnabled,
+    isProManager,
   } = useCity();
 
   const { user, isLoggedIn, logout } = useAuth();
   const [isCitySheetOpen, setIsCitySheetOpen] = useState(false);
   const [sheetInitialTab, setSheetInitialTab] = useState<'followed' | 'all'>('followed');
+
+  const isStaff =
+    user?.is_platform_admin === true ||
+    ['admin', 'super_admin', 'redacteur'].includes((user?.role || '').toLowerCase()) ||
+    Boolean(user?.journal?.slug);
 
   // Abonnements aux alertes push par thématique locale
   const [subscribedCategoryIds, setSubscribedCategoryIds] = useState<number[]>([1, 2, 3]);
@@ -215,19 +222,56 @@ export default function ProfileScreen() {
           )}
         </View>
 
+        {/* Module Espace Rédaction Pro */}
+        {isStaff && (
+          <View style={styles.proStudioCard}>
+            <View style={styles.proStudioHeader}>
+              <View style={styles.proStudioBadge}>
+                <Landmark size={12} color={COLORS.or} />
+                <Text style={styles.proStudioBadgeText}>ESPACE GESTIONNAIRE</Text>
+              </View>
+              <Text style={styles.proRoleBadge}>{user?.role || 'Rédacteur'}</Text>
+            </View>
+
+            <Text style={styles.proStudioTitle}>
+              Studio de Rédaction Mobile
+            </Text>
+            <Text style={styles.proStudioDesc}>
+              {"Modérez les demandes citoyennes, gérez les articles en ligne et publiez des actualités directement depuis votre téléphone."}
+            </Text>
+
+            <Pressable
+              onPress={() => router.push('/admin/dashboard')}
+              style={styles.proStudioActionBtn}
+              hitSlop={6}
+            >
+              <Sparkles size={16} color={COLORS.noir} />
+              <Text style={styles.proStudioActionText}>
+                Ouvrir le Studio de Rédaction
+              </Text>
+            </Pressable>
+          </View>
+        )}
+
         {/* Section 1 : Gestion des éditions territoriales & Préférences */}
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>
             MES ÉDITIONS TERRITORIALES ({followedCities.length})
           </Text>
-          <Pressable
-            onPress={handleOpenDirectory}
-            style={styles.addEditionLink}
-            hitSlop={6}
-          >
-            <Plus size={14} color={COLORS.vert} />
-            <Text style={styles.addEditionLinkText}>Ajouter</Text>
-          </Pressable>
+          {isProManager ? (
+            <View style={styles.proLockedBadge}>
+              <Text style={styles.proLockedBadgeText}>Édition liée</Text>
+            </View>
+          ) : (
+            <Pressable
+              onPress={handleOpenDirectory}
+              style={styles.addEditionLink}
+              hitSlop={6}
+            >
+              <Plus size={14} color={COLORS.vert} />
+              <Text style={styles.addEditionLinkText}>Ajouter</Text>
+            </Pressable>
+          )}
         </View>
         <Text style={styles.sectionHint}>
           {"Sélectionnez les journaux locaux dont vous souhaitez suivre l'actualité et recevoir les alertes."}
@@ -728,4 +772,79 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   demoBtnText: { fontFamily: FONTS.bodyBold, fontSize: 12, color: COLORS.blanc },
+  proStudioCard: {
+    backgroundColor: COLORS.vert,
+    borderRadius: 20,
+    padding: 18,
+    marginTop: 18,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.3)',
+  },
+  proStudioHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  proStudioBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(201, 158, 57, 0.25)',
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+  },
+  proStudioBadgeText: {
+    fontFamily: FONTS.montserratSemiBold,
+    fontSize: 10,
+    color: COLORS.or,
+    letterSpacing: 0.5,
+  },
+  proRoleBadge: {
+    fontFamily: FONTS.montserratSemiBold,
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.75)',
+    textTransform: 'uppercase',
+  },
+  proStudioTitle: {
+    fontFamily: FONTS.poppinsBold,
+    fontSize: 17,
+    color: COLORS.blanc,
+    marginBottom: 6,
+  },
+  proStudioDesc: {
+    fontFamily: FONTS.montserrat,
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.82)',
+    lineHeight: 18,
+    marginBottom: 14,
+  },
+  proStudioActionBtn: {
+    backgroundColor: COLORS.or,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 14,
+  },
+  proStudioActionText: {
+    fontFamily: FONTS.montserratSemiBold,
+    fontSize: 13,
+    color: COLORS.noir,
+    fontWeight: '700',
+  },
+  proLockedBadge: {
+    backgroundColor: '#EBE7DE',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+  },
+  proLockedBadgeText: {
+    fontFamily: FONTS.montserratSemiBold,
+    fontSize: 10,
+    color: '#657169',
+  },
 });

@@ -58,6 +58,7 @@ export default function CitySelectorSheet({
     toggleFollowCity,
     setPrimaryCity,
     searchCities,
+    isProManager,
   } = useCity();
 
   const [modalVisible, setModalVisible] = useState(visible);
@@ -162,7 +163,9 @@ export default function CitySelectorSheet({
               </View>
               <Text style={styles.sheetTitle}>Mes Journaux & Territoires</Text>
               <Text style={styles.sheetSubtitle}>
-                {"Sélectionnez vos éditions d'intérêt et basculez d'une commune à l'autre"}
+                {isProManager
+                  ? 'Édition locale assignée à votre compte professionnel (verrouillée)'
+                  : "Sélectionnez vos éditions d'intérêt et basculez d'une commune à l'autre"}
               </Text>
             </View>
             <Pressable
@@ -174,8 +177,9 @@ export default function CitySelectorSheet({
             </Pressable>
           </View>
 
-          {/* Sélecteur d'onglets : Mes éditions vs Annuaire complet */}
-          <View style={styles.tabBar}>
+          {/* Sélecteur d'onglets : Masqué pour les comptes Pro pour empêcher l'exploration */}
+          {!isProManager && (
+            <View style={styles.tabBar}>
             <Pressable
               onPress={() => {
                 if (Platform.OS !== 'web') Haptics.selectionAsync();
@@ -224,8 +228,9 @@ export default function CitySelectorSheet({
               </Text>
             </Pressable>
           </View>
+        )}
 
-          {/* Contenu selon l'onglet actif */}
+        {/* Contenu selon l'onglet actif */}
           {activeTab === 'followed' ? (
             <ScrollView
               contentContainerStyle={styles.scrollList}
@@ -318,7 +323,7 @@ export default function CitySelectorSheet({
                 );
               })}
 
-              {followedCities.length <= 2 && (
+              {!isProManager && followedCities.length <= 2 && (
                 <Pressable
                   onPress={() => setActiveTab('all')}
                   style={styles.discoverCallout}

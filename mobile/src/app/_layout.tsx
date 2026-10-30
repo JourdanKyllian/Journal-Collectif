@@ -62,6 +62,18 @@ export default function RootLayout() {
               }}
             />
             <Stack.Screen
+              name="admin/dashboard"
+              options={{
+                animation: 'slide_from_right',
+              }}
+            />
+            <Stack.Screen
+              name="admin/editor"
+              options={{
+                animation: 'slide_from_bottom',
+              }}
+            />
+            <Stack.Screen
               name="modals/submit"
               options={{
                 presentation: 'modal',

@@ -17,4 +17,10 @@ export const FONTS = {
   bodySemiBold: 'Montserrat_600SemiBold',
   bodyBold: 'Montserrat_700Bold',
   accent: 'Raleway_600SemiBold',
+  // Alias pour confort développeur
+  poppinsBold: 'Poppins_700Bold',
+  poppinsBlack: 'Poppins_900Black',
+  montserrat: 'Montserrat_400Regular',
+  montserratSemiBold: 'Montserrat_600SemiBold',
+  montserratBold: 'Montserrat_700Bold',
 } as const;

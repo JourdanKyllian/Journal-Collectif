@@ -114,6 +114,8 @@ export interface CityContextType {
   hasAlertsEnabled: (slug: string) => boolean;
   /** Recherche multi-critères dans les éditions disponibles */
   searchCities: (query: string) => City[];
+  /** Savoir si le compte connecté est un gestionnaire/staff rattaché à son journal */
+  isProManager: boolean;
   /** Rafraîchir les journaux et le tenant */
   refreshTenant: () => Promise<void>;
   isLoading: boolean;
@@ -136,6 +138,11 @@ export function CityProvider({ children }: { children: ReactNode }) {
   const [alertsBySlug, setAlertsBySlug] = useState<Record<string, boolean>>(DEFAULT_PREFS.alertsBySlug);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  const isProManager = Boolean(
+    user?.journal?.slug &&
+    ['super_admin', 'admin', 'redacteur'].includes((user.role || '').toLowerCase())
+  );
+
   // 1. Initialisation des journaux distants + préférences utilisateur
   useEffect(() => {
     let isMounted = true;
@@ -150,8 +157,11 @@ export function CityProvider({ children }: { children: ReactNode }) {
         let activePrimary = prefs.primarySlug || activeFollowed[0];
         const activeAlerts = prefs.alertsBySlug || {};
 
-        // Si membre d'équipe (admin/redacteur), son journal assigné est prioritaire
-        if (user?.journal?.slug) {
+        // Règle métier Compte Pro : STRICTEMENT verrouillé sur son journal d'attache
+        if (isProManager && user?.journal?.slug) {
+          activeFollowed = [user.journal.slug];
+          activePrimary = user.journal.slug;
+        } else if (user?.journal?.slug) {
           if (!activeFollowed.includes(user.journal.slug)) {
             activeFollowed = [user.journal.slug, ...activeFollowed];
           }
@@ -228,7 +238,7 @@ export function CityProvider({ children }: { children: ReactNode }) {
     return () => {
       isMounted = false;
     };
-  }, [user?.id, user?.journal?.slug]);
+  }, [user?.id, user?.journal?.slug, isProManager]);
 
   // Sauvegarde persistante des préférences
   const persistPreferences = async (
@@ -259,6 +269,15 @@ export function CityProvider({ children }: { children: ReactNode }) {
 
   // Sélectionner un journal comme édition active
   const selectCity = async (slug: string) => {
+    if (isProManager && user?.journal?.slug && slug !== user.journal.slug) {
+      Toast.show({
+        type: 'info',
+        text1: 'Compte Pro Rédactionnel',
+        text2: 'Votre compte est exclusivement rattaché à votre journal local.',
+      });
+      return;
+    }
+
     const matched = citiesList.find((c) => c.slug === slug);
     if (!matched) return;
     setCurrentCity(matched);
@@ -273,6 +292,15 @@ export function CityProvider({ children }: { children: ReactNode }) {
 
   // Ajouter / retirer un journal de ses préférences suivies
   const toggleFollowCity = async (slug: string) => {
+    if (isProManager) {
+      Toast.show({
+        type: 'info',
+        text1: 'Compte Pro Rédactionnel',
+        text2: 'Votre compte est exclusivement rattaché à votre journal local.',
+      });
+      return;
+    }
+
     const matched = citiesList.find((c) => c.slug === slug);
     if (!matched) return;
 
@@ -406,6 +434,7 @@ export function CityProvider({ children }: { children: ReactNode }) {
         toggleAlertsForCity,
         hasAlertsEnabled,
         searchCities,
+        isProManager,
         refreshTenant,
         isLoading,
       }}
