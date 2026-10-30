@@ -21,7 +21,7 @@ import {
 } from 'lucide-react-native';
 
 import { COLORS, FONTS } from '@/theme/tokens';
-import { apiClient } from '@/lib/api';
+import { apiClient, resolveImageUrl } from '@/lib/api';
 import { MOCK_ARTICLES } from '@/lib/mock-data';
 import SimpleMarkdownRenderer from '@/components/admin/SimpleMarkdownRenderer';
 
@@ -153,9 +153,9 @@ export default function ArticleDetailScreen() {
       <ScrollView bounces={false} contentContainerStyle={styles.scrollContent}>
         {/* HERO IMAGE & NAVIGATION */}
         <View style={styles.heroWrapper}>
-          {article.image_couverture ? (
+          {resolveImageUrl(article.image_couverture) ? (
             <Image
-              source={{ uri: article.image_couverture }}
+              source={{ uri: resolveImageUrl(article.image_couverture)! }}
               style={styles.heroImage}
               contentFit="cover"
             />

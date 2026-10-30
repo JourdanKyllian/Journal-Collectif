@@ -23,6 +23,7 @@ import {
 } from 'lucide-react-native';
 
 import { COLORS, FONTS } from '@/theme/tokens';
+import { resolveImageUrl } from '@/lib/api';
 import { EditorialArticle } from '@/lib/services/editorial.service';
 
 interface SwipeableModerationCardProps {
@@ -187,9 +188,9 @@ export default function SwipeableModerationCard({
               </Text>
             </View>
 
-            {article.image_couverture ? (
+            {resolveImageUrl(article.image_couverture) ? (
               <Image
-                source={{ uri: article.image_couverture }}
+                source={{ uri: resolveImageUrl(article.image_couverture)! }}
                 style={styles.thumbnail}
                 contentFit="cover"
                 transition={200}

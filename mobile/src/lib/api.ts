@@ -260,10 +260,52 @@ export const MobileAuthApi = {
 };
 
 /**
+ * Vérifie si une URI correspond à un fichier local stocké sur l'appareil (caméra/galerie).
+ */
+export function isLocalDeviceUri(uri?: string | null): boolean {
+  if (!uri) return false;
+  return (
+    uri.startsWith('file:') ||
+    uri.startsWith('content:') ||
+    uri.startsWith('ph:') ||
+    uri.startsWith('blob:') ||
+    uri.startsWith('data:')
+  );
+}
+
+/**
+ * Résout une URL d'image pour l'affichage :
+ * - Si locale (file://) : renvoyée telle quelle.
+ * - Si absolue (http:// ou https://) : renvoyée telle quelle.
+ * - Si relative (/uploads/...) : complétée avec le domaine du serveur backend.
+ */
+export function resolveImageUrl(url?: string | null): string | null {
+  if (!url || !url.trim()) return null;
+  const clean = url.trim();
+  if (clean.startsWith('http://') || clean.startsWith('https://') || isLocalDeviceUri(clean)) {
+    return clean;
+  }
+  const baseUrl = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1').replace(
+    /\/api\/v1\/?$/,
+    ''
+  );
+  if (clean.startsWith('/')) {
+    return `${baseUrl}${clean}`;
+  }
+  return `${baseUrl}/uploads/${clean}`;
+}
+
+/**
  * Upload natif d'une photo issue d'expo-image-picker vers POST /api/v1/upload/image.
  * Compatible New Architecture / WinterCG fetch (Expo SDK 52+ / 57+).
  */
 export async function uploadImageMobile(localUri: string): Promise<{ url: string }> {
+  // Si ce n'est pas un fichier local sur l'appareil (ex: image déjà sur le serveur /uploads/ ou http),
+  // on ne tente pas de le lire sur le disque de l'iPhone / Android.
+  if (!isLocalDeviceUri(localUri)) {
+    return { url: localUri };
+  }
+
   const filename = localUri.split('/').pop() || 'photo.jpg';
   const formData = new FormData();
 

@@ -34,7 +34,7 @@ import {
 
 import { COLORS, FONTS } from '@/theme/tokens';
 import { MOCK_CATEGORIES } from '@/lib/mock-data';
-import { uploadImageMobile } from '@/lib/api';
+import { uploadImageMobile, isLocalDeviceUri, resolveImageUrl } from '@/lib/api';
 import { EditorialService } from '@/lib/services/editorial.service';
 import { FeedService } from '@/lib/services/feed.service';
 import SimpleMarkdownRenderer from '@/components/admin/SimpleMarkdownRenderer';
@@ -182,9 +182,9 @@ export default function MobileArticleEditorScreen() {
     setIsSubmitting(true);
     try {
       let finalImageUrl = photoUri;
-      // Téléversement si nouvelle photo locale
-      if (photoUri && !photoUri.startsWith('http')) {
-        const uploadRes = await uploadImageMobile(photoUri);
+      // Téléversement uniquement si nouvelle photo capturée ou choisie localement sur l'appareil
+      if (isLocalDeviceUri(photoUri)) {
+        const uploadRes = await uploadImageMobile(photoUri!);
         finalImageUrl = uploadRes.url;
       }
 
@@ -289,7 +289,7 @@ export default function MobileArticleEditorScreen() {
             {photoUri ? (
               <View style={styles.coverPreviewBox}>
                 <Image
-                  source={{ uri: photoUri }}
+                  source={{ uri: resolveImageUrl(photoUri) || '' }}
                   style={styles.coverImage}
                   contentFit="cover"
                 />
@@ -440,7 +440,7 @@ export default function MobileArticleEditorScreen() {
 
             {photoUri && (
               <Image
-                source={{ uri: photoUri }}
+                source={{ uri: resolveImageUrl(photoUri) || '' }}
                 style={styles.previewHeroImage}
                 contentFit="cover"
               />

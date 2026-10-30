@@ -29,6 +29,7 @@ import {
 } from 'lucide-react-native';
 
 import { COLORS, FONTS } from '@/theme/tokens';
+import { resolveImageUrl } from '@/lib/api';
 import { useCity } from '@/context/CityContext';
 import {
   EditorialService,
@@ -425,9 +426,9 @@ export default function MobileAdminDashboardScreen() {
                   </Text>
                 </View>
 
-                {item.image_couverture && (
+                {resolveImageUrl(item.image_couverture) && (
                   <Image
-                    source={{ uri: item.image_couverture }}
+                    source={{ uri: resolveImageUrl(item.image_couverture)! }}
                     style={styles.standardThumbnail}
                     contentFit="cover"
                   />
