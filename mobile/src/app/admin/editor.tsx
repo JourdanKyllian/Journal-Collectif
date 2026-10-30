@@ -180,7 +180,7 @@ export default function MobileArticleEditorScreen() {
         titre,
         contenu,
         categorieId: selectedCat ? selectedCat.id : categorieId,
-        image_couverture: finalImageUrl || undefined,
+        image_couverture: finalImageUrl ?? null,
         statut,
         currentStatut: params.initialStatut as
           | 'publie'

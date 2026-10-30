@@ -47,6 +47,7 @@ import {
   MOCK_DEALS,
 } from '@/lib/services/deals.service';
 import SwipeableModerationCard from '@/components/admin/SwipeableModerationCard';
+import AddDealModal from '@/components/admin/AddDealModal';
 import ParkingView from '@/components/tools/ParkingView';
 import LostObjectsView from '@/components/tools/LostObjectsView';
 
@@ -78,6 +79,7 @@ export default function MobileAdminDashboardScreen() {
 
   // Données Bons Plans
   const [deals, setDeals] = useState<BonPlan[]>(MOCK_DEALS);
+  const [isAddDealModalVisible, setIsAddDealModalVisible] = useState<boolean>(false);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -297,36 +299,14 @@ export default function MobileAdminDashboardScreen() {
     );
   };
 
-  const handleAddDealQuick = () => {
-    Alert.alert(
-      'Nouveau bon plan local',
-      'Souhaitez-vous ajouter une offre partenaire (billetterie, concours ou code promo) pour les citoyens ?',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Créer une offre',
-          onPress: () => {
-            const newDeal: BonPlan = {
-              id: Date.now(),
-              titre: 'Remise Privilège Commerce Local',
-              description: 'Offre exclusive réservée aux lecteurs de ' + currentCity.name + '.',
-              categorie: 'code_promo',
-              partenaire: 'Partenaire Local',
-              valeur: '-20%',
-              codePromo: 'CITOYEN26',
-              dateFin: '31 déc. 2026',
-              statut: 'actif',
-            };
-            setDeals((prev) => [newDeal, ...prev]);
-            Toast.show({
-              type: 'success',
-              text1: 'Bon plan ajouté ! 🏷️',
-              text2: 'Visible dès maintenant par les citoyens',
-            });
-          },
-        },
-      ]
-    );
+  const handleSaveNewDeal = async (dealData: Omit<BonPlan, 'id'>) => {
+    const created = await DealsService.addDeal(dealData);
+    setDeals((prev) => [created, ...prev]);
+    Toast.show({
+      type: 'success',
+      text1: created.statut === 'actif' ? 'Bon plan publié ! 🏷️' : 'Bon plan enregistré en pause 📝',
+      text2: created.titre,
+    });
   };
 
   // Titres & sous-titres dynamiques selon l'onglet principal actif
@@ -334,10 +314,10 @@ export default function MobileAdminDashboardScreen() {
     switch (mainNav) {
       case 'deals':
         return {
-          subtitle: 'COMMERCE & PRIVILÈGES',
-          title: 'Bons Plans Partenaires',
+          subtitle: 'PRIVILÈGES & SORTIES',
+          title: 'Bons Plans',
           actionText: 'Nouveau',
-          onAction: handleAddDealQuick,
+          onAction: () => setIsAddDealModalVisible(true),
         };
       case 'tools':
         return {
@@ -762,6 +742,7 @@ export default function MobileAdminDashboardScreen() {
             contentContainerStyle={styles.listContent}
             renderItem={({ item }) => {
               const isActive = item.statut === 'actif';
+              const isScheduled = item.statut === 'programme';
               return (
                 <View style={styles.dealAdminCard}>
                   <View style={styles.dealAdminHeader}>
@@ -774,7 +755,11 @@ export default function MobileAdminDashboardScreen() {
                       <View
                         style={[
                           styles.statusBadge,
-                          isActive ? styles.statusBadgeActive : styles.statusBadgeInactive,
+                          isActive
+                            ? styles.statusBadgeActive
+                            : isScheduled
+                              ? styles.statusBadgeScheduled
+                              : styles.statusBadgeInactive,
                         ]}
                       >
                         <Text
@@ -782,10 +767,12 @@ export default function MobileAdminDashboardScreen() {
                             styles.statusBadgeText,
                             isActive
                               ? styles.statusBadgeTextActive
-                              : styles.statusBadgeTextInactive,
+                              : isScheduled
+                                ? styles.statusBadgeTextScheduled
+                                : styles.statusBadgeTextInactive,
                           ]}
                         >
-                          {isActive ? 'Actif' : 'Mis en pause'}
+                          {isActive ? 'Actif' : isScheduled ? '🗓️ Programmé' : 'Mis en pause'}
                         </Text>
                       </View>
                     </View>
@@ -803,12 +790,25 @@ export default function MobileAdminDashboardScreen() {
                     </Text>
                   )}
 
+                  <View style={styles.dealAdminDatesRow}>
+                    <Clock size={12} color="#718096" />
+                    <Text style={styles.dealAdminDatesText}>
+                      {item.dateDebut
+                        ? `Diffusion : Du ${item.dateDebut} au ${item.dateFin}`
+                        : `Fin de validité : ${item.dateFin}`}
+                    </Text>
+                  </View>
+
                   <View style={styles.dealAdminActions}>
                     <Pressable
                       onPress={() => handleToggleDealStatus(item.id)}
                       style={[
                         styles.dealActionBtn,
-                        isActive ? styles.dealActionBtnPause : styles.dealActionBtnPlay,
+                        isActive
+                          ? styles.dealActionBtnPause
+                          : isScheduled
+                            ? styles.dealActionBtnPlay
+                            : styles.dealActionBtnPlay,
                       ]}
                     >
                       <Text
@@ -817,7 +817,11 @@ export default function MobileAdminDashboardScreen() {
                           isActive ? { color: '#744210' } : { color: '#22543D' },
                         ]}
                       >
-                        {isActive ? 'Mettre en pause' : 'Activer l’offre'}
+                        {isActive
+                          ? 'Mettre en pause'
+                          : isScheduled
+                            ? 'Publier maintenant'
+                            : 'Activer l’offre'}
                       </Text>
                     </Pressable>
 
@@ -831,6 +835,24 @@ export default function MobileAdminDashboardScreen() {
                 </View>
               );
             }}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Tag size={36} color="#CBD5E0" />
+                <Text style={styles.emptyTitle}>Aucun bon plan</Text>
+                <Text style={styles.emptyDesc}>
+                  Ajoutez votre première offre pour les citoyens de votre commune.
+                </Text>
+                <Pressable
+                  onPress={() => setIsAddDealModalVisible(true)}
+                  style={[styles.newArticleButton, { marginTop: 12, backgroundColor: COLORS.vert }]}
+                >
+                  <Plus size={16} color={COLORS.blanc} />
+                  <Text style={[styles.newArticleButtonText, { color: COLORS.blanc }]}>
+                    Créer une offre
+                  </Text>
+                </Pressable>
+              </View>
+            }
           />
         </View>
       )}
@@ -895,6 +917,14 @@ export default function MobileAdminDashboardScreen() {
           </View>
         </View>
       )}
+
+      {/* Modal convivial d'ajout de bon plan */}
+      <AddDealModal
+        visible={isAddDealModalVisible}
+        onClose={() => setIsAddDealModalVisible(false)}
+        onSave={handleSaveNewDeal}
+        cityName={currentCity.name}
+      />
     </View>
   );
 }
@@ -1275,6 +1305,9 @@ const styles = StyleSheet.create({
   statusBadgeActive: {
     backgroundColor: '#E2F3EB',
   },
+  statusBadgeScheduled: {
+    backgroundColor: '#FEFCBF',
+  },
   statusBadgeInactive: {
     backgroundColor: '#FEEBC8',
   },
@@ -1284,6 +1317,9 @@ const styles = StyleSheet.create({
   },
   statusBadgeTextActive: {
     color: '#217346',
+  },
+  statusBadgeTextScheduled: {
+    color: '#975A16',
   },
   statusBadgeTextInactive: {
     color: '#C05621',
@@ -1309,11 +1345,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: FONTS.montserrat,
     color: '#718096',
-    marginBottom: 10,
+    marginBottom: 6,
   },
   codeTextHighlight: {
     fontFamily: FONTS.montserratBold,
     color: COLORS.vert,
+  },
+  dealAdminDatesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
+  },
+  dealAdminDatesText: {
+    fontSize: 11,
+    fontFamily: FONTS.montserrat,
+    color: '#718096',
   },
   dealAdminActions: {
     flexDirection: 'row',

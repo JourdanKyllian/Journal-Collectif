@@ -10,9 +10,10 @@ export interface BonPlan {
   codePromo?: string;
   lienUrl?: string;
   image?: string;
-  dateFin: string;
+  dateDebut?: string; // Ex: "05 nov. 2026 à 09:00"
+  dateFin: string; // Ex: "30 nov. 2026 à 23:59"
   estExclusif?: boolean;
-  statut: 'actif' | 'expire' | 'en_attente';
+  statut: 'actif' | 'programme' | 'expire' | 'en_attente';
   conditions?: string;
 }
 
@@ -27,7 +28,8 @@ export const MOCK_DEALS: BonPlan[] = [
     codePromo: 'FESTIVAL26',
     lienUrl: 'https://billetterie.culture.fr',
     image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1000&q=80',
-    dateFin: '30 nov. 2026',
+    dateDebut: '01 nov. 2026 à 09:00',
+    dateFin: '30 nov. 2026 à 23:59',
     estExclusif: true,
     statut: 'actif',
     conditions: 'Valable sur présentation d’un justificatif de domicile ou avec le code promo.',
@@ -41,7 +43,8 @@ export const MOCK_DEALS: BonPlan[] = [
     valeur: 'Jeu Concours',
     lienUrl: 'https://cinema-capitole.fr/concours',
     image: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1000&q=80',
-    dateFin: '15 nov. 2026',
+    dateDebut: '28 oct. 2026 à 08:00',
+    dateFin: '15 nov. 2026 à 20:00',
     estExclusif: true,
     statut: 'actif',
     conditions: 'Tirage au sort parmi les résidents inscrits. Résultat par notification.',
@@ -55,7 +58,7 @@ export const MOCK_DEALS: BonPlan[] = [
     valeur: '1 Café Offert',
     codePromo: 'COLLECTIF-CAFE',
     image: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=1000&q=80',
-    dateFin: '31 déc. 2026',
+    dateFin: '31 déc. 2026 à 19:00',
     estExclusif: false,
     statut: 'actif',
     conditions: 'Sur présentation de l’application Journal Collectif en caisse.',
@@ -69,7 +72,8 @@ export const MOCK_DEALS: BonPlan[] = [
     valeur: '1 Achetée = 1 Offerte',
     codePromo: 'PASS-NAUTIQUE',
     image: 'https://images.unsplash.com/photo-1576610616656-d3aa5d1f4534?auto=format&fit=crop&w=1000&q=80',
-    dateFin: '20 déc. 2026',
+    dateDebut: '01 nov. 2026 à 09:00',
+    dateFin: '20 déc. 2026 à 18:00',
     estExclusif: true,
     statut: 'actif',
     conditions: 'Non cumulable avec les abonnements trimestriels.',
@@ -83,7 +87,7 @@ export const MOCK_DEALS: BonPlan[] = [
     valeur: '-15%',
     codePromo: 'BIO15LOCAL',
     image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1000&q=80',
-    dateFin: '10 nov. 2026',
+    dateFin: '10 nov. 2026 à 23:59',
     estExclusif: false,
     statut: 'actif',
     conditions: 'Dès 20 € d’achats en magasin.',
@@ -97,7 +101,8 @@ export const MOCK_DEALS: BonPlan[] = [
     valeur: '-30%',
     codePromo: 'THEATRE-CITOYEN',
     image: 'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=1000&q=80',
-    dateFin: '15 janv. 2027',
+    dateDebut: '15 nov. 2026 à 10:00',
+    dateFin: '15 janv. 2027 à 22:30',
     estExclusif: true,
     statut: 'actif',
     conditions: 'Réservations ouvertes en ligne et au guichet.',

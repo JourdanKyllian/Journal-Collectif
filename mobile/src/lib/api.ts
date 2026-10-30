@@ -263,13 +263,23 @@ export const MobileAuthApi = {
  * Vérifie si une URI correspond à un fichier local stocké sur l'appareil (caméra/galerie).
  */
 export function isLocalDeviceUri(uri?: string | null): boolean {
-  if (!uri) return false;
+  if (!uri || !uri.trim()) return false;
+  const clean = uri.trim();
+  // URLs distantes ou fichiers déjà hébergés sur le serveur
+  if (clean.startsWith('http://') || clean.startsWith('https://')) return false;
+  if (clean.startsWith('/uploads/')) return false;
+  // Nom de fichier simple déjà stocké en base de données
+  if (/^[a-zA-Z0-9_\-.]+\.(jpg|jpeg|png|webp|gif|avif)$/i.test(clean)) return false;
+
   return (
-    uri.startsWith('file:') ||
-    uri.startsWith('content:') ||
-    uri.startsWith('ph:') ||
-    uri.startsWith('blob:') ||
-    uri.startsWith('data:')
+    clean.startsWith('file:') ||
+    clean.startsWith('content:') ||
+    clean.startsWith('ph:') ||
+    clean.startsWith('blob:') ||
+    clean.startsWith('data:') ||
+    clean.startsWith('/var/') ||
+    clean.startsWith('/private/var/') ||
+    clean.startsWith('/Users/')
   );
 }
 
