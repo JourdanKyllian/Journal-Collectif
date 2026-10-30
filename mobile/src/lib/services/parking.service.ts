@@ -99,7 +99,7 @@ async function syncWithBackend(): Promise<void> {
       (Omit<ParkingSpot, 'id'> & { id: number })[]
     >('/parking?all=true');
 
-    if (Array.isArray(remote) && remote.length > 0) {
+    if (Array.isArray(remote)) {
       localParkings = remote.map((item) => ({
         ...item,
         id: String(item.id),
@@ -112,6 +112,11 @@ async function syncWithBackend(): Promise<void> {
 }
 
 export const ParkingService = {
+  async refresh(): Promise<ParkingSpot[]> {
+    await syncWithBackend();
+    return [...localParkings];
+  },
+
   getParkings(): ParkingSpot[] {
     if (!hasAttemptedInitialFetch) {
       hasAttemptedInitialFetch = true;

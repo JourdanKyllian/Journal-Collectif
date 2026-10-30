@@ -118,7 +118,7 @@ export const DealsService = {
     try {
       const url = includeAll ? '/bon-plan?all=true' : '/bon-plan';
       const remote = await apiClient<BonPlan[]>(url);
-      if (Array.isArray(remote) && remote.length > 0) {
+      if (Array.isArray(remote)) {
         localDealsState = remote;
       }
     } catch {
