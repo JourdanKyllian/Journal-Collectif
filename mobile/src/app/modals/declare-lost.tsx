@@ -89,19 +89,6 @@ export default function DeclareLostModalScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
 
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert(
-        'Accès aux photos requis',
-        "L'accès à votre galerie est nécessaire pour joindre une photo de l'objet. Souhaitez-vous ouvrir les réglages pour l'autoriser ?",
-        [
-          { text: 'Annuler', style: 'cancel' },
-          { text: 'Réglages', onPress: () => Linking.openSettings() },
-        ]
-      );
-      return;
-    }
-
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,

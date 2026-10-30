@@ -104,23 +104,10 @@ export default function SubmitArticleModalScreen() {
     }
   };
 
-  // Sélection depuis la galerie avec demande explicite d'autorisation
+  // Sélection depuis la galerie (sélecteur sécurisé natif)
   const handlePickGallery = async () => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert(
-        'Accès aux photos requis',
-        "L'accès à votre galerie est nécessaire pour choisir une photo d'illustration. Souhaitez-vous ouvrir les réglages pour l'autoriser ?",
-        [
-          { text: 'Annuler', style: 'cancel' },
-          { text: 'Réglages', onPress: () => Linking.openSettings() },
-        ]
-      );
-      return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
