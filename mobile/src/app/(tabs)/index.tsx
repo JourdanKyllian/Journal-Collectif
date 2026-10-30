@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Pressable,
   Platform,
   ScrollView,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
@@ -27,12 +28,14 @@ import Animated, {
 import { ChevronDown, Calendar, BookOpen } from 'lucide-react-native';
 
 import { COLORS, FONTS } from '@/theme/tokens';
-import { MOCK_ARTICLES, MOCK_CATEGORIES, MOCK_ALERTS, MobileArticle } from '@/lib/mock-data';
+import { MobileArticle, MobileAlert, MOCK_ARTICLES, MOCK_CATEGORIES, MOCK_ALERTS } from '@/lib/mock-data';
 import { useCity } from '@/context/CityContext';
+import { FeedService } from '@/lib/services/feed.service';
 
 import AlertBanner from '@/components/AlertBanner';
 import CitySelectorSheet from '@/components/CitySelectorSheet';
 import HomeHeader from '@/components/HomeHeader';
+import ArticleCardSkeleton from '@/components/common/ArticleCardSkeleton';
 
 const HERO_HEIGHT = 300;
 
@@ -217,17 +220,19 @@ function ArticleListItem({ item, index }: { item: MobileArticle; index: number }
 
 // ─── Sticky Filter Bar ──────────────────────────────────────────────────────────
 
+interface FilterCategory {
+  id: number;
+  libelle: string;
+  icon: string;
+}
+
 interface FilterBarProps {
+  categories: FilterCategory[];
   selected: string;
   onSelect: (cat: string) => void;
 }
 
-function FilterBar({ selected, onSelect }: FilterBarProps) {
-  const pills = [
-    { id: 0, libelle: 'Tous', icon: '✨' },
-    ...MOCK_CATEGORIES.filter((c) => c.id !== 0),
-  ];
-
+function FilterBar({ categories, selected, onSelect }: FilterBarProps) {
   return (
     <BlurView intensity={60} tint="light" style={styles.filterBarBlur}>
       <ScrollView
@@ -236,7 +241,7 @@ function FilterBar({ selected, onSelect }: FilterBarProps) {
         contentContainerStyle={styles.filterBarContent}
         style={styles.filterBarScroll}
       >
-        {pills.map((cat) => (
+        {categories.map((cat) => (
           <CategoryPill
             key={cat.id}
             label={cat.libelle}
@@ -258,15 +263,94 @@ export default function FeedScreen() {
   const [isCitySheetOpen, setIsCitySheetOpen] = useState(false);
   const [isLoggedIn] = useState(false);
 
-  const filteredArticles = useMemo(() => {
-    if (selectedCategory === 'Tous') return MOCK_ARTICLES;
-    return MOCK_ARTICLES.filter((a) => a.categorie.libelle === selectedCategory);
-  }, [selectedCategory]);
+  const [articles, setArticles] = useState<MobileArticle[]>(MOCK_ARTICLES);
+  const [categories, setCategories] = useState<FilterCategory[]>(MOCK_CATEGORIES);
+  const [alerts, setAlerts] = useState<MobileAlert[]>(MOCK_ALERTS);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+
+  // Chargement des catégories & alertes
+  useEffect(() => {
+    async function loadMeta() {
+      try {
+        const [cats, alertsData] = await Promise.all([
+          FeedService.getCategories(),
+          FeedService.getAlerts(),
+        ]);
+        setCategories(cats);
+        setAlerts(alertsData);
+      } catch {
+        // Fallback silencieux sur mock
+      }
+    }
+    loadMeta();
+  }, [currentCity.slug]);
+
+  // Chargement des articles au changement de commune ou de filtre
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchFeed() {
+      try {
+        const activeCatObj = categories.find((c) => c.libelle === selectedCategory);
+        const catId = activeCatObj && activeCatObj.id !== 0 ? activeCatObj.id : undefined;
+
+        const result = await FeedService.getPublishedArticles({
+          categorieId: catId,
+          limit: 20,
+        });
+
+        if (!isMounted) return;
+
+        let list = result.articles;
+        if (selectedCategory !== 'Tous') {
+          list = list.filter((a) => a.categorie.libelle === selectedCategory);
+        }
+        setArticles(list);
+      } catch {
+        if (!isMounted) return;
+        if (selectedCategory === 'Tous') {
+          setArticles(MOCK_ARTICLES);
+        } else {
+          setArticles(MOCK_ARTICLES.filter((a) => a.categorie.libelle === selectedCategory));
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+          setIsRefreshing(false);
+        }
+      }
+    }
+
+    fetchFeed();
+    return () => {
+      isMounted = false;
+    };
+  }, [categories, selectedCategory, currentCity.slug]);
+
+  const onRefresh = useCallback(() => {
+    setIsRefreshing(true);
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    const activeCatObj = categories.find((c) => c.libelle === selectedCategory);
+    const catId = activeCatObj && activeCatObj.id !== 0 ? activeCatObj.id : undefined;
+    FeedService.getPublishedArticles({ categorieId: catId, limit: 20 })
+      .then((result) => {
+        let list = result.articles;
+        if (selectedCategory !== 'Tous') {
+          list = list.filter((a) => a.categorie.libelle === selectedCategory);
+        }
+        setArticles(list);
+      })
+      .catch(() => {})
+      .finally(() => setIsRefreshing(false));
+  }, [categories, selectedCategory]);
 
   // Premier article = Hero
-  const heroArticle = filteredArticles[0] ?? null;
+  const heroArticle = articles[0] ?? null;
   // Reste de la liste (sans le hero)
-  const listArticles = filteredArticles.slice(1);
+  const listArticles = articles.slice(1);
 
   const handleCategorySelect = useCallback((cat: string) => {
     setSelectedCategory(cat);
@@ -324,22 +408,41 @@ export default function FeedScreen() {
       />
 
       {/* Bandeau alerte (sous le header, non flottant) */}
-      <AlertBanner alerts={MOCK_ALERTS} />
+      <AlertBanner alerts={alerts} />
 
       {/* Filtre categories sticky */}
-      <FilterBar selected={selectedCategory} onSelect={handleCategorySelect} />
-
-      {/* Feed */}
-      <FlatList
-        data={listArticles}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={renderItem}
-        ListHeaderComponent={renderListHeader}
-        ListEmptyComponent={heroArticle ? null : renderEmpty}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        initialNumToRender={6}
+      <FilterBar
+        categories={categories}
+        selected={selectedCategory}
+        onSelect={handleCategorySelect}
       />
+
+      {/* Feed ou Skeleton pendant chargement initial */}
+      {isLoading ? (
+        <View style={styles.skeletonContainer}>
+          <ArticleCardSkeleton />
+          <ArticleCardSkeleton />
+        </View>
+      ) : (
+        <FlatList
+          data={listArticles}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderItem}
+          ListHeaderComponent={renderListHeader}
+          ListEmptyComponent={heroArticle ? null : renderEmpty}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          initialNumToRender={6}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={onRefresh}
+              tintColor={COLORS.vert}
+              colors={[COLORS.vert, COLORS.or]}
+            />
+          }
+        />
+      )}
 
       {/* City Selector Sheet */}
       <CitySelectorSheet
@@ -576,6 +679,10 @@ const styles = StyleSheet.create({
   // ── Feed ──
   listContent: {
     paddingBottom: 120,
+  },
+  skeletonContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
 
   // ── Empty state ──
