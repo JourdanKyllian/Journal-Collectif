@@ -175,15 +175,26 @@ export const EditorialService = {
     image_couverture?: string | null;
     statut: 'publie' | 'brouillon' | 'en_attente';
   }): Promise<void> {
+    const cleanPayload: Record<string, unknown> = {
+      titre: payload.titre.trim(),
+      contenu: payload.contenu.trim(),
+      categorieId: payload.categorieId,
+      statut: payload.statut,
+    };
+
+    if (payload.image_couverture && payload.image_couverture.trim()) {
+      cleanPayload.image_couverture = payload.image_couverture.trim();
+    }
+
     if (payload.id) {
       await apiClient(`/article/${payload.id}`, {
         method: 'PATCH',
-        body: JSON.stringify(payload),
+        body: JSON.stringify(cleanPayload),
       });
     } else {
       await apiClient('/article', {
         method: 'POST',
-        body: JSON.stringify(payload),
+        body: JSON.stringify(cleanPayload),
       });
     }
   },

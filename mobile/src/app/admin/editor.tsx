@@ -35,11 +35,16 @@ import { COLORS, FONTS } from '@/theme/tokens';
 import { MOCK_CATEGORIES } from '@/lib/mock-data';
 import { uploadImageMobile } from '@/lib/api';
 import { EditorialService } from '@/lib/services/editorial.service';
+import { FeedService } from '@/lib/services/feed.service';
 import SimpleMarkdownRenderer from '@/components/admin/SimpleMarkdownRenderer';
 
 export default function MobileArticleEditorScreen() {
   const params = useLocalSearchParams();
   const editId = params.id ? Number(params.id) : undefined;
+
+  const [categories, setCategories] = useState<
+    { id: number; libelle: string; icon: string }[]
+  >(() => MOCK_CATEGORIES.filter((c) => c.id !== 0));
 
   const [titre, setTitre] = useState<string>((params.initialTitre as string) || '');
   const [contenu, setContenu] = useState<string>((params.initialContenu as string) || '');
@@ -52,6 +57,27 @@ export default function MobileArticleEditorScreen() {
 
   const [activeMode, setActiveMode] = useState<'edit' | 'preview'>('edit');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    FeedService.getCategories()
+      .then((cats) => {
+        if (!isMounted) return;
+        const valid = cats.filter((c) => c.id !== 0);
+        if (valid.length > 0) {
+          setCategories(valid);
+          if (!params.initialCategorieId) {
+            setCategorieId(valid[0].id);
+          }
+        }
+      })
+      .catch(() => {
+        // Fallback silencieux sur MOCK_CATEGORIES
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [params.initialCategorieId]);
 
   // Prise de photo directe avec la caméra native
   const handleTakePhoto = async () => {
@@ -141,8 +167,8 @@ export default function MobileArticleEditorScreen() {
         id: editId,
         titre,
         contenu,
-        categorieId,
-        image_couverture: finalImageUrl,
+        categorieId: selectedCat ? selectedCat.id : categorieId,
+        image_couverture: finalImageUrl || undefined,
         statut,
       });
 
@@ -169,7 +195,6 @@ export default function MobileArticleEditorScreen() {
     }
   };
 
-  const categories = MOCK_CATEGORIES.filter((c) => c.id !== 0);
   const selectedCat = categories.find((c) => c.id === categorieId) || categories[0];
 
   return (

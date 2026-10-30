@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import Toast from 'react-native-toast-message';
@@ -80,39 +80,11 @@ export default function MobileAdminDashboardScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    let isMounted = true;
-    (async () => {
-      try {
-        const [pending, published, drafts, statsData] = await Promise.all([
-          EditorialService.getArticlesByStatus('en_attente'),
-          EditorialService.getArticlesByStatus('publie'),
-          EditorialService.getArticlesByStatus('brouillon'),
-          EditorialService.getStats(),
-        ]);
-        if (isMounted) {
-          setPendingArticles(pending);
-          setPublishedArticles(published);
-          setDraftArticles(drafts);
-          setStats({
-            ...statsData,
-            en_attente: pending.length,
-            publie: published.length,
-            brouillon: drafts.length,
-          });
-          setIsLoading(false);
-        }
-      } catch {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    })();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [fetchData])
+  );
 
   const onRefresh = () => {
     setIsRefreshing(true);

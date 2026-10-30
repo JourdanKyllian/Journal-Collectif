@@ -9,6 +9,7 @@ import {
   IsBoolean,
   IsUrl,
   Matches,
+  ValidateIf,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ArticleStatus } from '../entities/article.entity';
@@ -28,14 +29,18 @@ export class CreateArticleDto {
   @IsNotEmpty({ message: 'Le contenu est obligatoire' })
   contenu!: string;
 
-  @ApiPropertyOptional({ example: '/uploads/3f2a.jpg' })
-  @IsString()
+  @ApiPropertyOptional({ example: '/uploads/3f2a.jpg', nullable: true })
   @IsOptional()
+  @ValidateIf(
+    (_object: unknown, value: unknown) =>
+      typeof value === 'string' && value.length > 0,
+  )
+  @IsString()
   @MaxLength(255)
   @Matches(/^(https?:\/\/|\/uploads\/)/, {
     message: "L'image doit être une URL http(s) ou un fichier téléversé",
   })
-  image_couverture?: string;
+  image_couverture?: string | null;
 
   @ApiPropertyOptional({ example: 'https://...' })
   @IsOptional()
