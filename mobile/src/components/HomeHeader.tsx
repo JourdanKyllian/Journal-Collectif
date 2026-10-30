@@ -18,6 +18,7 @@ import { useCity } from '@/context/CityContext';
 
 interface HomeHeaderProps {
   isLoggedIn: boolean;
+  userName?: string;
   onFilterPress: () => void;
   onUserPress: () => void;
   onCityPress: () => void;
@@ -27,6 +28,7 @@ interface HomeHeaderProps {
 
 export default function HomeHeader({
   isLoggedIn,
+  userName,
   onFilterPress,
   onUserPress,
   onCityPress,
@@ -139,7 +141,7 @@ export default function HomeHeader({
           {isLoggedIn ? (
             <>
               <UserCircle size={19} color={COLORS.or} />
-              <Text style={styles.userPillText}>Kyllian</Text>
+              <Text style={styles.userPillText}>{userName || 'Mon compte'}</Text>
             </>
           ) : (
             <>

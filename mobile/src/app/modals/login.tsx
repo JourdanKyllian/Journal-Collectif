@@ -1,111 +1,329 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, Alert } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  Pressable,
+  ActivityIndicator,
+  Platform,
+  ScrollView,
+} from 'react-native';
 import { router } from 'expo-router';
-import { X, Shield, UserCheck } from 'lucide-react-native';
+import { X, Shield, UserCheck, Mail, Lock, LogIn, Sparkles } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
+import Animated, { FadeInDown } from 'react-native-reanimated';
+
 import { COLORS, FONTS } from '@/theme/tokens';
-import { MobileAuthApi } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
+import { useCity } from '@/context/CityContext';
 
 export default function LoginModalScreen() {
+  const { login } = useAuth();
+  const { currentCity } = useCity();
+
   const [email, setEmail] = useState('visiteur.complet@exemple.fr');
   const [password, setPassword] = useState('user123');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleLogin = async () => {
-    try {
-      const res = await MobileAuthApi.login(email, password);
-      Alert.alert(
-        'Dual-Auth Mobile Réussie',
-        `Session #${res.session_id.slice(0, 8)} ouverte.\nToken stocké dans expo-secure-store.`,
-        [{ text: 'Continuer', onPress: () => router.back() }]
-      );
-    } catch {
-      Alert.alert(
-        'Simulation Dual-Auth (Mode Hors-Ligne)',
-        `En-tête envoyé : X-Client: mobile\nCompte : ${email}\nLe token Bearer simulé est prêt pour la soutenance.`,
-        [{ text: 'OK', onPress: () => router.back() }]
-      );
+    if (!email.trim() || !password.trim()) {
+      return;
     }
+
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+
+    setIsSubmitting(true);
+    try {
+      const ok = await login(email.trim(), password);
+      if (ok) {
+        router.back();
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const setDemoAccount = (demoEmail: string, demoPass: string) => {
+    if (Platform.OS !== 'web') {
+      Haptics.selectionAsync();
+    }
+    setEmail(demoEmail);
+    setPassword(demoPass);
   };
 
   return (
     <View style={styles.container}>
+      {/* En-tête */}
       <View style={styles.header}>
-        <Text style={styles.title}>Connexion Mobile (Phase 1A)</Text>
-        <Pressable onPress={() => router.back()}>
-          <X size={22} color={COLORS.blanc} />
+        <View style={styles.headerLeft}>
+          <View style={styles.iconCapsule}>
+            <Sparkles size={18} color={COLORS.or} />
+          </View>
+          <View>
+            <Text style={styles.title}>Espace Citoyen</Text>
+            <Text style={styles.subtitle}>Édition de {currentCity.shortName}</Text>
+          </View>
+        </View>
+        <Pressable
+          onPress={() => router.back()}
+          style={styles.closeBtn}
+          hitSlop={8}
+          accessibilityLabel="Fermer la fenêtre de connexion"
+        >
+          <X size={20} color={COLORS.blanc} />
         </Pressable>
       </View>
 
-      <View style={styles.body}>
-        <Text style={styles.label}>EMAIL</Text>
-        <TextInput value={email} onChangeText={setEmail} style={styles.input} autoCapitalize="none" />
+      <ScrollView
+        contentContainerStyle={styles.body}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Animated.View entering={FadeInDown.duration(280)}>
+          {/* Champ Email */}
+          <Text style={styles.label}>ADRESSE EMAIL</Text>
+          <View style={styles.inputWrapper}>
+            <Mail size={18} color={COLORS.champagne} style={styles.inputIcon} />
+            <TextInput
+              value={email}
+              onChangeText={setEmail}
+              placeholder="votre.email@exemple.fr"
+              placeholderTextColor={COLORS.champagne}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={styles.input}
+            />
+          </View>
 
-        <Text style={styles.label}>MOT DE PASSE</Text>
-        <TextInput value={password} onChangeText={setPassword} secureTextEntry style={styles.input} />
+          {/* Champ Mot de Passe */}
+          <Text style={styles.label}>MOT DE PASSE</Text>
+          <View style={styles.inputWrapper}>
+            <Lock size={18} color={COLORS.champagne} style={styles.inputIcon} />
+            <TextInput
+              value={password}
+              onChangeText={setPassword}
+              placeholder="••••••••"
+              placeholderTextColor={COLORS.champagne}
+              secureTextEntry
+              style={styles.input}
+            />
+          </View>
 
-        <Pressable onPress={handleLogin} style={styles.submitBtn}>
-          <Text style={styles.submitText}>S&apos;authentifier (X-Client: mobile)</Text>
-        </Pressable>
+          {/* Bouton de Soumission */}
+          <Pressable
+            onPress={handleLogin}
+            disabled={isSubmitting}
+            style={({ pressed }) => [
+              styles.submitBtn,
+              pressed && styles.submitBtnPressed,
+              isSubmitting && { opacity: 0.75 },
+            ]}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator color={COLORS.blanc} size="small" />
+            ) : (
+              <>
+                <LogIn size={18} color={COLORS.blanc} />
+                <Text style={styles.submitText}>Se connecter</Text>
+              </>
+            )}
+          </Pressable>
 
-        <Text style={[styles.label, { marginTop: 24 }]}>COMPTES DE DÉMO DU SEED BACKEND</Text>
-        <Pressable
-          onPress={() => {
-            setEmail('superadmin@journal.fr');
-            setPassword('superadmin123');
-          }}
-          style={styles.demoRow}
-        >
-          <Shield size={16} color={COLORS.or} />
-          <Text style={styles.demoText}>superadmin@journal.fr (Gérant)</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => {
-            setEmail('visiteur.complet@exemple.fr');
-            setPassword('user123');
-          }}
-          style={styles.demoRow}
-        >
-          <UserCheck size={16} color={COLORS.vert} />
-          <Text style={styles.demoText}>visiteur.complet@exemple.fr (Citoyen vérifié)</Text>
-        </Pressable>
-      </View>
+          {/* Comptes de test en un clic */}
+          <View style={styles.demoSection}>
+            <Text style={styles.demoSectionTitle}>COMPTES DE DÉMONSTRATION</Text>
+            <Text style={styles.demoSectionHint}>
+              Appuyez pour préremplir instantanément un profil de test :
+            </Text>
+
+            <Pressable
+              onPress={() => setDemoAccount('visiteur.complet@exemple.fr', 'user123')}
+              style={styles.demoCard}
+            >
+              <View style={[styles.demoIconBox, { backgroundColor: 'rgba(22, 163, 74, 0.15)' }]}>
+                <UserCheck size={18} color={COLORS.success} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.demoRole}>Citoyen Engagé</Text>
+                <Text style={styles.demoEmail}>visiteur.complet@exemple.fr</Text>
+              </View>
+            </Pressable>
+
+            <Pressable
+              onPress={() => setDemoAccount('superadmin@journal.fr', 'superadmin123')}
+              style={styles.demoCard}
+            >
+              <View style={[styles.demoIconBox, { backgroundColor: 'rgba(212, 175, 55, 0.15)' }]}>
+                <Shield size={18} color={COLORS.or} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.demoRole}>Gérant de Rédaction (Super Admin)</Text>
+                <Text style={styles.demoEmail}>superadmin@journal.fr</Text>
+              </View>
+            </Pressable>
+          </View>
+        </Animated.View>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.blanc },
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.blanc,
+  },
   header: {
     backgroundColor: COLORS.vert,
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 24,
+    paddingBottom: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(212, 175, 55, 0.2)',
   },
-  title: { fontFamily: FONTS.headingBold, fontSize: 17, color: COLORS.blanc },
-  body: { padding: 20 },
-  label: { fontFamily: FONTS.bodyBold, fontSize: 11, color: COLORS.vert, marginBottom: 6 },
-  input: {
-    backgroundColor: COLORS.surface,
-    padding: 14,
-    borderRadius: 12,
-    fontFamily: FONTS.bodySemiBold,
-    marginBottom: 16,
-  },
-  submitBtn: {
-    backgroundColor: COLORS.or,
-    padding: 16,
-    borderRadius: 14,
-    alignItems: 'center',
-  },
-  submitText: { fontFamily: FONTS.bodyBold, fontSize: 14, color: COLORS.noir },
-  demoRow: {
+  headerLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    padding: 12,
-    backgroundColor: COLORS.surface,
+    gap: 12,
+  },
+  iconCapsule: {
+    width: 36,
+    height: 36,
     borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: {
+    fontFamily: FONTS.headingBold,
+    fontSize: 17,
+    color: COLORS.blanc,
+    letterSpacing: -0.3,
+  },
+  subtitle: {
+    fontFamily: FONTS.body,
+    fontSize: 12,
+    color: COLORS.champagne,
+    marginTop: 1,
+  },
+  closeBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  body: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  label: {
+    fontFamily: FONTS.bodyBold,
+    fontSize: 11,
+    color: COLORS.vert,
+    letterSpacing: 0.6,
     marginBottom: 8,
   },
-  demoText: { fontFamily: FONTS.bodySemiBold, fontSize: 12, color: COLORS.noir },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: 'rgba(142, 134, 113, 0.25)',
+    borderRadius: 14,
+    marginBottom: 16,
+    paddingHorizontal: 14,
+  },
+  inputIcon: {
+    marginRight: 10,
+  },
+  input: {
+    flex: 1,
+    paddingVertical: 14,
+    fontFamily: FONTS.bodySemiBold,
+    fontSize: 14,
+    color: COLORS.noir,
+  },
+  submitBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: COLORS.vert,
+    paddingVertical: 15,
+    borderRadius: 14,
+    marginTop: 8,
+    shadowColor: COLORS.vert,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  submitBtnPressed: {
+    opacity: 0.88,
+    transform: [{ scale: 0.99 }],
+  },
+  submitText: {
+    fontFamily: FONTS.bodyBold,
+    fontSize: 15,
+    color: COLORS.blanc,
+    letterSpacing: -0.2,
+  },
+  demoSection: {
+    marginTop: 32,
+    paddingTop: 24,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(142, 134, 113, 0.18)',
+  },
+  demoSectionTitle: {
+    fontFamily: FONTS.headingBold,
+    fontSize: 12,
+    color: COLORS.champagne,
+    letterSpacing: 0.8,
+    marginBottom: 4,
+  },
+  demoSectionHint: {
+    fontFamily: FONTS.body,
+    fontSize: 12,
+    color: COLORS.champagne,
+    lineHeight: 16,
+    marginBottom: 14,
+  },
+  demoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: COLORS.surface,
+    padding: 12,
+    borderRadius: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(142, 134, 113, 0.2)',
+  },
+  demoIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  demoRole: {
+    fontFamily: FONTS.bodyBold,
+    fontSize: 13,
+    color: COLORS.noir,
+  },
+  demoEmail: {
+    fontFamily: FONTS.body,
+    fontSize: 12,
+    color: COLORS.champagne,
+    marginTop: 1,
+  },
 });

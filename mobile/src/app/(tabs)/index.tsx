@@ -30,6 +30,7 @@ import { ChevronDown, Calendar, BookOpen } from 'lucide-react-native';
 import { COLORS, FONTS } from '@/theme/tokens';
 import { MobileArticle, MobileAlert, MOCK_ARTICLES, MOCK_CATEGORIES, MOCK_ALERTS } from '@/lib/mock-data';
 import { useCity } from '@/context/CityContext';
+import { useAuth } from '@/context/AuthContext';
 import { FeedService } from '@/lib/services/feed.service';
 
 import AlertBanner from '@/components/AlertBanner';
@@ -259,9 +260,9 @@ function FilterBar({ categories, selected, onSelect }: FilterBarProps) {
 
 export default function FeedScreen() {
   const { currentCity } = useCity();
+  const { user, isLoggedIn } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState<string>('Tous');
   const [isCitySheetOpen, setIsCitySheetOpen] = useState(false);
-  const [isLoggedIn] = useState(false);
 
   const [articles, setArticles] = useState<MobileArticle[]>(MOCK_ARTICLES);
   const [categories, setCategories] = useState<FilterCategory[]>(MOCK_CATEGORIES);
@@ -398,6 +399,7 @@ export default function FeedScreen() {
       {/* Header */}
       <HomeHeader
         isLoggedIn={isLoggedIn}
+        userName={user?.firstname ?? user?.email?.split('@')[0] ?? undefined}
         onFilterPress={() => {}}
         onCityPress={() => setIsCitySheetOpen(true)}
         isCitySheetOpen={isCitySheetOpen}

@@ -7,23 +7,26 @@ import {
   ScrollView,
   Switch,
   Platform,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { UserCheck, LogIn, Globe, BellRing, Bell } from 'lucide-react-native';
+import { UserCheck, LogIn, LogOut, Globe, BellRing, Bell, Shield, Sparkles } from 'lucide-react-native';
 import * as Notifications from 'expo-notifications';
 import * as Haptics from 'expo-haptics';
 import Toast from 'react-native-toast-message';
 
 import { COLORS, FONTS } from '@/theme/tokens';
 import { useCity } from '@/context/CityContext';
+import { useAuth } from '@/context/AuthContext';
 import { MOCK_CATEGORIES } from '@/lib/mock-data';
 import PageHeader from '@/components/navigation/PageHeader';
 
 export default function ProfileScreen() {
   const { currentCity, cities, selectCity } = useCity();
+  const { user, isLoggedIn, logout } = useAuth();
 
-  // Abonnements aux alertes push par thématique (géré proprement dans les paramètres)
+  // Abonnements aux alertes push par thématique
   const [subscribedCategoryIds, setSubscribedCategoryIds] = useState<number[]>([1, 2, 3]);
 
   const categoryList = MOCK_CATEGORIES.filter((c) => c.id !== 0);
@@ -56,6 +59,26 @@ export default function ProfileScreen() {
     });
   };
 
+  const handleLogout = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    Alert.alert(
+      'Déconnexion',
+      'Êtes-vous sûr de vouloir vous déconnecter de votre compte ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Déconnexion',
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+          },
+        },
+      ]
+    );
+  };
+
   const triggerInstantNotification = async () => {
     await Notifications.scheduleNotificationAsync({
       content: {
@@ -66,6 +89,22 @@ export default function ProfileScreen() {
       trigger: null,
     });
   };
+
+  const displayName = user
+    ? user.firstname && user.lastname
+      ? `${user.firstname} ${user.lastname}`
+      : user.firstname || user.email.split('@')[0]
+    : 'Visiteur';
+
+  const roleBadge = user
+    ? user.is_platform_admin
+      ? 'Super Admin'
+      : user.role === 'admin'
+      ? 'Administrateur'
+      : user.role === 'redacteur'
+      ? 'Rédacteur'
+      : 'Citoyen Vérifié'
+    : 'Non connecté';
 
   return (
     <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
@@ -78,25 +117,53 @@ export default function ProfileScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* Carte de profil citoyen */}
+        {/* Carte de profil citoyen dynamique */}
         <View style={styles.profileCard}>
           <View style={styles.avatar}>
-            <UserCheck size={28} color={COLORS.or} />
+            {user?.is_platform_admin ? (
+              <Shield size={26} color={COLORS.or} />
+            ) : isLoggedIn ? (
+              <UserCheck size={26} color={COLORS.or} />
+            ) : (
+              <Sparkles size={26} color={COLORS.champagne} />
+            )}
           </View>
+
           <View style={{ flex: 1 }}>
-            <Text style={styles.name}>Citoyen Engagé</Text>
-            <Text style={styles.email}>visiteur.complet@exemple.fr</Text>
+            <View style={styles.roleBadgeContainer}>
+              <Text style={styles.roleBadgeText}>{roleBadge.toUpperCase()}</Text>
+            </View>
+            <Text style={styles.name} numberOfLines={1}>
+              {displayName}
+            </Text>
+            <Text style={styles.email} numberOfLines={1}>
+              {user?.email ?? 'Connectez-vous pour participer'}
+            </Text>
           </View>
-          <Pressable
-            onPress={() => router.push('/modals/login')}
-            style={styles.loginBtn}
-          >
-            <LogIn size={16} color={COLORS.noir} />
-            <Text style={styles.loginBtnText}>Connexion</Text>
-          </Pressable>
+
+          {isLoggedIn ? (
+            <Pressable
+              onPress={handleLogout}
+              style={styles.logoutBtn}
+              hitSlop={8}
+              accessibilityLabel="Se déconnecter"
+            >
+              <LogOut size={16} color={COLORS.urgent} />
+              <Text style={styles.logoutBtnText}>Quitter</Text>
+            </Pressable>
+          ) : (
+            <Pressable
+              onPress={() => router.push('/modals/login')}
+              style={styles.loginBtn}
+              accessibilityLabel="Se connecter"
+            >
+              <LogIn size={16} color={COLORS.noir} />
+              <Text style={styles.loginBtnText}>Connexion</Text>
+            </Pressable>
+          )}
         </View>
 
-        {/* Section 1 : Préférences de notifications push (centralisées ici) */}
+        {/* Section 1 : Préférences de notifications push */}
         <View style={styles.sectionHeaderRow}>
           <Text style={styles.sectionTitle}>NOTIFICATIONS PUSH PAR THÉMATIQUE</Text>
           <Bell size={14} color={COLORS.vert} />
@@ -178,25 +245,44 @@ const styles = StyleSheet.create({
   content: { padding: 20, paddingBottom: 130 },
   profileCard: {
     backgroundColor: COLORS.vert,
-    padding: 18,
+    padding: 16,
     borderRadius: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 12,
     marginBottom: 24,
+    shadowColor: COLORS.vert,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.16,
+    shadowRadius: 10,
+    elevation: 4,
   },
   avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: COLORS.noir,
-    borderWidth: 2,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1.5,
     borderColor: COLORS.or,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  roleBadgeContainer: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(212, 175, 55, 0.22)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginBottom: 3,
+  },
+  roleBadgeText: {
+    fontFamily: FONTS.bodyBold,
+    fontSize: 9,
+    color: COLORS.or,
+    letterSpacing: 0.5,
+  },
   name: { fontFamily: FONTS.headingBold, fontSize: 16, color: COLORS.blanc },
-  email: { fontFamily: FONTS.body, fontSize: 12, color: COLORS.champagne },
+  email: { fontFamily: FONTS.body, fontSize: 12, color: COLORS.champagne, marginTop: 1 },
   loginBtn: {
     backgroundColor: COLORS.or,
     flexDirection: 'row',
@@ -207,6 +293,18 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   loginBtnText: { fontFamily: FONTS.bodyBold, fontSize: 12, color: COLORS.noir },
+  logoutBtn: {
+    backgroundColor: 'rgba(220, 38, 38, 0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(220, 38, 38, 0.3)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 12,
+  },
+  logoutBtnText: { fontFamily: FONTS.bodyBold, fontSize: 12, color: '#FCA5A5' },
   sectionHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
