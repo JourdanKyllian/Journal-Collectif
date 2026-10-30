@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
+  Linking,
 } from 'react-native';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -59,7 +60,11 @@ export default function DeclareLostModalScreen() {
     if (!permission.granted) {
       Alert.alert(
         'Permission requise',
-        "Veuillez autoriser l'accès à l'appareil photo dans les réglages de votre téléphone."
+        "Veuillez autoriser l'accès à l'appareil photo pour photographier l'objet. Souhaitez-vous ouvrir les réglages ?",
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { text: 'Réglages', onPress: () => Linking.openSettings() },
+        ]
       );
       return;
     }
@@ -82,6 +87,19 @@ export default function DeclareLostModalScreen() {
   const handlePickGallery = async () => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(
+        'Accès aux photos requis',
+        "L'accès à votre galerie est nécessaire pour joindre une photo de l'objet. Souhaitez-vous ouvrir les réglages pour l'autoriser ?",
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { text: 'Réglages', onPress: () => Linking.openSettings() },
+        ]
+      );
+      return;
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({

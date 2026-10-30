@@ -9,6 +9,7 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -94,7 +95,11 @@ export default function MobileArticleEditorScreen() {
     if (!perm.granted) {
       Alert.alert(
         'Permission requise',
-        "L'accès à l'appareil photo est nécessaire pour capturer une illustration."
+        "L'accès à l'appareil photo est nécessaire pour capturer une illustration. Souhaitez-vous ouvrir les réglages pour l'autoriser ?",
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { text: 'Réglages', onPress: () => Linking.openSettings() },
+        ]
       );
       return;
     }
@@ -111,11 +116,25 @@ export default function MobileArticleEditorScreen() {
     }
   };
 
-  // Sélection dans la pellicule
+  // Sélection dans la pellicule avec demande explicite d'autorisation
   const handlePickGallery = async () => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
+
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert(
+        'Accès aux photos requis',
+        "L'accès à votre galerie est nécessaire pour sélectionner une photo d'illustration. Souhaitez-vous ouvrir les réglages pour autoriser l'accès ?",
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { text: 'Réglages', onPress: () => Linking.openSettings() },
+        ]
+      );
+      return;
+    }
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
