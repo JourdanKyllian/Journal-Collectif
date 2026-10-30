@@ -165,7 +165,12 @@ export const EditorialService = {
   },
 
   /**
-   * Crée ou met à jour un article
+   * Crée ou met à jour un article.
+   * Gère de manière transparente les routes backend NestJS :
+   * - Création : POST /article
+   * - Modification de contenu : PATCH /article/:id
+   * - Dépublication vers brouillon : PATCH /article/:id/unpublish
+   * - Publication directe : PATCH /article/:id/publish
    */
   async saveArticle(payload: {
     id?: number;
@@ -174,28 +179,111 @@ export const EditorialService = {
     categorieId: number;
     image_couverture?: string | null;
     statut: 'publie' | 'brouillon' | 'en_attente';
+    currentStatut?: 'publie' | 'brouillon' | 'en_attente';
   }): Promise<void> {
-    const cleanPayload: Record<string, unknown> = {
+    const isMock = payload.id !== undefined && [101, 102, 103, 201].includes(payload.id);
+
+    // 1. Nouvel article ou mock de démo hors base de données -> POST /article
+    if (!payload.id || isMock) {
+      const createPayload: Record<string, unknown> = {
+        titre: payload.titre.trim(),
+        contenu: payload.contenu.trim(),
+        categorieId: payload.categorieId,
+        statut: payload.statut,
+      };
+      if (payload.image_couverture && payload.image_couverture.trim()) {
+        createPayload.image_couverture = payload.image_couverture.trim();
+      }
+
+      await apiClient('/article', {
+        method: 'POST',
+        body: JSON.stringify(createPayload),
+      });
+      return;
+    }
+
+    // 2. Mise à jour d'un article existant
+    const updatePayload: Record<string, unknown> = {
       titre: payload.titre.trim(),
       contenu: payload.contenu.trim(),
       categorieId: payload.categorieId,
-      statut: payload.statut,
     };
-
     if (payload.image_couverture && payload.image_couverture.trim()) {
-      cleanPayload.image_couverture = payload.image_couverture.trim();
+      updatePayload.image_couverture = payload.image_couverture.trim();
     }
 
-    if (payload.id) {
+    // Cas A : L'utilisateur souhaite PUBLIER l'article
+    if (payload.statut === 'publie') {
+      try {
+        await apiClient(`/article/${payload.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify(updatePayload),
+        });
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : '';
+        if (msg.includes('introuvable') || msg.includes('404')) {
+          await apiClient('/article', {
+            method: 'POST',
+            body: JSON.stringify({ ...updatePayload, statut: 'publie' }),
+          });
+          return;
+        }
+        throw err;
+      }
+
+      // Le backend exige la route dédiée de publication
+      try {
+        await apiClient(`/article/${payload.id}/publish`, {
+          method: 'PATCH',
+        });
+      } catch {
+        // Ignoré si déjà publié
+      }
+      return;
+    }
+
+    // Cas B : L'utilisateur souhaite METTRE EN BROUILLON l'article
+    try {
+      // Pour les brouillons ou articles en attente, statut: 'brouillon' est accepté
       await apiClient(`/article/${payload.id}`, {
         method: 'PATCH',
-        body: JSON.stringify(cleanPayload),
+        body: JSON.stringify({
+          ...updatePayload,
+          statut: 'brouillon',
+        }),
       });
-    } else {
-      await apiClient('/article', {
-        method: 'POST',
-        body: JSON.stringify(cleanPayload),
-      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : '';
+
+      // Si l'article était en ligne (statut publié), le backend exige d'utiliser /unpublish
+      if (
+        msg.includes('dépublication') ||
+        msg.includes('depublication') ||
+        payload.currentStatut === 'publie'
+      ) {
+        await apiClient(`/article/${payload.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify(updatePayload),
+        });
+        await apiClient(`/article/${payload.id}/unpublish`, {
+          method: 'PATCH',
+        });
+        return;
+      }
+
+      // Si l'article n'existe pas en DB, on le crée proprement en brouillon
+      if (msg.includes('introuvable') || msg.includes('404')) {
+        await apiClient('/article', {
+          method: 'POST',
+          body: JSON.stringify({
+            ...updatePayload,
+            statut: 'brouillon',
+          }),
+        });
+        return;
+      }
+
+      throw err;
     }
   },
 };

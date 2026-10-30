@@ -66,7 +66,13 @@ export default function MobileArticleEditorScreen() {
         const valid = cats.filter((c) => c.id !== 0);
         if (valid.length > 0) {
           setCategories(valid);
-          if (!params.initialCategorieId) {
+          const initialId = params.initialCategorieId
+            ? Number(params.initialCategorieId)
+            : undefined;
+          const exists = initialId && valid.some((c) => c.id === initialId);
+          if (exists) {
+            setCategorieId(initialId);
+          } else {
             setCategorieId(valid[0].id);
           }
         }
@@ -170,6 +176,11 @@ export default function MobileArticleEditorScreen() {
         categorieId: selectedCat ? selectedCat.id : categorieId,
         image_couverture: finalImageUrl || undefined,
         statut,
+        currentStatut: params.initialStatut as
+          | 'publie'
+          | 'brouillon'
+          | 'en_attente'
+          | undefined,
       });
 
       if (Platform.OS !== 'web') {

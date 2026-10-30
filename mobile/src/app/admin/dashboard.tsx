@@ -213,6 +213,7 @@ export default function MobileAdminDashboardScreen() {
         initialContenu: article.contenu,
         initialCategorieId: article.categorie?.id || 1,
         initialImage: article.image_couverture || '',
+        initialStatut: article.statut,
       },
     });
   };
