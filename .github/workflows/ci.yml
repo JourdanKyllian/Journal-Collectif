@@ -1,17 +1,23 @@
 name: CI Journal Collectif
 
-# Activation à chaque push sur la branche main ou lors d'une Pull Request
+# Activation à chaque push sur main ou dev, ou lors d'une Pull Request
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "dev" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "dev" ]
+
+# Annule les runs précédents si un nouveau commit est poussé sur la même branche
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   # ==========================================
   # BACKEND (NestJS)
   # ==========================================
   build-backend:
+    name: Backend (Lint, Build & Tests)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -30,16 +36,20 @@ jobs:
       - name: Installation des dépendances
         run: npm ci --legacy-peer-deps
 
-      - name: Compilation de l'API
+      - name: Vérification du Linting
+        run: npm run lint
+
+      - name: Compilation de l'API (NestJS)
         run: npm run build
 
-      - name: Lancement des tests
+      - name: Lancement des tests unitaires
         run: npm run test
 
   # ==========================================
   # FRONTEND (Next.js)
   # ==========================================
   build-frontend:
+    name: Frontend (Lint, Build & Security)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -58,15 +68,14 @@ jobs:
       - name: Installation des dépendances
         run: npm ci --legacy-peer-deps
 
-      - name: Compilation Standalone
-        # Next.js n'enverra pas de données de télémétrie pendant la CI
+      - name: Vérification du Linting
+        run: npm run lint
+
+      - name: Compilation Standalone (Next.js)
         env:
           NEXT_TELEMETRY_DISABLED: 1
         run: npm run build
 
-  # ==========================================
-  # Scan Trivy (Audit de sécurité du frontend)
-  # ==========================================
       - name: Scan de vulnérabilités Trivy
         uses: aquasecurity/trivy-action@master
         continue-on-error: true
@@ -77,3 +86,40 @@ jobs:
           severity: 'CRITICAL,HIGH'
           ignore-unfixed: true
           exit-code: '0'
+
+  # ==========================================
+  # MOBILE (React Native / Expo)
+  # ==========================================
+  build-mobile:
+    name: Mobile (Typecheck, Lint & Bundle Test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./mobile
+    steps:
+      - name: Récupération du code
+        uses: actions/checkout@v4
+
+      - name: Configuration de Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: './mobile/package-lock.json'
+
+      - name: Installation des dépendances
+        run: npm ci --legacy-peer-deps
+
+      - name: Vérification du typage TypeScript
+        run: npm run typecheck
+
+      - name: Vérification du Linting (Expo ESLint)
+        env:
+          EXPO_NO_TELEMETRY: 1
+        run: npm run lint
+
+      - name: Test de compilation du bundle Metro (Expo Export)
+        env:
+          EXPO_NO_TELEMETRY: 1
+          EXPO_PUBLIC_API_URL: "https://api.journal-collectif.fr"
+        run: npx expo export --output-dir dist
