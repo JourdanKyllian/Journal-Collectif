@@ -296,6 +296,33 @@ export function resolveImageUrl(url?: string | null): string | null {
 }
 
 /**
+ * Nettoie une URL d'image pour l'enregistrement en base de données :
+ * - Convertit les URLs absolues pointant vers le serveur en chemins relatifs /uploads/...
+ * - Garantit le préfixe /uploads/ pour les noms de fichiers
+ * - Conserve intactes les URLs HTTP(S) distantes légitimes (ex: Unsplash)
+ */
+export function sanitizeImageUrlForBackend(url?: string | null): string | null {
+  if (!url || !url.trim()) return null;
+  const clean = url.trim();
+  if (isLocalDeviceUri(clean)) return null;
+
+  const uploadMatch = clean.match(/\/uploads\/[^?#\s]+/);
+  if (uploadMatch) {
+    return uploadMatch[0];
+  }
+  if (clean.startsWith('/uploads/')) {
+    return clean;
+  }
+  if (clean.startsWith('http://') || clean.startsWith('https://')) {
+    return clean;
+  }
+  if (/^[a-zA-Z0-9_\-.]+\.(jpg|jpeg|png|webp|gif)$/i.test(clean)) {
+    return `/uploads/${clean}`;
+  }
+  return clean;
+}
+
+/**
  * Upload natif d'une photo issue d'expo-image-picker vers POST /api/v1/upload/image.
  * Compatible New Architecture / WinterCG fetch (Expo SDK 52+ / 57+).
  */

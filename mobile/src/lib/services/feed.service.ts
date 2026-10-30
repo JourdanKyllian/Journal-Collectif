@@ -1,4 +1,4 @@
-import { apiClient } from '@/lib/api';
+import { apiClient, resolveImageUrl } from '@/lib/api';
 import {
   MobileArticle,
   MobileAlert,
@@ -94,7 +94,7 @@ export function transformApiArticle(article: ApiArticle): MobileArticle {
     titre: article.titre,
     excerpt: createExcerpt(article.contenu),
     contenu: article.contenu,
-    image_couverture: article.image_couverture ?? null,
+    image_couverture: resolveImageUrl(article.image_couverture),
     published_at: formatFrenchDate(article.published_at ?? article.created_at),
     readTime: calculateReadTime(article.contenu),
     categorie: {

@@ -5,6 +5,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Calendar, BookOpen } from 'lucide-react-native';
 import { COLORS, FONTS } from '@/theme/tokens';
 import { MobileArticle } from '@/lib/mock-data';
+import { resolveImageUrl } from '@/lib/api';
 
 interface ArticleCardProps {
   item: MobileArticle;
@@ -22,9 +23,9 @@ export default function ArticleCard({ item, index }: ArticleCardProps) {
         ]}
       >
         <View style={styles.imageWrapper}>
-          {item.image_couverture ? (
+          {resolveImageUrl(item.image_couverture) ? (
             <Image
-              source={{ uri: item.image_couverture }}
+              source={{ uri: resolveImageUrl(item.image_couverture)! }}
               style={styles.image}
               contentFit="cover"
               transition={250}

@@ -16,6 +16,7 @@ import { ChevronDown, Calendar, BookOpen } from 'lucide-react-native';
 
 import { COLORS, FONTS } from '@/theme/tokens';
 import { MobileArticle } from '@/lib/mock-data';
+import { resolveImageUrl } from '@/lib/api';
 
 const HERO_HEIGHT = 300;
 
@@ -56,9 +57,9 @@ export default function HeroCard({ article }: HeroCardProps) {
       accessibilityLabel={`Lire l'article : ${article.titre}`}
     >
       {/* Image plein-format */}
-      {article.image_couverture ? (
+      {resolveImageUrl(article.image_couverture) ? (
         <Image
-          source={{ uri: article.image_couverture }}
+          source={{ uri: resolveImageUrl(article.image_couverture)! }}
           style={StyleSheet.absoluteFill}
           contentFit="cover"
           transition={400}

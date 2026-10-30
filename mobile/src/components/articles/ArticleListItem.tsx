@@ -8,6 +8,7 @@ import { Calendar, BookOpen } from 'lucide-react-native';
 
 import { COLORS, FONTS } from '@/theme/tokens';
 import { MobileArticle } from '@/lib/mock-data';
+import { resolveImageUrl } from '@/lib/api';
 
 interface ArticleListItemProps {
   item: MobileArticle;
@@ -35,9 +36,9 @@ export default function ArticleListItem({ item, index }: ArticleListItemProps) {
       >
         {/* Thumbnail */}
         <View style={styles.listThumb}>
-          {item.image_couverture ? (
+          {resolveImageUrl(item.image_couverture) ? (
             <Image
-              source={{ uri: item.image_couverture }}
+              source={{ uri: resolveImageUrl(item.image_couverture)! }}
               style={StyleSheet.absoluteFill}
               contentFit="cover"
               transition={250}

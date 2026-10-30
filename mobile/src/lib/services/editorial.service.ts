@@ -1,4 +1,4 @@
-import { apiClient } from '@/lib/api';
+import { apiClient, resolveImageUrl, sanitizeImageUrlForBackend } from '@/lib/api';
 
 export interface EditorialArticle {
   id: number;
@@ -104,6 +104,7 @@ export const EditorialService = {
       const list = Array.isArray(response) ? response : response?.data || [];
       return list.map((a) => ({
         ...a,
+        image_couverture: resolveImageUrl(a.image_couverture),
         excerpt: a.excerpt || a.contenu?.replace(/<[^>]*>?/gm, '').slice(0, 115) + '...',
       }));
     } catch {
@@ -166,10 +167,10 @@ export const EditorialService = {
 
   /**
    * Crée ou met à jour un article.
-   * Gère de manière transparente les routes backend NestJS :
+   * Gère de manière transparente les spécificités backend NestJS :
    * - Création : POST /article
-   * - Modification de contenu : PATCH /article/:id
-   * - Dépublication vers brouillon : PATCH /article/:id/unpublish
+   * - Modification d'un article publié : PATCH /article/:id (génère une révision) + PATCH /article/:id/revision/apply (applique au direct)
+   * - Dépublication vers brouillon : PATCH /article/:id/unpublish + PATCH /article/:id
    * - Publication directe : PATCH /article/:id/publish
    */
   async saveArticle(payload: {
@@ -182,6 +183,7 @@ export const EditorialService = {
     currentStatut?: 'publie' | 'brouillon' | 'en_attente';
   }): Promise<void> {
     const isMock = payload.id !== undefined && [101, 102, 103, 201].includes(payload.id);
+    const sanitizedImage = sanitizeImageUrlForBackend(payload.image_couverture);
 
     // 1. Nouvel article ou mock de démo hors base de données -> POST /article
     if (!payload.id || isMock) {
@@ -190,10 +192,8 @@ export const EditorialService = {
         contenu: payload.contenu.trim(),
         categorieId: payload.categorieId,
         statut: payload.statut,
+        image_couverture: sanitizedImage,
       };
-      if (payload.image_couverture && payload.image_couverture.trim()) {
-        createPayload.image_couverture = payload.image_couverture.trim();
-      }
 
       await apiClient('/article', {
         method: 'POST',
@@ -207,12 +207,10 @@ export const EditorialService = {
       titre: payload.titre.trim(),
       contenu: payload.contenu.trim(),
       categorieId: payload.categorieId,
+      image_couverture: sanitizedImage,
     };
-    if (payload.image_couverture && payload.image_couverture.trim()) {
-      updatePayload.image_couverture = payload.image_couverture.trim();
-    }
 
-    // Cas A : L'utilisateur souhaite PUBLIER l'article
+    // Cas A : L'utilisateur souhaite PUBLIER / METTRE À JOUR EN LIGNE
     if (payload.statut === 'publie') {
       try {
         await apiClient(`/article/${payload.id}`, {
@@ -231,7 +229,16 @@ export const EditorialService = {
         throw err;
       }
 
-      // Le backend exige la route dédiée de publication
+      // Si l'article était déjà publié, les modifications sont stockées en révision : on l'applique immédiatement
+      try {
+        await apiClient(`/article/${payload.id}/revision/apply`, {
+          method: 'PATCH',
+        });
+      } catch {
+        // Ignoré si aucune révision n'était en attente (mise à jour directe)
+      }
+
+      // S'assure que l'article a bien le statut publié en ligne
       try {
         await apiClient(`/article/${payload.id}/publish`, {
           method: 'PATCH',
@@ -243,8 +250,20 @@ export const EditorialService = {
     }
 
     // Cas B : L'utilisateur souhaite METTRE EN BROUILLON l'article
+    const wasPublished = payload.currentStatut === 'publie';
+
+    if (wasPublished) {
+      // Dépublication préalable obligatoire côté backend NestJS
+      try {
+        await apiClient(`/article/${payload.id}/unpublish`, {
+          method: 'PATCH',
+        });
+      } catch {
+        // Peut déjà être dépublié
+      }
+    }
+
     try {
-      // Pour les brouillons ou articles en attente, statut: 'brouillon' est accepté
       await apiClient(`/article/${payload.id}`, {
         method: 'PATCH',
         body: JSON.stringify({
@@ -252,21 +271,29 @@ export const EditorialService = {
           statut: 'brouillon',
         }),
       });
+
+      // Nettoie toute révision résiduelle en attente
+      try {
+        await apiClient(`/article/${payload.id}/revision`, {
+          method: 'DELETE',
+        });
+      } catch {
+        // Pas de révision à abandonner
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '';
 
-      // Si l'article était en ligne (statut publié), le backend exige d'utiliser /unpublish
-      if (
-        msg.includes('dépublication') ||
-        msg.includes('depublication') ||
-        payload.currentStatut === 'publie'
-      ) {
-        await apiClient(`/article/${payload.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify(updatePayload),
-        });
+      // Si l'article était encore considéré comme publié côté serveur
+      if (msg.includes('dépublication') || msg.includes('depublication')) {
         await apiClient(`/article/${payload.id}/unpublish`, {
           method: 'PATCH',
+        });
+        await apiClient(`/article/${payload.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            ...updatePayload,
+            statut: 'brouillon',
+          }),
         });
         return;
       }
