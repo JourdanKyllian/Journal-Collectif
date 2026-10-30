@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import { File as ExpoFile } from 'expo-file-system';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000/api/v1';
 
@@ -179,7 +180,16 @@ export async function apiClient<T>(
     headers.set('Authorization', `Bearer ${accessToken}`);
   }
 
-  if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
+  const isFormData =
+    options.body instanceof FormData ||
+    Boolean(
+      options.body &&
+        typeof options.body === 'object' &&
+        'append' in options.body &&
+        typeof (options.body as { append?: unknown }).append === 'function'
+    );
+
+  if (!headers.has('Content-Type') && !isFormData) {
     headers.set('Content-Type', 'application/json');
   }
 
@@ -250,20 +260,36 @@ export const MobileAuthApi = {
 };
 
 /**
- * Upload natif d'une photo issue d'expo-image-picker vers POST /api/v1/upload/image
+ * Upload natif d'une photo issue d'expo-image-picker vers POST /api/v1/upload/image.
+ * Compatible New Architecture / WinterCG fetch (Expo SDK 52+ / 57+).
  */
 export async function uploadImageMobile(localUri: string): Promise<{ url: string }> {
   const filename = localUri.split('/').pop() || 'photo.jpg';
-  const match = /\.(\w+)$/.exec(filename);
-  const ext = match ? match[1].toLowerCase() : 'jpg';
-  const mimeType = ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
-
   const formData = new FormData();
-  formData.append('file', {
-    uri: localUri,
-    name: filename,
-    type: mimeType,
-  } as unknown as Blob);
+
+  try {
+    // 1. Solution standard Expo SDK 52+ / 57+ (File class implémente Blob et .bytes())
+    const expoFile = new ExpoFile(localUri);
+    formData.append('file', expoFile as unknown as Blob);
+  } catch {
+    try {
+      // 2. Conversion Web Blob standard (compatible fetch)
+      const res = await fetch(localUri);
+      const blob = await res.blob();
+      formData.append('file', blob, filename);
+    } catch {
+      // 3. Fallback ancien React Native
+      const match = /\.(\w+)$/.exec(filename);
+      const ext = match ? match[1].toLowerCase() : 'jpg';
+      const mimeType =
+        ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+      formData.append('file', {
+        uri: localUri,
+        name: filename,
+        type: mimeType,
+      } as unknown as Blob);
+    }
+  }
 
   return apiClient<{ url: string }>('/upload/image', {
     method: 'POST',
