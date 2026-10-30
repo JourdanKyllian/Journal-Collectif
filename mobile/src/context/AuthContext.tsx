@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import Toast from 'react-native-toast-message';
 
-import { apiClient, MobileAuthApi, TokenStorage } from '@/lib/api';
+import { apiClient, MobileAuthApi, TokenStorage, TenantStorage } from '@/lib/api';
 
 export interface UserProfile {
   id: number;
@@ -66,6 +66,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await MobileAuthApi.login(email, pass);
       const profile = await fetchProfile();
+
+      // Règle métier : Si c'est un membre d'équipe (Admin, Rédacteur), on commute automatiquement sur son journal
+      if (profile?.journal?.slug) {
+        await TenantStorage.setTenant(profile.journal.slug);
+      }
 
       if (Platform.OS !== 'web') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

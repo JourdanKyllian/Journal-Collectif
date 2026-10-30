@@ -73,6 +73,7 @@ interface CityContextType {
   currentCity: City;
   cities: City[];
   selectCity: (slug: string) => Promise<void>;
+  refreshTenant: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -149,12 +150,21 @@ export function CityProvider({ children }: { children: ReactNode }) {
     await TenantStorage.setTenant(slug);
   };
 
+  const refreshTenant = async () => {
+    const savedSlug = await TenantStorage.getTenant();
+    const matched = citiesList.find((c) => c.slug === savedSlug);
+    if (matched) {
+      setCurrentCity(matched);
+    }
+  };
+
   return (
     <CityContext.Provider
       value={{
         currentCity,
         cities: citiesList,
         selectCity,
+        refreshTenant,
         isLoading,
       }}
     >

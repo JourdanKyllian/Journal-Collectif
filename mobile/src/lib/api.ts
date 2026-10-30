@@ -160,8 +160,22 @@ export async function apiClient<T>(
   }
 
   if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({}));
-    throw new Error(errorBody.message || `Erreur HTTP ${response.status}`);
+    const errorBody = (await response.json().catch(() => ({}))) as { message?: string };
+    const errorMessage = errorBody.message || `Erreur HTTP ${response.status}`;
+
+    // Si le slug de commune envoyé n'est pas encore provisionné en base,
+    // on replie automatiquement sur le journal par défaut historique sans bloquer l'utilisateur.
+    if (
+      response.status === 404 &&
+      errorMessage.toLowerCase().includes('journal introuvable') &&
+      tenant !== DEFAULT_TENANT &&
+      !isRetry
+    ) {
+      await TenantStorage.setTenant(DEFAULT_TENANT);
+      return apiClient<T>(endpoint, options, true);
+    }
+
+    throw new Error(errorMessage);
   }
 
   return response.json() as Promise<T>;

@@ -20,7 +20,7 @@ import { useCity } from '@/context/CityContext';
 
 export default function LoginModalScreen() {
   const { login } = useAuth();
-  const { currentCity } = useCity();
+  const { currentCity, refreshTenant } = useCity();
 
   const [email, setEmail] = useState('visiteur.complet@exemple.fr');
   const [password, setPassword] = useState('user123');
@@ -39,6 +39,7 @@ export default function LoginModalScreen() {
     try {
       const ok = await login(email.trim(), password);
       if (ok) {
+        await refreshTenant();
         router.back();
       }
     } finally {
