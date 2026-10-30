@@ -48,12 +48,12 @@ import {
 } from '@/lib/services/deals.service';
 import SwipeableModerationCard from '@/components/admin/SwipeableModerationCard';
 import AddDealModal from '@/components/admin/AddDealModal';
-import ParkingView from '@/components/tools/ParkingView';
+import AdminParkingView from '@/components/admin/AdminParkingView';
 import LostObjectsView from '@/components/tools/LostObjectsView';
 
 type MainNavType = 'articles' | 'deals' | 'tools';
 type ArticleFilterType = 'pending' | 'published' | 'drafts';
-type ToolsSubType = 'parking' | 'lost';
+type ToolsSubType = 'lost' | 'parking';
 
 export default function MobileAdminDashboardScreen() {
   const { currentCity } = useCity();
@@ -61,9 +61,9 @@ export default function MobileAdminDashboardScreen() {
   // Navigation principale à 3 onglets demandée : Articles | Bons plans | Outils
   const [mainNav, setMainNav] = useState<MainNavType>('articles');
 
-  // Sous-filtres spécifiques
+  // Sous-filtres spécifiques (alignés sur l'ordre visiteur : Objets perdus puis Parkings)
   const [articleFilter, setArticleFilter] = useState<ArticleFilterType>('pending');
-  const [toolsSubType, setToolsSubType] = useState<ToolsSubType>('parking');
+  const [toolsSubType, setToolsSubType] = useState<ToolsSubType>('lost');
 
   // Données éditoriales
   const [pendingArticles, setPendingArticles] = useState<EditorialArticle[]>([]);
@@ -320,11 +320,19 @@ export default function MobileAdminDashboardScreen() {
           onAction: () => setIsAddDealModalVisible(true),
         };
       case 'tools':
+        if (toolsSubType === 'parking') {
+          return {
+            subtitle: 'VOIRIE & STATIONNEMENT',
+            title: 'Parkings municipaux',
+            actionText: undefined,
+            onAction: undefined,
+          };
+        }
         return {
           subtitle: 'SERVICES MUNICIPAUX',
-          title: 'Voirie & Stationnement',
-          actionText: undefined,
-          onAction: undefined,
+          title: 'Objets trouvés & perdus',
+          actionText: 'Déclarer',
+          onAction: () => router.push('/modals/declare-lost'),
         };
       case 'articles':
       default:
@@ -860,32 +868,9 @@ export default function MobileAdminDashboardScreen() {
       {/* --- ONGLET 3 : OUTILS MUNICIPAUX (PARKINGS & OBJETS TROUVÉS) --- */}
       {mainNav === 'tools' && (
         <View style={{ flex: 1 }}>
-          {/* Sous-sélecteur Parkings vs Objets Perdus */}
+          {/* Sous-sélecteur ordonné à l'identique de la vue visiteur : 1. Objets perdus, 2. Parkings */}
           <View style={styles.toolsSubNav}>
-            <Pressable
-              onPress={() => {
-                if (Platform.OS !== 'web') Haptics.selectionAsync();
-                setToolsSubType('parking');
-              }}
-              style={[
-                styles.toolsSubItem,
-                toolsSubType === 'parking' && styles.toolsSubItemActive,
-              ]}
-            >
-              <Car
-                size={14}
-                color={toolsSubType === 'parking' ? COLORS.noir : '#7D8680'}
-              />
-              <Text
-                style={[
-                  styles.toolsSubItemText,
-                  toolsSubType === 'parking' && styles.toolsSubItemTextActive,
-                ]}
-              >
-                Parkings & Affluence
-              </Text>
-            </Pressable>
-
+            {/* 1. Objets Perdus & Trouvés (aligné sur l'onglet 1 visiteur) */}
             <Pressable
               onPress={() => {
                 if (Platform.OS !== 'web') Haptics.selectionAsync();
@@ -909,11 +894,36 @@ export default function MobileAdminDashboardScreen() {
                 Objets trouvés & perdus
               </Text>
             </Pressable>
+
+            {/* 2. Parkings & Affluence (aligné sur l'onglet 2 visiteur) */}
+            <Pressable
+              onPress={() => {
+                if (Platform.OS !== 'web') Haptics.selectionAsync();
+                setToolsSubType('parking');
+              }}
+              style={[
+                styles.toolsSubItem,
+                toolsSubType === 'parking' && styles.toolsSubItemActive,
+              ]}
+            >
+              <Car
+                size={14}
+                color={toolsSubType === 'parking' ? COLORS.noir : '#7D8680'}
+              />
+              <Text
+                style={[
+                  styles.toolsSubItemText,
+                  toolsSubType === 'parking' && styles.toolsSubItemTextActive,
+                ]}
+              >
+                Parkings & Affluence
+              </Text>
+            </Pressable>
           </View>
 
-          {/* Affichage direct de l'outil sélectionné */}
+          {/* Affichage direct de l'outil sélectionné (Vue dédiée Admin pour les parkings) */}
           <View style={{ flex: 1 }}>
-            {toolsSubType === 'parking' ? <ParkingView /> : <LostObjectsView />}
+            {toolsSubType === 'lost' ? <LostObjectsView /> : <AdminParkingView />}
           </View>
         </View>
       )}

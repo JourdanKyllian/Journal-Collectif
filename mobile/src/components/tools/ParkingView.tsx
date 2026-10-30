@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,60 +12,32 @@ import {
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import Toast from 'react-native-toast-message';
-import { Car, Zap, Navigation, Clock, ShieldCheck, MapPin } from 'lucide-react-native';
+import { Car, Zap, Navigation, Clock, ShieldCheck, MapPin, Radio } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { COLORS, FONTS } from '@/theme/tokens';
 import { useCity } from '@/context/CityContext';
-
-interface ParkingSpot {
-  id: string;
-  name: string;
-  type: 'Souterrain' | 'Surface' | 'Gare';
-  available: number;
-  total: number;
-  evSpots: number;
-  freeGracePeriod: string;
-  distance: string;
-}
+import { ParkingService, ParkingSpot } from '@/lib/services/parking.service';
 
 export default function ParkingView() {
   const { currentCity } = useCity();
   const [filterType, setFilterType] = useState<'all' | 'ev' | 'free'>('all');
+  const [parkings, setParkings] = useState<ParkingSpot[]>(() => ParkingService.getParkings());
 
-  const parkings: ParkingSpot[] = [
-    {
-      id: 'p1',
-      name: 'Parking Hôtel de Ville',
-      type: 'Souterrain',
-      available: 168,
-      total: 220,
-      evSpots: 6,
-      freeGracePeriod: '30 min gratuites',
-      distance: '250 m',
-    },
-    {
-      id: 'p2',
-      name: 'Parking Gare & Parvis',
-      type: 'Gare',
-      available: 48,
-      total: 180,
-      evSpots: 2,
-      freeGracePeriod: '15 min dépose-minute',
-      distance: '650 m',
-    },
-    {
-      id: 'p3',
-      name: 'Parking République - Marché',
-      type: 'Surface',
-      available: 82,
-      total: 110,
-      evSpots: 4,
-      freeGracePeriod: 'Gratuit après 19h',
-      distance: '400 m',
-    },
-  ];
+  useEffect(() => {
+    return ParkingService.subscribe((updated) => {
+      setParkings(updated);
+    });
+  }, []);
 
-  const filteredParkings = parkings.filter((p) => {
+  const activeParkings = parkings.filter((p) => p.isActive);
+
+  const totalCapacity = activeParkings.reduce((sum, p) => sum + p.total, 0);
+  const totalFree = activeParkings
+    .filter((p) => p.hasSensors)
+    .reduce((sum, p) => sum + p.available, 0);
+  const openCount = activeParkings.length;
+
+  const filteredParkings = activeParkings.filter((p) => {
     if (filterType === 'ev') return p.evSpots > 0;
     if (filterType === 'free') return p.freeGracePeriod.toLowerCase().includes('gratuit');
     return true;
@@ -167,17 +139,17 @@ export default function ParkingView() {
 
         <View style={styles.statGrid}>
           <View style={styles.statBox}>
-            <Text style={styles.statNumber}>274</Text>
-            <Text style={styles.statLabel}>Places Libres</Text>
+            <Text style={styles.statNumber}>{totalFree}</Text>
+            <Text style={styles.statLabel}>Libres (Capteurs)</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statBox}>
-            <Text style={styles.statNumber}>12</Text>
-            <Text style={styles.statLabel}>Bornes Élec.</Text>
+            <Text style={styles.statNumber}>{totalCapacity}</Text>
+            <Text style={styles.statLabel}>Capacité Totale</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statBox}>
-            <Text style={styles.statNumber}>3</Text>
+            <Text style={styles.statNumber}>{openCount}</Text>
             <Text style={styles.statLabel}>Parcs Ouverts</Text>
           </View>
         </View>
@@ -227,6 +199,25 @@ export default function ParkingView() {
                     <View style={styles.typeBadge}>
                       <Text style={styles.typeBadgeText}>{parking.type.toUpperCase()}</Text>
                     </View>
+                    <View
+                      style={[
+                        styles.sensorBadge,
+                        { backgroundColor: parking.hasSensors ? '#E6FFFA' : '#FEFCBF' },
+                      ]}
+                    >
+                      <Radio
+                        size={10}
+                        color={parking.hasSensors ? '#217346' : '#975A16'}
+                      />
+                      <Text
+                        style={[
+                          styles.sensorBadgeText,
+                          { color: parking.hasSensors ? '#217346' : '#975A16' },
+                        ]}
+                      >
+                        {parking.hasSensors ? 'Capteurs en direct' : 'Non équipé'}
+                      </Text>
+                    </View>
                     <View style={styles.distanceBadge}>
                       <MapPin size={11} color={COLORS.champagne} />
                       <Text style={styles.distanceText}>{parking.distance}</Text>
@@ -235,35 +226,58 @@ export default function ParkingView() {
                   <Text style={styles.cardTitle}>{parking.name}</Text>
                 </View>
 
-                {/* Places disponibles avec jauge colorée */}
-                <View style={styles.occupancyBox}>
-                  <Text style={[styles.availableCount, { color: occupancyColor }]}>
-                    {parking.available}
-                  </Text>
-                  <Text style={styles.totalCount}>/ {parking.total} libres</Text>
-                </View>
+                {/* Places disponibles (si capteurs) ou Capacité maximale (si non équipé) */}
+                {parking.hasSensors ? (
+                  <View style={styles.occupancyBox}>
+                    <Text style={[styles.availableCount, { color: occupancyColor }]}>
+                      {parking.available}
+                    </Text>
+                    <Text style={styles.totalCount}>/ {parking.total} libres</Text>
+                  </View>
+                ) : (
+                  <View style={styles.occupancyBox}>
+                    <Text style={[styles.availableCount, { color: COLORS.noir }]}>
+                      {parking.total}
+                    </Text>
+                    <Text style={styles.totalCount}>places max</Text>
+                  </View>
+                )}
               </View>
 
-              {/* Barre de jauge de remplissage avec dégradé cinématique */}
-              <View style={styles.progressBarBg}>
-                <LinearGradient
-                  colors={
-                    percentFree > 35
-                      ? ['#22C55E', '#16A34A']
-                      : percentFree > 15
-                      ? ['#F59E0B', '#EA580C']
-                      : ['#EF4444', '#DC2626']
-                  }
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={[
-                    styles.progressBarFill,
-                    {
-                      width: `${percentFree}%`,
-                    },
-                  ]}
-                />
-              </View>
+              {/* Jauge cinématique pour capteurs connectés OU Affluence médiane constatée pour parcs non équipés */}
+              {parking.hasSensors ? (
+                <View style={styles.progressBarBg}>
+                  <LinearGradient
+                    colors={
+                      percentFree > 35
+                        ? ['#22C55E', '#16A34A']
+                        : percentFree > 15
+                        ? ['#F59E0B', '#EA580C']
+                        : ['#EF4444', '#DC2626']
+                    }
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={[
+                      styles.progressBarFill,
+                      {
+                        width: `${percentFree}%`,
+                      },
+                    ]}
+                  />
+                </View>
+              ) : (
+                <View style={styles.medianVisitorBox}>
+                  <Text style={styles.medianVisitorText}>
+                    {parking.affluenceMediane === 'calme'
+                      ? '🟢 Affluence calme • Places faciles'
+                      : parking.affluenceMediane === 'forte'
+                      ? '🟠 Affluence forte constatée'
+                      : parking.affluenceMediane === 'saturee'
+                      ? '🔴 Affluence saturée • Souvent complet'
+                      : '🟡 Affluence habituelle (Modérée)'}
+                  </Text>
+                </View>
+              )}
 
               {/* Tags & Avantages */}
               <View style={styles.cardMetaRow}>
@@ -454,6 +468,18 @@ const styles = StyleSheet.create({
     color: COLORS.vert,
     letterSpacing: 0.5,
   },
+  sensorBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  sensorBadgeText: {
+    fontSize: 9,
+    fontFamily: FONTS.montserratBold,
+  },
   distanceBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -489,6 +515,20 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(142, 134, 113, 0.2)',
     overflow: 'hidden',
     marginBottom: 12,
+  },
+  medianVisitorBox: {
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#EDF2F7',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    marginBottom: 12,
+  },
+  medianVisitorText: {
+    fontFamily: FONTS.montserratBold,
+    fontSize: 11,
+    color: '#4A5568',
   },
   progressBarFill: {
     height: '100%',
