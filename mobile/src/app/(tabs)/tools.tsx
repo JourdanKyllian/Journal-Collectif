@@ -80,8 +80,8 @@ export default function ToolsScreen() {
           >
             {Platform.OS === 'ios' ? (
               <GlassView
-                glassEffectStyle="regular"
-                tintColor="rgba(255, 255, 255, 0.90)"
+                glassEffectStyle="clear"
+                tintColor="rgba(255, 255, 255, 0.35)"
                 style={styles.glassPillFill}
                 pointerEvents="none"
               />
@@ -193,13 +193,15 @@ const styles = StyleSheet.create({
   },
   translucentTint: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(255, 255, 255, 0.65)',
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
   },
   specularBorder: {
     ...StyleSheet.absoluteFill,
     borderRadius: SEGMENT_BAR_HEIGHT / 2,
-    borderWidth: 0.8,
-    borderColor: 'rgba(255, 255, 255, 0.9)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.55)',
+    borderTopColor: 'rgba(255, 255, 255, 0.85)',
+    borderBottomColor: 'rgba(255, 255, 255, 0.25)',
     pointerEvents: 'none',
   },
   slidingPill: {
@@ -211,22 +213,24 @@ const styles = StyleSheet.create({
     zIndex: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.07,
+    shadowOpacity: 0.06,
     shadowRadius: 5,
     elevation: 3,
   },
   glassPillFill: {
     flex: 1,
     borderRadius: (SEGMENT_BAR_HEIGHT - SEGMENT_PADDING * 2) / 2,
-    borderWidth: 0.8,
-    borderColor: 'rgba(255, 255, 255, 0.95)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.70)',
+    borderTopColor: 'rgba(255, 255, 255, 0.95)',
+    borderBottomColor: 'rgba(255, 255, 255, 0.35)',
   },
   androidPillFill: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    backgroundColor: 'rgba(255, 255, 255, 0.35)',
     borderRadius: (SEGMENT_BAR_HEIGHT - SEGMENT_PADDING * 2) / 2,
-    borderWidth: 0.8,
-    borderColor: 'rgba(255, 255, 255, 0.95)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.70)',
   },
   tabButton: {
     flex: 1,
