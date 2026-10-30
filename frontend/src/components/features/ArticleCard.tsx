@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LucideIcon, CalendarDays, BookOpen } from "lucide-react";
+import { resolveImageUrl } from "@/lib/api";
 
 /**
  * Interface représentant les propriétés du composant ArticleCard.
@@ -13,6 +14,7 @@ import { LucideIcon, CalendarDays, BookOpen } from "lucide-react";
  * @property {LucideIcon} icon - L'icône Lucide représentant la catégorie.
  * @property {string} gradientClass - Les classes Tailwind CSS pour le dégradé de la carte.
  * @property {string} [href] - Le lien de redirection vers l'article complet.
+ * @property {string | null} [imageUrl] - URL ou chemin de l'image de couverture.
  */
 interface ArticleCardProps {
   title: string;
@@ -23,25 +25,38 @@ interface ArticleCardProps {
   icon: LucideIcon;
   gradientClass: string;
   href?: string;
+  imageUrl?: string | null;
 }
 
 /**
- * Composant de carte d'article affichant un aperçu visuel, textuel et métadonnées d'un article.
+ * Composant de carte d'article affichant un aperçu visuel (image ou dégradé), textuel et métadonnées d'un article.
  * 
  * @param {ArticleCardProps} props - Les propriétés du composant.
  * @returns {JSX.Element} La carte d'article rendue.
  */
 export default function ArticleCard({ 
-  title, excerpt, categorie: categorie, date, readTime, icon: Icon, gradientClass, href = "#" 
+  title, excerpt, categorie, date, readTime, icon: Icon, gradientClass, href = "#", imageUrl 
 }: ArticleCardProps) {
+  const resolvedImage = resolveImageUrl(imageUrl);
+
   return (
     <Link 
       href={href} 
       className="group block bg-blanc border border-champagne/30 rounded-2xl overflow-hidden transition-all hover:-translate-y-1 hover:shadow-xl hover:border-champagne cursor-pointer"
     >
-      <div className={`h-44 flex items-center justify-center relative ${gradientClass}`}>
-        <Icon size={48} className="text-blanc opacity-90 group-hover:scale-110 transition-transform duration-300" />
-        <span className="absolute bottom-3 left-3 bg-or text-noir font-poppins font-black text-xs px-3 py-1 rounded-full shadow-sm">
+      <div className={`h-48 relative overflow-hidden flex items-center justify-center ${!resolvedImage ? gradientClass : 'bg-noir/5'}`}>
+        {resolvedImage ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={resolvedImage}
+            alt={title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            loading="lazy"
+          />
+        ) : (
+          <Icon size={48} className="text-blanc opacity-90 group-hover:scale-110 transition-transform duration-300" />
+        )}
+        <span className="absolute bottom-3 left-3 bg-or text-noir font-poppins font-black text-xs px-3 py-1 rounded-full shadow-md z-10">
           {categorie}
         </span>
       </div>

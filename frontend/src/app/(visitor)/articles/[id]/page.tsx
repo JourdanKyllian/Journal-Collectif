@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, CalendarDays, BookOpen, Share2, PenTool } from "lucide-react";
 import { useFetchApi } from "@/hooks/useFetchApi";
+import { resolveImageUrl } from "@/lib/api";
 import { getCategoryUI, formatDateToFrench, calculateReadTime } from "@/lib/formatters";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -103,6 +104,20 @@ export default function ArticleReadPage() {
           </div>
         </div>
       </header>
+
+      {/* IMAGE DE COUVERTURE */}
+      {resolveImageUrl(article.image_couverture) && (
+        <div className="max-w-4xl mx-auto px-6 -mt-8 mb-4 relative z-10">
+          <div className="rounded-3xl overflow-hidden shadow-2xl border border-champagne/20 aspect-video md:max-h-[440px] w-full bg-champagne/10">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={resolveImageUrl(article.image_couverture)!}
+              alt={article.titre}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        </div>
+      )}
 
       {/* CONTENU */}
       <div className="max-w-3xl mx-auto px-6 py-16">

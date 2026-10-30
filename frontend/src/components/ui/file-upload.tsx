@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { UploadCloud, X, Loader2 } from "lucide-react";
-import { fetchApi } from "@/lib/api";
+import { fetchApi, resolveImageUrl } from "@/lib/api";
 
 interface FileUploadProps {
   /** URL de l'image actuelle (si existante) pour l'aperçu */
@@ -42,9 +42,7 @@ export function FileUpload({ value, onChange, description = "PNG, JPG ou WEBP (m
       });
 
       if (response?.url) {
-        // En développement local (port 4000), on construit l'URL absolue. En production, le proxy gère le relatif.
-        const fullUrl = process.env.NODE_ENV === "production" ? response.url : `http://localhost:4000${response.url}`;
-        onChange(fullUrl);
+        onChange(response.url);
       }
     } catch (error) {
       console.error("Échec de l'upload:", error);
@@ -67,7 +65,7 @@ export function FileUpload({ value, onChange, description = "PNG, JPG ou WEBP (m
       {value ? (
         <div className="relative rounded-xl overflow-hidden border border-champagne/40 bg-champagne/5 group h-48 w-full">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={value} alt="Aperçu du fichier" className="w-full h-full object-cover" />
+          <img src={resolveImageUrl(value) || value} alt="Aperçu du fichier" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-noir/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
             <button
               type="button"

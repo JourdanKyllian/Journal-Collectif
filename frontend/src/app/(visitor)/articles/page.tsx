@@ -18,6 +18,7 @@ interface RawArticle {
   excerpt?: string;
   content?: string;
   contenu?: string;
+  image_couverture?: string | null;
   categorie?: string | { libelle?: string };
   publishedAt?: string;
   published_at?: string;
@@ -42,6 +43,7 @@ interface ArticleUI {
   icon: LucideIcon;
   gradientClass: string;
   href?: string;
+  imageUrl?: string | null;
 }
 
 interface FilterCategorie {
@@ -154,6 +156,7 @@ export default function ArticlesPage() {
             icon: uiStyles.icon,
             gradientClass: uiStyles.gradient,
             href: `/articles/${item.id}`,
+            imageUrl: item.image_couverture || null,
           };
         });
 

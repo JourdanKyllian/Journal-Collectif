@@ -14,6 +14,7 @@ interface BackendArticle {
   id: number;
   titre: string;
   contenu: string;
+  image_couverture?: string | null;
   published_at: string;
   categorie?: { libelle: string };
 }
@@ -39,6 +40,7 @@ interface ArticlePreview {
   icon: LucideIcon;
   gradientClass: string;
   href?: string;
+  imageUrl?: string | null;
 }
 
 interface DashboardStats {
@@ -85,6 +87,7 @@ export default function Home() {
             icon: uiConfig.icon,
             gradientClass: getGradientClassByIndex(index),
             href: `/articles/${article.id}`,
+            imageUrl: article.image_couverture || null,
           };
         });
 
@@ -172,25 +175,42 @@ export default function Home() {
               </div>
             </div>
           ) : featuredArticle ? (
-            <div className="hidden md:block bg-blanc/5 border border-or/25 rounded-2xl p-7 backdrop-blur-md" aria-label="Article à la une">
-              <span className="inline-flex items-center gap-1.5 bg-or text-noir font-poppins font-black text-xs px-3 py-1 rounded-full mb-4">
-                🔥 À la une
-              </span>
-              <h2 className="font-montserrat font-bold text-blanc text-xl leading-tight mb-3">
-                {featuredArticle.title}
-              </h2>
-              <p className="font-raleway text-blanc/70 text-sm leading-relaxed mb-5">
-                {featuredArticle.excerpt}
-              </p>
-              <div className="flex gap-4 text-xs text-champagne font-montserrat">
-                <span className="flex items-center gap-1">
-                  <featuredArticle.icon size={14} aria-hidden="true" />
-                  {featuredArticle.categorie}
+            <Link
+              href={featuredArticle.href || `/articles/${featuredArticle.id}`}
+              className="hidden md:block bg-blanc/5 border border-or/25 rounded-2xl overflow-hidden backdrop-blur-md hover:border-or/60 hover:bg-blanc/10 transition-all group"
+              aria-label="Article à la une"
+            >
+              {featuredArticle.imageUrl && (
+                <div className="h-44 w-full overflow-hidden relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={featuredArticle.imageUrl}
+                    alt={featuredArticle.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-noir/70 via-transparent to-transparent" />
+                </div>
+              )}
+              <div className="p-7">
+                <span className="inline-flex items-center gap-1.5 bg-or text-noir font-poppins font-black text-xs px-3 py-1 rounded-full mb-4">
+                  🔥 À la une
                 </span>
-                <span>📅 {featuredArticle.date}</span>
-                <span>📖 {featuredArticle.readTime}</span>
+                <h2 className="font-montserrat font-bold text-blanc text-xl leading-tight mb-3 group-hover:text-or transition-colors">
+                  {featuredArticle.title}
+                </h2>
+                <p className="font-raleway text-blanc/70 text-sm leading-relaxed mb-5">
+                  {featuredArticle.excerpt}
+                </p>
+                <div className="flex gap-4 text-xs text-champagne font-montserrat">
+                  <span className="flex items-center gap-1">
+                    <featuredArticle.icon size={14} aria-hidden="true" />
+                    {featuredArticle.categorie}
+                  </span>
+                  <span>📅 {featuredArticle.date}</span>
+                  <span>📖 {featuredArticle.readTime}</span>
+                </div>
               </div>
-            </div>
+            </Link>
           ) : null}
         </div>
       </section>

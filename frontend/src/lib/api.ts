@@ -38,3 +38,28 @@ export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): 
 
   return response.json();
 }
+
+/**
+ * Résout une URL d'image pour l'affichage web :
+ * - Si absolue (http:// ou https://) : renvoyée telle quelle.
+ * - Si relative (/uploads/...) : renvoyée sous forme /uploads/... (relayée par le rewrite Next.js).
+ */
+export function resolveImageUrl(url?: string | null): string | null {
+  if (!url || !url.trim()) return null;
+  const clean = url.trim();
+  if (
+    clean.startsWith('http://') ||
+    clean.startsWith('https://') ||
+    clean.startsWith('data:') ||
+    clean.startsWith('blob:')
+  ) {
+    return clean;
+  }
+  if (clean.startsWith('/uploads/')) {
+    return clean;
+  }
+  if (clean.startsWith('/')) {
+    return clean;
+  }
+  return `/uploads/${clean}`;
+}

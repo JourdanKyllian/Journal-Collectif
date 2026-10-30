@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FeedbackAlert, FeedbackMessage } from "@/components/ui/feedback-alert";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { FileUpload } from "@/components/ui/file-upload";
 import { useFetchApi } from "@/hooks/useFetchApi";
 import { fetchApi } from "@/lib/api";
 import { getCategoryUI } from "@/lib/formatters";
@@ -37,6 +38,7 @@ export default function SubmitArticlePage() {
     titre: "",
     contenu: "",
     categorieId: "",
+    image_couverture: "",
     is_anonymous: false,
   });
 
@@ -56,12 +58,13 @@ export default function SubmitArticlePage() {
           titre: formData.titre,
           contenu: formData.contenu,
           categorieId: Number(formData.categorieId),
+          image_couverture: formData.image_couverture.trim() || undefined,
           is_anonymous: formData.is_anonymous,
         })
       });
 
       setFeedback({ type: "success", message: "Votre proposition a été envoyée." });
-      setFormData({ titre: "", contenu: "", categorieId: "", is_anonymous: false });
+      setFormData({ titre: "", contenu: "", categorieId: "", image_couverture: "", is_anonymous: false });
 
       setTimeout(() => router.push('/profile'), 3000);
     } catch (error: unknown) {
@@ -128,6 +131,17 @@ export default function SubmitArticlePage() {
                 })}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="font-montserrat font-bold text-xs text-vert tracking-wide uppercase">
+              Photo d&apos;illustration (Optionnelle)
+            </Label>
+            <FileUpload 
+              value={formData.image_couverture} 
+              onChange={(url) => setFormData({...formData, image_couverture: url})} 
+              description="Format 16:9 recommandé (PNG, JPG ou WEBP max. 5 Mo)"
+            />
           </div>
 
           <div className="space-y-2">

@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { FeedbackAlert, FeedbackMessage } from "@/components/ui/feedback-alert";
 import { FileUpload } from "@/components/ui/file-upload";
 import { useFetchApi } from "@/hooks/useFetchApi";
-import { fetchApi } from "@/lib/api";
+import { fetchApi, resolveImageUrl } from "@/lib/api";
 import { PaginatedResponse } from "@/lib/types";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { formatDateToFrench, getCategoryUI } from "@/lib/formatters";
@@ -34,6 +34,7 @@ interface AdminArticle {
   id: number;
   titre: string;
   contenu: string;
+  image_couverture?: string | null;
   published_at: string | null;
   scheduled_at?: string | null;
   statut: "brouillon" | "en_attente" | "publie" | "corbeille";
@@ -66,7 +67,7 @@ export default function ArticlesDashboard() {
 
   const [isSubmittingArticle, setIsSubmittingArticle] = useState<boolean>(false);
   const [articleFeedback, setArticleFeedback] = useState<FeedbackMessage | null>(null);
-  const [articleData, setArticleData] = useState({ titre: "", contenu: "", categorieId: "" });
+  const [articleData, setArticleData] = useState({ titre: "", contenu: "", categorieId: "", image_couverture: "" });
 
   const [isSubmittingCat, setIsSubmittingCat] = useState<boolean>(false);
   const [catFeedback, setCatFeedback] = useState<FeedbackMessage | null>(null);
@@ -102,6 +103,7 @@ export default function ArticlesDashboard() {
           titre: articleData.titre,
           contenu: articleData.contenu,
           categorieId: Number(articleData.categorieId),
+          image_couverture: articleData.image_couverture.trim() || undefined,
           statut: isDraft ? "brouillon" : (isAdmin ? "publie" : "en_attente")
         })
       });
@@ -114,7 +116,7 @@ export default function ArticlesDashboard() {
             ? "Article publié avec succès."
             : "Article soumis à la validation d'un administrateur.",
       });
-      setArticleData({ titre: "", contenu: "", categorieId: "" });
+      setArticleData({ titre: "", contenu: "", categorieId: "", image_couverture: "" });
       await refetchArticles();
       
       setTimeout(() => setActiveTab(isDraft ? "drafts" : (isAdmin ? "published" : "pending")), 1000);
@@ -282,7 +284,23 @@ export default function ArticlesDashboard() {
                     const hasIdentifiedAuthor = row.credits?.some(c => c.role === 'Auteur' && !c.anonymous && c.name !== 'Citoyen Anonyme');
                     return (
                       <TableRow key={row.id} className="hover:bg-champagne/5 border-champagne/10 transition-colors">
-                        <TableCell className="font-montserrat font-semibold text-sm">{row.titre}</TableCell>
+                        <TableCell className="font-montserrat font-semibold text-sm">
+                          <div className="flex items-center gap-3">
+                            {row.image_couverture ? (
+                              /* eslint-disable-next-line @next/next/no-img-element */
+                              <img
+                                src={resolveImageUrl(row.image_couverture)!}
+                                alt=""
+                                className="w-10 h-10 rounded-lg object-cover shrink-0 border border-champagne/20"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-lg bg-champagne/15 flex items-center justify-center shrink-0 text-champagne">
+                                <CatIcon size={16} />
+                              </div>
+                            )}
+                            <span className="line-clamp-2">{row.titre}</span>
+                          </div>
+                        </TableCell>
                         <TableCell className="hidden md:table-cell">
                           <Badge className="bg-or/15 text-vert hover:bg-or/20 border-0 font-montserrat font-bold flex items-center gap-1.5 w-fit">
                             <CatIcon size={14} />
@@ -333,9 +351,18 @@ export default function ArticlesDashboard() {
               const CatIcon = getCategoryUI(article.categorie?.libelle || "Général").icon;
               return (
                 <div key={article.id} className="bg-blanc border border-yellow-200 rounded-2xl p-5 flex flex-col sm:flex-row items-start gap-4 hover:shadow-md transition-all">
-                  <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center shrink-0">
-                    <Clock size={24} className="text-yellow-700" />
-                  </div>
+                  {article.image_couverture ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={resolveImageUrl(article.image_couverture)!}
+                      alt=""
+                      className="w-14 h-14 rounded-xl object-cover shrink-0 border border-champagne/20"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center shrink-0">
+                      <Clock size={24} className="text-yellow-700" />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <h3 className="font-montserrat font-bold text-sm">{article.titre}</h3>
@@ -378,9 +405,18 @@ export default function ArticlesDashboard() {
               const CatIcon = getCategoryUI(article.categorie?.libelle || "Général").icon;
               return (
                 <div key={article.id} className="bg-blanc border border-champagne/30 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 hover:shadow-md transition-all opacity-80">
-                  <div className="w-12 h-12 bg-champagne/20 rounded-xl flex items-center justify-center shrink-0 text-champagne">
-                    <FileEdit size={24} />
-                  </div>
+                  {article.image_couverture ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={resolveImageUrl(article.image_couverture)!}
+                      alt=""
+                      className="w-12 h-12 rounded-xl object-cover shrink-0 border border-champagne/20"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 bg-champagne/20 rounded-xl flex items-center justify-center shrink-0 text-champagne">
+                      <FileEdit size={24} />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <h3 className="font-montserrat font-bold text-sm mb-1">{article.titre}</h3>
                     <div className="font-montserrat text-xs text-champagne flex items-center gap-1.5">
@@ -514,6 +550,17 @@ export default function ArticlesDashboard() {
                     })}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="font-montserrat font-bold text-xs text-vert tracking-wide uppercase">
+                  Photo de couverture (Optionnelle)
+                </label>
+                <FileUpload 
+                  value={articleData.image_couverture} 
+                  onChange={(url) => setArticleData({ ...articleData, image_couverture: url })} 
+                  description="Format 16:9 recommandé (PNG, JPG ou WEBP max. 5 Mo)"
+                />
               </div>
 
               <div className="space-y-2">
