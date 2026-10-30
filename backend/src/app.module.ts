@@ -25,6 +25,8 @@ import { ProfileModule } from './profile/profile.module';
 import { SettingsModule } from './settings/settings.module';
 import { AlertsModule } from './alerts/alerts.module';
 import { UploadModule } from './upload/upload.module';
+import { ParkingModule } from './parking/parking.module';
+import { BonPlanModule } from './bon-plan/bon-plan.module';
 import { getJwtSecret } from './common/config/jwt-secret';
 import { TenantModule } from './tenant/tenant.module';
 import { Journal } from './tenant/entities/journal.entity';
@@ -77,6 +79,8 @@ import { JournalMember } from './tenant/entities/journal-member.entity';
     SettingsModule,
     AlertsModule,
     UploadModule,
+    ParkingModule,
+    BonPlanModule,
   ],
   providers: [AdminSeedService, TableSeedService],
 })

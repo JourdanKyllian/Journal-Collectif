@@ -1,5 +1,6 @@
-export type ParkingType = 'Souterrain' | 'Surface' | 'Gare' | 'Enclos';
+import { apiClient } from '@/lib/api';
 
+export type ParkingType = 'Souterrain' | 'Surface' | 'Gare' | 'Enclos';
 export type AffluenceMediane = 'calme' | 'moderee' | 'forte' | 'saturee';
 
 export interface ParkingSpot {
@@ -21,7 +22,7 @@ export interface ParkingSpot {
 
 export const INITIAL_PARKINGS: ParkingSpot[] = [
   {
-    id: 'p1',
+    id: '1',
     name: 'Parking Hôtel de Ville',
     type: 'Souterrain',
     available: 168,
@@ -35,7 +36,7 @@ export const INITIAL_PARKINGS: ParkingSpot[] = [
     address: 'Place de la Mairie',
   },
   {
-    id: 'p2',
+    id: '2',
     name: 'Parking Gare & Parvis',
     type: 'Gare',
     available: 48,
@@ -49,7 +50,7 @@ export const INITIAL_PARKINGS: ParkingSpot[] = [
     address: 'Avenue de la Gare',
   },
   {
-    id: 'p3',
+    id: '3',
     name: 'Parking République - Marché',
     type: 'Surface',
     available: 0,
@@ -64,7 +65,7 @@ export const INITIAL_PARKINGS: ParkingSpot[] = [
     address: 'Place de la République',
   },
   {
-    id: 'p4',
+    id: '4',
     name: 'Parking Esplanade des Fêtes',
     type: 'Enclos',
     available: 0,
@@ -89,51 +90,85 @@ function notifyListeners() {
   listeners.forEach((listener) => listener(snapshot));
 }
 
+// Synchronisation initiale en arrière-plan avec le backend NestJS
+let hasAttemptedInitialFetch = false;
+
+async function syncWithBackend(): Promise<void> {
+  try {
+    const remote = await apiClient<
+      (Omit<ParkingSpot, 'id'> & { id: number })[]
+    >('/parking?all=true');
+
+    if (Array.isArray(remote) && remote.length > 0) {
+      localParkings = remote.map((item) => ({
+        ...item,
+        id: String(item.id),
+      }));
+      notifyListeners();
+    }
+  } catch {
+    // Mode déconnecté : fallback silencieux sur le cache local
+  }
+}
+
 export const ParkingService = {
   getParkings(): ParkingSpot[] {
+    if (!hasAttemptedInitialFetch) {
+      hasAttemptedInitialFetch = true;
+      syncWithBackend();
+    }
     return [...localParkings];
   },
 
   subscribe(listener: ParkingListener): () => void {
     listeners.add(listener);
     listener([...localParkings]);
+    if (!hasAttemptedInitialFetch) {
+      hasAttemptedInitialFetch = true;
+      syncWithBackend();
+    }
     return () => {
       listeners.delete(listener);
     };
   },
 
-  // Définir l'affluence médiane pour un parking non équipé
-  setAffluenceMediane(id: string, affluence: AffluenceMediane): ParkingSpot | null {
+  async setAffluenceMediane(id: string, affluence: AffluenceMediane): Promise<ParkingSpot | null> {
     const p = localParkings.find((item) => item.id === id);
     if (!p) return null;
     p.affluenceMediane = affluence;
     notifyListeners();
+
+    // Persistance API NestJS
+    const numericId = parseInt(id, 10);
+    if (!isNaN(numericId)) {
+      apiClient(`/parking/${numericId}/affluence`, {
+        method: 'PATCH',
+        body: JSON.stringify({ affluenceMediane: affluence }),
+      }).catch(() => null);
+    }
+
     return { ...p };
   },
 
-  // Basculer l'état Actif / Inactif (visible des visiteurs ou non)
-  toggleActive(id: string): ParkingSpot | null {
+  async toggleActive(id: string): Promise<ParkingSpot | null> {
     const p = localParkings.find((item) => item.id === id);
     if (!p) return null;
     p.isActive = !p.isActive;
     notifyListeners();
-    return { ...p };
-  },
 
-  // Basculer l'équipement capteurs (Capteurs IoT vs Non équipé)
-  toggleSensors(id: string): ParkingSpot | null {
-    const p = localParkings.find((item) => item.id === id);
-    if (!p) return null;
-    p.hasSensors = !p.hasSensors;
-    if (!p.hasSensors && !p.affluenceMediane) {
-      p.affluenceMediane = 'moderee';
+    // Persistance API NestJS
+    const numericId = parseInt(id, 10);
+    if (!isNaN(numericId)) {
+      apiClient(`/parking/${numericId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ isActive: p.isActive }),
+      }).catch(() => null);
     }
-    notifyListeners();
+
     return { ...p };
   },
 
-  // Mise à jour complète ou partielle des caractéristiques
-  updateParking(id: string, updates: Partial<ParkingSpot>): ParkingSpot | null {
+  async updateParking(id: string, updates: Partial<ParkingSpot>): Promise<ParkingSpot | null> {
     const index = localParkings.findIndex((item) => item.id === id);
     if (index === -1) return null;
     localParkings[index] = {
@@ -147,25 +182,57 @@ export const ParkingService = {
         : 0,
     };
     notifyListeners();
+
+    // Persistance API NestJS
+    const numericId = parseInt(id, 10);
+    if (!isNaN(numericId)) {
+      apiClient(`/parking/${numericId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updates),
+      }).catch(() => null);
+    }
+
     return { ...localParkings[index] };
   },
 
-  // Création d'un nouveau parking
-  addParking(newSpot: Omit<ParkingSpot, 'id'>): ParkingSpot {
+  async addParking(newSpot: Omit<ParkingSpot, 'id'>): Promise<ParkingSpot> {
+    const tempId = `p_${Date.now()}`;
     const created: ParkingSpot = {
       ...newSpot,
-      id: `p_${Date.now()}`,
+      id: tempId,
       available: newSpot.hasSensors ? (newSpot.available ?? newSpot.total) : 0,
       affluenceMediane: newSpot.hasSensors ? undefined : (newSpot.affluenceMediane ?? 'moderee'),
     };
     localParkings.push(created);
     notifyListeners();
+
+    // Persistance API NestJS
+    try {
+      const saved = await apiClient<Omit<ParkingSpot, 'id'> & { id: number }>('/parking', {
+        method: 'POST',
+        body: JSON.stringify(newSpot),
+      });
+      if (saved && saved.id) {
+        created.id = String(saved.id);
+        notifyListeners();
+      }
+    } catch {
+      // Conserve l'ID temporaire si hors-ligne
+    }
+
     return created;
   },
 
-  // Suppression d'un parking
-  deleteParking(id: string): void {
+  async deleteParking(id: string): Promise<void> {
     localParkings = localParkings.filter((item) => item.id !== id);
     notifyListeners();
+
+    // Persistance API NestJS
+    const numericId = parseInt(id, 10);
+    if (!isNaN(numericId)) {
+      apiClient(`/parking/${numericId}`, {
+        method: 'DELETE',
+      }).catch(() => null);
+    }
   },
 };

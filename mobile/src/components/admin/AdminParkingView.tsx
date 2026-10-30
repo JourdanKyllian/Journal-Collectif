@@ -120,11 +120,11 @@ export default function AdminParkingView() {
   };
 
   // Mise à jour rapide de l'affluence médiane pour les parkings non équipés
-  const handleSetMedianAffluence = (parking: ParkingSpot, affluence: AffluenceMediane) => {
+  const handleSetMedianAffluence = async (parking: ParkingSpot, affluence: AffluenceMediane) => {
     if (Platform.OS !== 'web') {
       Haptics.selectionAsync();
     }
-    const updated = ParkingService.setAffluenceMediane(parking.id, affluence);
+    const updated = await ParkingService.setAffluenceMediane(parking.id, affluence);
     if (updated) {
       Toast.show({
         type: 'success',
@@ -135,11 +135,11 @@ export default function AdminParkingView() {
   };
 
   // Bascule En ligne / Hors ligne
-  const handleToggleActive = (parking: ParkingSpot) => {
+  const handleToggleActive = async (parking: ParkingSpot) => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    const updated = ParkingService.toggleActive(parking.id);
+    const updated = await ParkingService.toggleActive(parking.id);
     if (updated) {
       Toast.show({
         type: updated.isActive ? 'success' : 'info',

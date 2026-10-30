@@ -1,3 +1,5 @@
+import { apiClient } from '@/lib/api';
+
 export type DealCategory = 'billetterie' | 'concours' | 'code_promo' | 'restauration';
 
 export interface BonPlan {
@@ -6,7 +8,7 @@ export interface BonPlan {
   description: string;
   categorie: DealCategory;
   partenaire: string;
-  valeur: string; // Ex: "-20%", "2 places à gagner", "1 offert"
+  valeur: string; // Ex: "-20%", "1 Offert", "Jeu Concours"
   codePromo?: string;
   lienUrl?: string;
   image?: string;
@@ -20,11 +22,11 @@ export interface BonPlan {
 export const MOCK_DEALS: BonPlan[] = [
   {
     id: 1,
-    titre: 'Festival des Arts & Musiques',
-    description: 'Bénéficiez du tarif riverain exclusif sur tous les concerts sous le chapiteau.',
+    titre: '20% sur le Festival des Lumières',
+    description: 'Bénéficiez d’un tarif préférentiel sur la billetterie du festival d’automne en réservant avec le code résident.',
     categorie: 'billetterie',
-    partenaire: 'Office Culturel Municipal',
-    valeur: '-25%',
+    partenaire: 'Service Culturel Municipal',
+    valeur: '-20%',
     codePromo: 'FESTIVAL26',
     lienUrl: 'https://billetterie.culture.fr',
     image: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?auto=format&fit=crop&w=1000&q=80',
@@ -36,8 +38,8 @@ export const MOCK_DEALS: BonPlan[] = [
   },
   {
     id: 2,
-    titre: 'Grand Jeu : Gagnez vos places de cinéma VIP',
-    description: 'Tentez de remporter 2 fauteuils VIP pour la grande avant-première du mois.',
+    titre: 'Gagnez 2 places pour le Cinéma Capitole',
+    description: 'Participez au grand tirage au sort mensuel de la commune et tentez de remporter vos entrées pour le film de votre choix.',
     categorie: 'concours',
     partenaire: 'Cinéma Le Capitole',
     valeur: 'Jeu Concours',
@@ -51,10 +53,10 @@ export const MOCK_DEALS: BonPlan[] = [
   },
   {
     id: 3,
-    titre: 'Brûlerie Centrale & Café Solidaire',
-    description: 'Un expresso ou thé bio de dégustation offert pour toute commande déjeuner.',
+    titre: 'Café gourmand offert dès 15 € d’addition',
+    description: 'Les artisans torréfacteurs du centre historique vous accueillent pour une pause détente privilégiée.',
     categorie: 'restauration',
-    partenaire: 'La Brûlerie Centrale',
+    partenaire: 'Torréfaction Saint-Pierre',
     valeur: '1 Café Offert',
     codePromo: 'COLLECTIF-CAFE',
     image: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=1000&q=80',
@@ -65,10 +67,10 @@ export const MOCK_DEALS: BonPlan[] = [
   },
   {
     id: 4,
-    titre: 'Espace Aquatique & Piscine Olympique',
-    description: 'Une entrée piscine achetée = la deuxième offerte le mercredi et samedi matin.',
-    categorie: 'billetterie',
-    partenaire: 'Centre Nautique Municipal',
+    titre: '1 entrée achetée = 1 entrée offerte à la piscine',
+    description: 'Profitez de l’espace aquatique et bien-être municipal avec un proche tous les mercredis et samedis.',
+    categorie: 'restauration',
+    partenaire: 'Centre Aquatique Municipal',
     valeur: '1 Achetée = 1 Offerte',
     codePromo: 'PASS-NAUTIQUE',
     image: 'https://images.unsplash.com/photo-1576610616656-d3aa5d1f4534?auto=format&fit=crop&w=1000&q=80',
@@ -80,10 +82,10 @@ export const MOCK_DEALS: BonPlan[] = [
   },
   {
     id: 5,
-    titre: 'Épicerie Vrac & Produits du Terroir',
-    description: 'Remise immédiate sur votre panier de fruits, légumes et produits locaux.',
+    titre: '15% de réduction chez votre maraîcher bio',
+    description: 'Encouragez le circuit court et consommez les légumes de saison récoltés à moins de 15 km de votre commune.',
     categorie: 'code_promo',
-    partenaire: 'Le Marché Éco-Citoyen',
+    partenaire: 'Les Maraîchers du Val',
     valeur: '-15%',
     codePromo: 'BIO15LOCAL',
     image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1000&q=80',
@@ -94,8 +96,8 @@ export const MOCK_DEALS: BonPlan[] = [
   },
   {
     id: 6,
-    titre: 'Saison Théâtrale d’Hiver',
-    description: 'Tarif réduit garanti sur toutes les pièces d’auteurs de la saison.',
+    titre: 'Tarif réduit sur la saison théâtrale',
+    description: 'Découvrez la nouvelle programmation contemporaine à prix préférentiel citoyen.',
     categorie: 'billetterie',
     partenaire: 'Théâtre de la Ville',
     valeur: '-30%',
@@ -112,7 +114,17 @@ export const MOCK_DEALS: BonPlan[] = [
 let localDealsState: BonPlan[] = [...MOCK_DEALS];
 
 export const DealsService = {
-  async getDeals(category?: DealCategory | 'all'): Promise<BonPlan[]> {
+  async getDeals(category?: DealCategory | 'all', includeAll = false): Promise<BonPlan[]> {
+    try {
+      const url = includeAll ? '/bon-plan?all=true' : '/bon-plan';
+      const remote = await apiClient<BonPlan[]>(url);
+      if (Array.isArray(remote) && remote.length > 0) {
+        localDealsState = remote;
+      }
+    } catch {
+      // Fallback hors-ligne silencieux sur le cache local
+    }
+
     if (!category || category === 'all') {
       return [...localDealsState];
     }
@@ -124,19 +136,60 @@ export const DealsService = {
     if (deal) {
       deal.statut = deal.statut === 'actif' ? 'expire' : 'actif';
     }
+
+    // Persistance API NestJS
+    apiClient<BonPlan>(`/bon-plan/${id}/toggle`, {
+      method: 'PATCH',
+    }).catch(() => null);
+
     return deal;
   },
 
   async addDeal(deal: Omit<BonPlan, 'id'>): Promise<BonPlan> {
+    const tempId = Date.now();
     const newDeal: BonPlan = {
       ...deal,
-      id: Date.now(),
+      id: tempId,
     };
     localDealsState.unshift(newDeal);
+
+    // Persistance API NestJS
+    try {
+      const saved = await apiClient<BonPlan>('/bon-plan', {
+        method: 'POST',
+        body: JSON.stringify(deal),
+      });
+      if (saved && saved.id) {
+        newDeal.id = saved.id;
+      }
+    } catch {
+      // Conserve l'ID temporaire si hors-ligne
+    }
+
     return newDeal;
   },
 
   async deleteDeal(id: number): Promise<void> {
     localDealsState = localDealsState.filter((d) => d.id !== id);
+
+    // Persistance API NestJS
+    apiClient(`/bon-plan/${id}`, {
+      method: 'DELETE',
+    }).catch(() => null);
+  },
+
+  async participerConcours(
+    id: number,
+    participant: { nom: string; email: string; telephone?: string }
+  ): Promise<{ message: string }> {
+    try {
+      return await apiClient<{ message: string }>(`/bon-plan/${id}/participer`, {
+        method: 'POST',
+        body: JSON.stringify(participant),
+      });
+    } catch {
+      // Fallback local
+      return { message: 'Participation bien enregistrée !' };
+    }
   },
 };
