@@ -9,7 +9,6 @@ import {
   Platform,
   Alert,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { UserCheck, LogIn, LogOut, Globe, BellRing, Bell, Shield, Sparkles } from 'lucide-react-native';
 import * as Notifications from 'expo-notifications';
@@ -20,7 +19,7 @@ import { COLORS, FONTS } from '@/theme/tokens';
 import { useCity } from '@/context/CityContext';
 import { useAuth } from '@/context/AuthContext';
 import { MOCK_CATEGORIES } from '@/lib/mock-data';
-import PageHeader from '@/components/navigation/PageHeader';
+import ScreenContainer from '@/components/layout/ScreenContainer';
 
 export default function ProfileScreen() {
   const { currentCity, cities, selectCity } = useCity();
@@ -107,12 +106,7 @@ export default function ProfileScreen() {
     : 'Non connecté';
 
   return (
-    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
-      <PageHeader
-        title="Espace Citoyen"
-        subtitle="Paramètres, alertes push & profil"
-      />
-
+    <ScreenContainer headerContextTitle="Espace Citoyen">
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -236,12 +230,11 @@ export default function ProfileScreen() {
           </Text>
         </Pressable>
       </ScrollView>
-    </SafeAreaView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.blanc },
   content: { padding: 20, paddingBottom: 130 },
   profileCard: {
     backgroundColor: COLORS.vert,

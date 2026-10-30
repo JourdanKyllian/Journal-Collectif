@@ -7,7 +7,6 @@ import {
   Dimensions,
   Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -21,8 +20,7 @@ import { Search, Car } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 
 import { COLORS, FONTS } from '@/theme/tokens';
-import { useCity } from '@/context/CityContext';
-import PageHeader from '@/components/navigation/PageHeader';
+import ScreenContainer from '@/components/layout/ScreenContainer';
 import LostObjectsView from '@/components/tools/LostObjectsView';
 import ParkingView from '@/components/tools/ParkingView';
 
@@ -34,7 +32,6 @@ const SEGMENT_WIDTH = (SEGMENT_BAR_WIDTH - SEGMENT_PADDING * 2) / 2;
 const SEGMENT_BAR_HEIGHT = 48;
 
 export default function ToolsScreen() {
-  const { currentCity } = useCity();
   const [activeTab, setActiveTab] = useState<'lost' | 'parking'>('lost');
 
   // Shared value pour l'indicateur coulissant Liquid Glass (même physique que CustomTabBar)
@@ -60,13 +57,7 @@ export default function ToolsScreen() {
   }));
 
   return (
-    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
-      {/* En-tête de la page renommé "Outils" */}
-      <PageHeader
-        title="Outils"
-        subtitle={`Services & vie pratique • ${currentCity.shortName}`}
-      />
-
+    <ScreenContainer headerContextTitle="Outils Municipaux">
       {/* Sous-navigation Liquid Glass avec bulle coulissante fluide */}
       <View style={styles.selectorWrapper}>
         <View style={styles.segmentedContainer}>
@@ -173,15 +164,11 @@ export default function ToolsScreen() {
           </Animated.View>
         )}
       </View>
-    </SafeAreaView>
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.blanc,
-  },
   selectorWrapper: {
     paddingHorizontal: CONTAINER_HORIZONTAL_MARGIN,
     paddingTop: 12,

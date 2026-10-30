@@ -8,7 +8,6 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Sparkles,
   ArrowRight,
@@ -18,7 +17,7 @@ import * as Haptics from 'expo-haptics';
 
 import { COLORS, FONTS } from '@/theme/tokens';
 import { MOCK_CATEGORIES, MOCK_ARTICLES } from '@/lib/mock-data';
-import PageHeader from '@/components/navigation/PageHeader';
+import ScreenContainer from '@/components/layout/ScreenContainer';
 import ArticleCard from '@/components/ArticleCard';
 
 export default function CategoriesScreen() {
@@ -189,11 +188,7 @@ export default function CategoriesScreen() {
   );
 
   return (
-    <SafeAreaView edges={['top', 'left', 'right']} style={styles.container}>
-      <PageHeader
-        title="Rubriques"
-        subtitle="Explorez les actualités locales par thématique"
-      />
+    <ScreenContainer headerContextTitle="Rubriques">
 
       <FlatList
         data={filteredArticles}
@@ -219,7 +214,7 @@ export default function CategoriesScreen() {
           </View>
         }
       />
-    </SafeAreaView>
+    </ScreenContainer>
   );
 }
 
