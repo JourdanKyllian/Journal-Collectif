@@ -14,6 +14,7 @@ import { FavorisCategorie } from '../../favoris-categorie/entities/favoris-categ
 import { CustomBaseEntity } from '../../common/base/base.entity';
 import { Profile } from '../../profile/entities/profile.entity';
 import { Session } from '../../auth/entities/session.entity';
+import { JournalMember } from '../../tenant/entities/journal-member.entity';
 
 /**
  * Entité gérant le périmètre d'authentification et les habilitations de l'utilisateur.
@@ -32,10 +33,21 @@ export class Users extends CustomBaseEntity {
   @Column({ type: 'varchar', length: 255, nullable: true })
   token_notification!: string | null;
 
+  /** Opérateur de la plateforme : seul habilité à provisionner de nouveaux journaux. */
+  @Column({ type: 'boolean', default: false })
+  is_platform_admin!: boolean;
+
+  /** Compte créé avec un mot de passe provisoire : tout est bloqué tant qu'il n'est pas changé. */
+  @Column({ type: 'boolean', default: false })
+  must_change_password!: boolean;
+
   // --- RELATIONS ---
 
   @OneToMany(() => Session, (session) => session.user)
   sessions!: Session[];
+
+  @OneToMany(() => JournalMember, (member) => member.user)
+  memberships!: JournalMember[];
 
   @ManyToOne(() => Role, (role) => role.users)
   @JoinColumn({ name: 'role_id' })

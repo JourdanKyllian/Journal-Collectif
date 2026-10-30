@@ -4,6 +4,9 @@ import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { Users } from '../../../users/entities/user.entity';
 import { Role } from '../../../roles/entities/roles.entity';
+import { Journal } from '../../../tenant/entities/journal.entity';
+import { MembershipService } from '../../../tenant/membership.service';
+import { defaultJournalSlug } from '../../../tenant/tenant.constants';
 import { Categorie } from '../../../categorie/entities/categorie.entity';
 import {
   Article,
@@ -27,6 +30,9 @@ export class AdminSeedService {
     private readonly categorieRepository: Repository<Categorie>,
     @InjectRepository(Article)
     private readonly articleRepository: Repository<Article>,
+    @InjectRepository(Journal)
+    private readonly journalRepository: Repository<Journal>,
+    private readonly memberships: MembershipService,
   ) {}
 
   /**
@@ -53,6 +59,16 @@ export class AdminSeedService {
         );
       }
 
+      // Les comptes et contenus de démonstration appartiennent au journal historique.
+      const journal = await this.journalRepository.findOneBy({
+        slug: defaultJournalSlug(),
+      });
+      if (!journal) {
+        throw new Error(
+          "Le journal par défaut n'existe pas ! Exécutez d'abord les migrations.",
+        );
+      }
+
       this.logger.log('Vérification et création des comptes de test...');
 
       // 1. Compte SUPER ADMIN
@@ -68,6 +84,7 @@ export class AdminSeedService {
       superAdminUser.password = await bcrypt.hash('superadmin123', 10);
       superAdminUser.role = superAdminRole;
       superAdminUser.is_phone_verified = true;
+      superAdminUser.is_platform_admin = true; // démonstration : peut provisionner des journaux
       superAdminUser.profile = Object.assign(superAdminUser.profile || {}, {
         firstname: 'Directeur',
         lastname: 'Publication',
@@ -76,6 +93,11 @@ export class AdminSeedService {
         bio: 'Gérant du Collectif Chalonnais et Super Administrateur.',
       });
       await this.usersRepository.save(superAdminUser);
+      await this.memberships.upsert(
+        superAdminUser.id,
+        journal.id,
+        'super_admin',
+      );
       this.logger.log(`Super Admin configuré : superadmin@journal.fr`);
 
       // 2. Compte ADMIN
@@ -97,6 +119,7 @@ export class AdminSeedService {
         bio: 'Administrateur de la plateforme et modérateur.',
       });
       await this.usersRepository.save(adminUser);
+      await this.memberships.upsert(adminUser.id, journal.id, 'admin');
       this.logger.log(`Admin configuré : admin@journal.fr`);
 
       // 3. Compte RÉDACTEUR
@@ -120,6 +143,7 @@ export class AdminSeedService {
         bio: 'Rédacteur officiel pour le journal municipal.',
       });
       await this.usersRepository.save(redacteurUser);
+      await this.memberships.upsert(redacteurUser.id, journal.id, 'redacteur');
       this.logger.log(`Rédacteur configuré : redacteur@journal.fr`);
 
       // 4. Compte VISITEUR INCOMPLET
@@ -142,6 +166,11 @@ export class AdminSeedService {
         avatar_ref: 'default_01',
       });
       await this.usersRepository.save(userIncomplet);
+      await this.memberships.upsert(
+        userIncomplet.id,
+        journal.id,
+        'utilisateur',
+      );
 
       // 5. Compte VISITEUR COMPLET
       let visiteurComplet = await this.usersRepository.findOne({
@@ -164,6 +193,11 @@ export class AdminSeedService {
         bio: 'Lecteur régulier et participant de la commune.',
       });
       await this.usersRepository.save(visiteurComplet);
+      await this.memberships.upsert(
+        visiteurComplet.id,
+        journal.id,
+        'utilisateur',
+      );
 
       // --- CRÉATION DES CATÉGORIES ET ARTICLES ---
       this.logger.log('Vérification et création des catégories...');
@@ -202,11 +236,14 @@ export class AdminSeedService {
 
       for (const catData of categoriesData) {
         let cat = await this.categorieRepository.findOne({
-          where: { libelle: catData.libelle },
+          where: { libelle: catData.libelle, journalId: journal.id },
         });
         if (!cat) {
           cat = await this.categorieRepository.save(
-            this.categorieRepository.create(catData),
+            this.categorieRepository.create({
+              ...catData,
+              journalId: journal.id,
+            }),
           );
           this.logger.log(`Catégorie créée : ${catData.libelle}`);
         }
@@ -237,7 +274,7 @@ export class AdminSeedService {
 
       for (const artData of sampleArticles) {
         const articleExists = await this.articleRepository.findOne({
-          where: { titre: artData.titre },
+          where: { titre: artData.titre, journalId: journal.id },
         });
         if (!articleExists) {
           await this.articleRepository.save(
@@ -247,6 +284,7 @@ export class AdminSeedService {
               categorie: artData.categorie,
               statut: ArticleStatus.PUBLIE,
               published_at: new Date(),
+              journalId: journal.id,
             }),
           );
           this.logger.log(`Article créé : "${artData.titre}"`);

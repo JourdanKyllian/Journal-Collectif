@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
-import Animated, { FadeIn, FadeOut, SlideInUp, SlideOutUp } from 'react-native-reanimated';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { AlertTriangle, Info, PartyPopper, X, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import * as Haptics from 'expo-haptics';
 import { COLORS, FONTS } from '@/theme/tokens';
 import { MobileAlert } from '@/lib/mock-data';
 
@@ -17,7 +18,7 @@ export default function AlertBanner({ alerts }: AlertBannerProps) {
     if (alerts.length <= 1 || dismissed) return;
     const interval = setInterval(() => {
       setCurrentIdx((prev) => (prev + 1) % alerts.length);
-    }, 5000);
+    }, 6000);
     return () => clearInterval(interval);
   }, [alerts.length, dismissed]);
 
@@ -28,48 +29,82 @@ export default function AlertBanner({ alerts }: AlertBannerProps) {
   const getTypeConfig = (type: string) => {
     switch (type) {
       case 'urgent':
-        return { bg: COLORS.urgent, icon: AlertTriangle, label: 'URGENT' };
-      case 'info':
-        return { bg: COLORS.info, icon: Info, label: 'INFO' };
+        return {
+          bg: '#B91C1C',
+          badgeBg: 'rgba(255, 255, 255, 0.22)',
+          textColor: COLORS.blanc,
+          badgeTextColor: COLORS.blanc,
+          icon: AlertTriangle,
+          label: 'URGENT',
+        };
       case 'event':
-        return { bg: COLORS.success, icon: PartyPopper, label: 'ÉVÉNEMENT' };
+        return {
+          bg: COLORS.vert,
+          badgeBg: 'rgba(212, 175, 55, 0.25)',
+          textColor: COLORS.blanc,
+          badgeTextColor: COLORS.or,
+          icon: PartyPopper,
+          label: 'ÉVÉNEMENT',
+        };
+      case 'info':
       default:
-        return { bg: COLORS.info, icon: Info, label: 'INFO' };
+        return {
+          bg: '#C2410C',
+          badgeBg: 'rgba(255, 255, 255, 0.22)',
+          textColor: COLORS.blanc,
+          badgeTextColor: COLORS.blanc,
+          icon: Info,
+          label: 'INFO',
+        };
     }
   };
 
   const config = getTypeConfig(alert.type);
 
+  const handleDismiss = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.selectionAsync();
+    }
+    setDismissed(true);
+  };
+
   return (
     <Animated.View
-      entering={SlideInUp}
-      exiting={SlideOutUp}
-      style={[styles.container, { backgroundColor: config.bg }]}
+      entering={FadeIn.duration(250)}
+      exiting={FadeOut.duration(200)}
+      style={[
+        styles.bannerStrip,
+        { backgroundColor: config.bg },
+      ]}
     >
-      <View style={styles.badge}>
-        <config.icon size={12} color={COLORS.blanc} />
-        <Text style={styles.badgeText}>{config.label}</Text>
+      {/* Badge type d'alerte (style Web) */}
+      <View style={[styles.badge, { backgroundColor: config.badgeBg }]}>
+        <config.icon size={11} color={config.badgeTextColor} strokeWidth={2.5} />
+        <Text style={[styles.badgeText, { color: config.badgeTextColor }]}>
+          {config.label}
+        </Text>
       </View>
 
-      <Animated.View
-        key={alert.id}
-        entering={FadeIn.duration(350)}
-        exiting={FadeOut.duration(350)}
-        style={styles.messageContainer}
-      >
-        <Text style={styles.text} numberOfLines={2}>
-          <Text style={{ fontFamily: FONTS.bodyBold }}>{alert.title} — </Text>
+      {/* Message de l'alerte */}
+      <View style={styles.messageContainer}>
+        <Text style={[styles.text, { color: config.textColor }]} numberOfLines={1} ellipsizeMode="tail">
+          <Text style={styles.titleText}>{alert.title} — </Text>
           {alert.message}
         </Text>
-      </Animated.View>
+      </View>
 
+      {/* Navigation si plusieurs alertes */}
       {alerts.length > 1 && (
         <View style={styles.navigation}>
           <Pressable
-            onPress={() => setCurrentIdx((prev) => (prev - 1 + alerts.length) % alerts.length)}
+            onPress={() => {
+              if (Platform.OS !== 'web') Haptics.selectionAsync();
+              setCurrentIdx((prev) => (prev - 1 + alerts.length) % alerts.length);
+            }}
             style={styles.navBtn}
+            hitSlop={8}
           >
-            <ChevronLeft size={16} color={COLORS.blanc} />
+            <ChevronLeft size={14} color="rgba(255,255,255,0.7)" />
           </Pressable>
           <View style={styles.dots}>
             {alerts.map((_, i) => (
@@ -83,42 +118,49 @@ export default function AlertBanner({ alerts }: AlertBannerProps) {
             ))}
           </View>
           <Pressable
-            onPress={() => setCurrentIdx((prev) => (prev + 1) % alerts.length)}
+            onPress={() => {
+              if (Platform.OS !== 'web') Haptics.selectionAsync();
+              setCurrentIdx((prev) => (prev + 1) % alerts.length);
+            }}
             style={styles.navBtn}
+            hitSlop={8}
           >
-            <ChevronRight size={16} color={COLORS.blanc} />
+            <ChevronRight size={14} color="rgba(255,255,255,0.7)" />
           </Pressable>
         </View>
       )}
 
-      <Pressable onPress={() => setDismissed(true)} hitSlop={10} style={styles.closeBtn}>
-        <X size={16} color="rgba(255,255,255,0.8)" />
+      {/* Bouton fermeture */}
+      <Pressable onPress={handleDismiss} hitSlop={10} style={styles.closeBtn}>
+        <X size={15} color="rgba(255,255,255,0.8)" />
       </Pressable>
     </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  bannerStrip: {
+    width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 9,
     gap: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.08)',
   },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: 'rgba(0,0,0,0.2)',
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: 99,
   },
   badgeText: {
     fontFamily: FONTS.headingBold,
-    fontSize: 10,
-    color: COLORS.blanc,
+    fontSize: 9.5,
+    letterSpacing: 0.6,
   },
   messageContainer: {
     flex: 1,
@@ -126,33 +168,34 @@ const styles = StyleSheet.create({
   text: {
     fontFamily: FONTS.body,
     fontSize: 12,
-    color: COLORS.blanc,
+  },
+  titleText: {
+    fontFamily: FONTS.bodyBold,
   },
   navigation: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
   },
   navBtn: {
     padding: 2,
   },
   dots: {
     flexDirection: 'row',
-    gap: 3,
+    gap: 2.5,
   },
   dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
   },
   dotActive: {
     backgroundColor: COLORS.blanc,
-    transform: [{ scale: 1.2 }],
   },
   dotInactive: {
-    backgroundColor: 'rgba(255,255,255,0.4)',
+    backgroundColor: 'rgba(255,255,255,0.35)',
   },
   closeBtn: {
-    paddingLeft: 4,
+    padding: 2,
   },
 });

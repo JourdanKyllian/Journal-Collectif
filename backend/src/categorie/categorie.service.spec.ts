@@ -20,6 +20,7 @@ import {
   beforeEach,
   afterEach,
 } from '@jest/globals';
+import { TenantContext } from '../tenant/tenant.context';
 
 /**
  * Type générique unifié représentant une fonction simulée par Jest.
@@ -62,6 +63,7 @@ describe('CategorieService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        { provide: TenantContext, useValue: { journalId: 1 } },
         CategorieService,
         {
           provide: getRepositoryToken(Categorie),

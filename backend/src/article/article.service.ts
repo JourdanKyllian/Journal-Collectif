@@ -41,6 +41,7 @@ import {
   toSkipTake,
 } from '../common/pagination/pagination';
 import { sanitizeArticleHtml } from '../common/security/sanitize-article-html';
+import { TenantContext } from '../tenant/tenant.context';
 
 const STAFF_ROLES = ['super_admin', 'admin', 'redacteur'];
 const ADMIN_ROLES = ['super_admin', 'admin'];
@@ -190,7 +191,13 @@ export class ArticleService {
     private readonly revisionRepository: Repository<ArticleRevision>,
     @InjectRepository(ArticleHistory)
     private readonly historyRepository: Repository<ArticleHistory>,
+    private readonly tenant: TenantContext,
   ) {}
+
+  /** Journal courant : toute requête sur les articles est bornée à ce journal. */
+  private get journalId(): number {
+    return this.tenant.journalId;
+  }
 
   // ---------------------------------------------------------------------------
   // Création
@@ -212,7 +219,7 @@ export class ArticleService {
     }
 
     const categorie = await this.categorieRepository.findOne({
-      where: { id: dto.categorieId },
+      where: { id: dto.categorieId, journalId: this.journalId },
     });
     if (!categorie) {
       throw new BadRequestException("Cette catégorie n'existe pas.");
@@ -246,6 +253,7 @@ export class ArticleService {
       published_at: publiee ? (scheduled ?? new Date()) : null,
       scheduled_at: publiee ? null : (scheduled ?? null),
       categorie,
+      journalId: this.journalId,
     });
 
     const savedArticle = await this.articleRepository.save(newArticle);
@@ -483,7 +491,7 @@ export class ArticleService {
     article.source_link = revision.source_link;
     if (revision.categorieId) {
       const categorie = await this.categorieRepository.findOne({
-        where: { id: revision.categorieId },
+        where: { id: revision.categorieId, journalId: this.journalId },
       });
       if (categorie) article.categorie = categorie;
     }
@@ -643,6 +651,7 @@ export class ArticleService {
   /** Articles publiés et dont la date est atteinte (public), paginés. */
   async findAllPublished(query: ArticleListQueryDto) {
     const base: FindOptionsWhere<Article> = {
+      journalId: this.journalId,
       statut: ArticleStatus.PUBLIE,
       is_delete: false,
     };
@@ -674,7 +683,10 @@ export class ArticleService {
 
   /** Tous les articles, tous statuts (dashboard), paginés. */
   async findAllAdmin(query: AdminArticleListQueryDto, userRole: string) {
-    const where: FindOptionsWhere<Article> = { is_delete: false };
+    const where: FindOptionsWhere<Article> = {
+      journalId: this.journalId,
+      is_delete: false,
+    };
     if (query.statut) where.statut = query.statut;
     if (query.categorieId) where.categorie = { id: query.categorieId };
     if (query.q) where.titre = ILike(`%${escapeLike(query.q)}%`);
@@ -697,14 +709,15 @@ export class ArticleService {
   /** Compteurs du dashboard. `planifie` = publié avec une date encore à venir. */
   async adminStats() {
     const now = new Date();
-    const live = { is_delete: false, statut: ArticleStatus.PUBLIE };
+    const scope = { journalId: this.journalId, is_delete: false };
+    const live = { ...scope, statut: ArticleStatus.PUBLIE };
 
     const [brouillon, enAttente, publie, planifie] = await Promise.all([
       this.articleRepository.count({
-        where: { is_delete: false, statut: ArticleStatus.BROUILLON },
+        where: { ...scope, statut: ArticleStatus.BROUILLON },
       }),
       this.articleRepository.count({
-        where: { is_delete: false, statut: ArticleStatus.EN_ATTENTE },
+        where: { ...scope, statut: ArticleStatus.EN_ATTENTE },
       }),
       this.articleRepository.count({
         where: [
@@ -732,7 +745,7 @@ export class ArticleService {
    */
   async findOne(id: number, viewer?: Viewer) {
     const article = await this.articleRepository.findOne({
-      where: { id },
+      where: { id, journalId: this.journalId },
       relations: ARTICLE_RELATIONS,
       withDeleted: true,
     });
@@ -758,6 +771,7 @@ export class ArticleService {
   async findMine(userId: number, query: PaginationQueryDto) {
     const [articles, total] = await this.articleRepository.findAndCount({
       where: {
+        journalId: this.journalId,
         auteursArticles: { userId, role_contribution: In(AUTHOR_ROLES) },
       },
       withDeleted: true,
@@ -813,7 +827,7 @@ export class ArticleService {
     allowDeleted = false,
   ): Promise<Article> {
     const article = await this.articleRepository.findOne({
-      where: { id },
+      where: { id, journalId: this.journalId },
       relations: ['categorie', 'auteursArticles'],
       withDeleted: true,
     });
@@ -832,7 +846,7 @@ export class ArticleService {
   /** Relecture après écriture : l'appelant a déjà été autorisé. */
   private async loadFormatted(id: number, viewer: Viewer) {
     const article = await this.articleRepository.findOne({
-      where: { id },
+      where: { id, journalId: this.journalId },
       relations: ARTICLE_RELATIONS,
     });
     if (!article) throw new NotFoundException('Article introuvable.');
@@ -857,7 +871,9 @@ export class ArticleService {
   }
 
   private async requireCategorie(id: number): Promise<Categorie> {
-    const categorie = await this.categorieRepository.findOne({ where: { id } });
+    const categorie = await this.categorieRepository.findOne({
+      where: { id, journalId: this.journalId },
+    });
     if (!categorie) {
       throw new BadRequestException("Cette catégorie n'existe pas.");
     }

@@ -2,7 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { SettingsController } from './settings.controller';
 import { SettingsService } from './settings.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Setting } from './entities/settings.entity';
+import { Journal } from '../tenant/entities/journal.entity';
+import { TenantContext } from '../tenant/tenant.context';
 
 describe('SettingsController', () => {
   let controller: SettingsController;
@@ -13,9 +14,10 @@ describe('SettingsController', () => {
       providers: [
         SettingsService,
         {
-          provide: getRepositoryToken(Setting),
+          provide: getRepositoryToken(Journal),
           useValue: {}, // Faux repository pour valider le test
         },
+        { provide: TenantContext, useValue: { journalId: 1 } },
       ],
     }).compile();
 

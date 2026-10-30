@@ -21,6 +21,7 @@ import { AuthThrottlerGuard } from './auth-throttler.guard';
 import { LOGIN_ACCOUNT, LOGIN_IP, REFRESH_IP } from './auth.throttle';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../common/guards/optional-jwt-auth.guard';
+import { SkipTenantGate } from '../tenant/skip-tenant-gate.decorator';
 
 interface RequestWithUser extends Request {
   user: AuthenticatedUser;
@@ -103,6 +104,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @SkipTenantGate()
   @UseGuards(AuthThrottlerGuard)
   @SkipThrottle({ [REFRESH_IP]: true })
   async login(
@@ -128,6 +130,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @SkipTenantGate()
   @UseGuards(AuthThrottlerGuard)
   @SkipThrottle({ [LOGIN_IP]: true, [LOGIN_ACCOUNT]: true })
   async refresh(
@@ -161,6 +164,7 @@ export class AuthController {
    * pourvu que le refresh token (cookie ou corps) prouve la possession de la session.
    */
   @Post('logout')
+  @SkipTenantGate()
   @UseGuards(OptionalJwtAuthGuard)
   async logout(
     @Body() refreshDto: RefreshDto,
@@ -187,7 +191,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get('me')
   getProfile(@Req() req: RequestWithUser) {
-    return this.authService.getMe(req.user.userId);
+    return this.authService.getMe(req.user.userId, req.user.role);
   }
 
   @UseGuards(JwtAuthGuard)

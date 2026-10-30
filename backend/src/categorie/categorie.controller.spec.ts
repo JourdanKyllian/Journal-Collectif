@@ -7,6 +7,7 @@ import { CategorieController } from './categorie.controller';
 import { CategorieService } from './categorie.service';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Categorie } from './entities/categorie.entity';
+import { TenantContext } from '../tenant/tenant.context';
 
 describe('CategorieController', () => {
   let controller: CategorieController;
@@ -16,6 +17,7 @@ describe('CategorieController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [CategorieController],
       providers: [
+        { provide: TenantContext, useValue: { journalId: 1 } },
         CategorieService,
         {
           // Bouchon (mock) basique du repository suffisant pour l'initialisation du service sous-jacent.

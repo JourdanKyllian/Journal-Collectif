@@ -13,6 +13,9 @@ import {
 } from '@jest/globals';
 import { AuthService } from './auth.service';
 import { Session } from './entities/session.entity';
+import { JournalService } from '../tenant/journal.service';
+import { MembershipService } from '../tenant/membership.service';
+import { TenantContext } from '../tenant/tenant.context';
 import { Users } from '../users/entities/user.entity';
 import { Role } from '../roles/entities/roles.entity';
 import {
@@ -98,6 +101,15 @@ describe('AuthService', () => {
         { provide: getRepositoryToken(Role), useValue: {} },
         { provide: getRepositoryToken(Session), useValue: sessions },
         { provide: JwtService, useValue: jwt },
+        { provide: MembershipService, useValue: { upsert: jest.fn() } },
+        { provide: JournalService, useValue: { onPasswordChanged: jest.fn() } },
+        {
+          provide: TenantContext,
+          useValue: {
+            journalId: 1,
+            journal: { id: 1, slug: 'j', statut: 'actif' },
+          },
+        },
       ],
     }).compile();
     service = module.get(AuthService);

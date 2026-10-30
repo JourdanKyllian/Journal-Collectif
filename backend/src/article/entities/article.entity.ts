@@ -1,4 +1,12 @@
-import { Entity, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import { Journal } from '../../tenant/entities/journal.entity';
+import {
+  Entity,
+  Column,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+  Index,
+} from 'typeorm';
 import { Categorie } from '../../categorie/entities/categorie.entity';
 import { ImageArticle } from '../../image-article/entities/image-article.entity';
 import { VueStatistique } from '../../vue-statistique/entities/vue-statistique.entity';
@@ -14,6 +22,17 @@ export enum ArticleStatus {
 
 @Entity('article')
 export class Article extends CustomBaseEntity {
+  @Index('IDX_article_journal')
+  @Column({ name: 'journal_id', type: 'int' })
+  journalId!: number;
+
+  @ManyToOne(() => Journal, { onDelete: 'RESTRICT' })
+  @JoinColumn({
+    name: 'journal_id',
+    foreignKeyConstraintName: 'FK_article_journal',
+  })
+  journal!: Journal;
+
   @Column({ type: 'varchar', length: 255 })
   titre!: string;
 

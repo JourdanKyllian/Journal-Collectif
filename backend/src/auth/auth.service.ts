@@ -13,6 +13,9 @@ import * as bcrypt from 'bcrypt';
 import { Users } from '../users/entities/user.entity';
 import { Role } from '../roles/entities/roles.entity';
 import { Session } from './entities/session.entity';
+import { JournalService } from '../tenant/journal.service';
+import { MembershipService, CITIZEN_ROLE } from '../tenant/membership.service';
+import { TenantContext } from '../tenant/tenant.context';
 import { RegisterDto } from './dto/register.dto';
 import { UpdateSecurityDto } from './dto/update-security.dto';
 import {
@@ -63,6 +66,9 @@ export class AuthService {
     @InjectRepository(Session)
     private sessionRepository: Repository<Session>,
     private jwtService: JwtService,
+    private readonly memberships: MembershipService,
+    private readonly journals: JournalService,
+    private readonly tenant: TenantContext,
   ) {}
 
   /**
@@ -128,6 +134,13 @@ export class AuthService {
     });
 
     const savedUser = await this.usersRepository.save(newUser);
+
+    // Le compte est global ; il rejoint le journal où il s'inscrit comme simple citoyen.
+    await this.memberships.upsert(
+      savedUser.id,
+      this.tenant.journalId,
+      CITIZEN_ROLE,
+    );
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...userWithoutPassword } = savedUser;
@@ -379,7 +392,7 @@ export class AuthService {
    * @returns {Promise<object>} Les informations de profil et le rôle exact .
    * @throws {NotFoundException} Si l'utilisateur est introuvable .
    */
-  async getMe(userId: number) {
+  async getMe(userId: number, role: string) {
     const user = await this.usersRepository.findOne({
       where: { id: userId },
       relations: ['role', 'profile'],
@@ -392,7 +405,14 @@ export class AuthService {
     return {
       id: user.id,
       email: user.email,
-      role: user.role?.libelle || 'utilisateur',
+      // Rôle dans le journal courant (et non le rôle global du compte).
+      role,
+      is_platform_admin: user.is_platform_admin === true,
+      must_change_password: user.must_change_password === true,
+      journal: {
+        slug: this.tenant.journal.slug,
+        statut: this.tenant.journal.statut,
+      },
       firstname: user.profile?.firstname || null,
       lastname: user.profile?.lastname || null,
       avatar_ref: user.profile?.avatar_ref || 'default_01',
@@ -435,6 +455,15 @@ export class AuthService {
     }
 
     if (dto.newPassword) {
+      // Un mot de passe provisoire doit être réellement remplacé, pas reconduit.
+      if (
+        user.must_change_password &&
+        dto.newPassword === dto.currentPassword
+      ) {
+        throw new BadRequestException(
+          'Le nouveau mot de passe doit être différent du mot de passe provisoire.',
+        );
+      }
       user.password = await bcrypt.hash(dto.newPassword, 10);
       hasChanges = true;
     }
@@ -446,6 +475,8 @@ export class AuthService {
     // Un mot de passe qui change doit couper les autres appareils (mot de passe compromis).
     if (dto.newPassword) {
       await this.revokeOtherSessions(userId, currentSessionId);
+      // Lève l'obligation de changer de mot de passe et ouvre le journal de son super admin.
+      await this.journals.onPasswordChanged(userId);
     }
 
     return { message: 'Paramètres de sécurité mis à jour avec succès.' };

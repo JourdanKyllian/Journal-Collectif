@@ -22,6 +22,7 @@ import { ArticleRevision } from './entities/article-revision.entity';
 import { Users } from '../users/entities/user.entity';
 import { Categorie } from '../categorie/entities/categorie.entity';
 import { AuteurArticle } from '../auteur-article/entities/auteur-article.entity/auteur-article.entity';
+import { TenantContext } from '../tenant/tenant.context';
 
 type CreateDto = Parameters<ArticleService['create']>[0];
 type Fn = (...args: unknown[]) => Promise<unknown>;
@@ -98,6 +99,7 @@ describe('ArticleService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        { provide: TenantContext, useValue: { journalId: 1 } },
         ArticleService,
         { provide: getRepositoryToken(Article), useValue: articles },
         { provide: getRepositoryToken(AuteurArticle), useValue: auteurs },

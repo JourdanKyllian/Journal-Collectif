@@ -12,7 +12,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="index" />
       <Tabs.Screen name="categories" />
       <Tabs.Screen name="action" />
-      <Tabs.Screen name="lost" />
+      <Tabs.Screen name="tools" />
       <Tabs.Screen name="profile" />
     </Tabs>
   );

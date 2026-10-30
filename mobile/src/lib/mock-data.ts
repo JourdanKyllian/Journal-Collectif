@@ -94,6 +94,18 @@ export const MOCK_ARTICLES: MobileArticle[] = [
     categorie: { id: 2, libelle: 'Culture', icon: '🎭' },
     credits: [{ role: 'Auteur', name: 'Directeur Publication' }],
   },
+  {
+    id: 4,
+    titre: 'Réhabilitation des berges du canal et nouvelle passerelle piétonne',
+    excerpt: 'Lancement des aménagements urbains pour reconnecter le port de plaisance au centre-ville.',
+    contenu:
+      "La seconde phase du réaménagement des berges démarre ce lundi avec l'installation d'une passerelle suspendue dédiée aux piétons et mobilités douces.\n\nCe nouvel axe sécurisé permettra de traverser le canal sans emprunter le pont routier, avec un éclairage public basse consommation et des bancs en bois recyclé le long des quais.",
+    image_couverture: 'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?auto=format&fit=crop&w=1000&q=80',
+    published_at: '16 oct. 2026',
+    readTime: '3 min',
+    categorie: { id: 4, libelle: 'Travaux', icon: '🏗️' },
+    credits: [{ role: 'Auteur', name: 'Service Voirie & Urbanisme' }],
+  },
 ];
 
 export const MOCK_LOST_OBJECTS: MobileLostObject[] = [

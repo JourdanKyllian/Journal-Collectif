@@ -26,6 +26,9 @@ import { SettingsModule } from './settings/settings.module';
 import { AlertsModule } from './alerts/alerts.module';
 import { UploadModule } from './upload/upload.module';
 import { getJwtSecret } from './common/config/jwt-secret';
+import { TenantModule } from './tenant/tenant.module';
+import { Journal } from './tenant/entities/journal.entity';
+import { JournalMember } from './tenant/entities/journal-member.entity';
 
 @Module({
   imports: [
@@ -44,7 +47,16 @@ import { getJwtSecret } from './common/config/jwt-secret';
     }),
 
     // <-- Ajout de Categorie et Article ici pour que le seed puisse les utiliser
-    TypeOrmModule.forFeature([Users, Role, Categorie, Article]),
+    TypeOrmModule.forFeature([
+      Users,
+      Role,
+      Categorie,
+      Article,
+      Journal,
+      JournalMember,
+    ]),
+
+    TenantModule,
 
     JwtModule.register({
       global: true,

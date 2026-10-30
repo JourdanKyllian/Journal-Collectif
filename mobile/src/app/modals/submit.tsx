@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Switch,
   Alert,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { router } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -21,13 +22,14 @@ import {
   ShieldCheck,
   Send,
   Trash2,
+  Newspaper,
 } from 'lucide-react-native';
 
 import { COLORS, FONTS } from '@/theme/tokens';
+import Toast from 'react-native-toast-message';
 import { apiClient, uploadImageMobile } from '@/lib/api';
 
-export default function SubmitModalScreen() {
-  const [mode, setMode] = useState<'article' | 'objet'>('article');
+export default function SubmitArticleModalScreen() {
   const [titre, setTitre] = useState('');
   const [contenu, setContenu] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
@@ -36,6 +38,10 @@ export default function SubmitModalScreen() {
 
   // Déclenchement natif de l'appareil photo
   const handleTakePhoto = async () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
       Alert.alert(
@@ -53,13 +59,19 @@ export default function SubmitModalScreen() {
     });
 
     if (!result.canceled && result.assets[0]) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
       setPhotoUri(result.assets[0].uri);
     }
   };
 
   // Sélection depuis la galerie native
   const handlePickGallery = async () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
       allowsEditing: true,
@@ -68,14 +80,28 @@ export default function SubmitModalScreen() {
     });
 
     if (!result.canceled && result.assets[0]) {
+      if (Platform.OS !== 'web') {
+        Haptics.selectionAsync();
+      }
       setPhotoUri(result.assets[0].uri);
     }
   };
 
   const handleSubmit = async () => {
     if (!titre.trim() || !contenu.trim()) {
-      Alert.alert('Champs manquants', 'Veuillez renseigner un titre et une description.');
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      }
+      Toast.show({
+        type: 'error',
+        text1: 'Champs manquants',
+        text2: 'Veuillez renseigner un titre et un contenu pour votre article.',
+      });
       return;
+    }
+
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
 
     setIsSubmitting(true);
@@ -86,32 +112,37 @@ export default function SubmitModalScreen() {
         uploadedUrl = uploadRes.url;
       }
 
-      if (mode === 'article') {
-        await apiClient('/article', {
-          method: 'POST',
-          body: JSON.stringify({
-            titre,
-            contenu: `<p>${contenu}</p>`,
-            categorieId: 1,
-            image_couverture: uploadedUrl,
-            is_anonymous: isAnonymous,
-          }),
-        });
+      await apiClient('/article', {
+        method: 'POST',
+        body: JSON.stringify({
+          titre,
+          contenu: `<p>${contenu}</p>`,
+          categorieId: 1,
+          image_couverture: uploadedUrl,
+          is_anonymous: isAnonymous,
+        }),
+      });
+
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert(
-        'Transmission réussie',
-        'Votre contribution a été envoyée au comité de rédaction de Collectif Châlonnais.',
-        [{ text: 'Parfait', onPress: () => router.back() }]
-      );
+      Toast.show({
+        type: 'success',
+        text1: 'Article envoyé !',
+        text2: 'Votre proposition a été transmise au comité éditorial.',
+      });
+      router.back();
     } catch {
-      // Fallback Démo Jury si le backend n'est pas lancé en local pendant la soutenance
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert(
-        'Mode Démo Soutenance ✨',
-        `Votre ${mode === 'article' ? 'article' : 'signalement'} "${titre}" (avec photo native) a été enregistré pour validation par la mairie.`,
-        [{ text: 'Fermer', onPress: () => router.back() }]
-      );
+      // Fallback Démo Jury si le backend n'est pas lancé en local
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      Toast.show({
+        type: 'info',
+        text1: 'Proposition enregistrée ✨',
+        text2: `L'article "${titre}" a été transmis pour publication locale.`,
+      });
+      router.back();
     } finally {
       setIsSubmitting(false);
     }
@@ -119,142 +150,120 @@ export default function SubmitModalScreen() {
 
   return (
     <View style={styles.container}>
-      {/* BARRE SUPÉRIEURE DE LA MODALE */}
+      {/* En-tête de la modale */}
       <View style={styles.modalHeader}>
-        <Text style={styles.modalTitle}>Participation Citoyenne</Text>
-        <Pressable onPress={() => router.back()} style={styles.closeBtn}>
+        <View style={styles.headerTitleRow}>
+          <Newspaper size={20} color={COLORS.or} />
+          <Text style={styles.modalTitle}>Proposer un article</Text>
+        </View>
+        <Pressable
+          onPress={() => router.back()}
+          style={styles.closeBtn}
+          hitSlop={8}
+          accessibilityLabel="Fermer"
+        >
           <X size={20} color={COLORS.blanc} />
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={styles.formContent}>
-        {/* SÉLECTEUR DE TYPE DE CONTRIBUTION */}
-        <View style={styles.segmentedControl}>
-          <Pressable
-            onPress={() => setMode('article')}
-            style={[styles.segmentBtn, mode === 'article' && styles.segmentActive]}
-          >
-            <Text
-              style={[
-                styles.segmentText,
-                mode === 'article' && styles.segmentTextActive,
-              ]}
-            >
-              📰 Proposer un article
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setMode('objet')}
-            style={[styles.segmentBtn, mode === 'objet' && styles.segmentActive]}
-          >
-            <Text
-              style={[
-                styles.segmentText,
-                mode === 'objet' && styles.segmentTextActive,
-              ]}
-            >
-              🔍 Objet perdu / trouvé
-            </Text>
-          </Pressable>
-        </View>
+      <ScrollView
+        contentContainerStyle={styles.formContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.headerSubtitle}>
+          Partagez une initiative, un événement ou une actualité de votre commune avec vos concitoyens.
+        </Text>
 
         {/* MODULE NATIF : APPAREIL PHOTO & GALERIE */}
-        <Text style={styles.label}>ILLUSTRATION PHOTO (MODULE NATIF)</Text>
+        <Text style={styles.label}>{"PHOTO D'ILLUSTRATION"}</Text>
         {photoUri ? (
           <View style={styles.previewContainer}>
             <Image source={{ uri: photoUri }} style={styles.previewImage} contentFit="cover" />
             <Pressable
               onPress={() => setPhotoUri(null)}
               style={styles.removePhotoBtn}
+              hitSlop={6}
             >
-              <Trash2 size={16} color={COLORS.blanc} />
-              <Text style={styles.removePhotoText}>Retirer</Text>
+              <Trash2 size={15} color={COLORS.blanc} />
+              <Text style={styles.removePhotoText}>Supprimer</Text>
             </Pressable>
           </View>
         ) : (
           <View style={styles.cameraRow}>
             <Pressable onPress={handleTakePhoto} style={styles.cameraCard}>
               <View style={styles.cameraIconBox}>
-                <Camera size={24} color={COLORS.or} />
+                <Camera size={22} color={COLORS.or} />
               </View>
               <Text style={styles.cameraCardTitle}>Prendre une photo</Text>
-              <Text style={styles.cameraCardSub}>Appareil photo direct</Text>
+              <Text style={styles.cameraCardSub}>Caméra native</Text>
             </Pressable>
 
             <Pressable onPress={handlePickGallery} style={styles.cameraCard}>
               <View style={styles.cameraIconBox}>
-                <ImageIcon size={24} color={COLORS.vert} />
+                <ImageIcon size={22} color={COLORS.vert} />
               </View>
               <Text style={styles.cameraCardTitle}>Galerie</Text>
-              <Text style={styles.cameraCardSub}>Choisir une image</Text>
+              <Text style={styles.cameraCardSub}>Parcourir vos images</Text>
             </Pressable>
           </View>
         )}
 
         {/* CHAMPS DE SAISIE */}
-        <Text style={styles.label}>
-          {mode === 'article' ? "TITRE DE L'ACTUALITÉ *" : "NOM DE L'OBJET & LIEU *"}
-        </Text>
+        <Text style={styles.label}>{"TITRE DE L'ACTUALITÉ *"}</Text>
         <TextInput
           value={titre}
           onChangeText={setTitre}
-          placeholder={
-            mode === 'article'
-              ? 'Ex: Succès de la brocante du quartier...'
-              : 'Ex: Trousseau de clés — Place Foch'
-          }
+          placeholder="Ex: Succès de la première brocante solidaire..."
           placeholderTextColor={COLORS.champagne}
           style={styles.input}
         />
 
-        <Text style={styles.label}>DESCRIPTION DÉTAILLÉE *</Text>
+        <Text style={styles.label}>{"CONTENU DE L'ARTICLE *"}</Text>
         <TextInput
           value={contenu}
           onChangeText={setContenu}
-          placeholder="Rédigez votre propos ou décrivez l'objet avec précision..."
+          placeholder="Racontez les faits, les détails pratiques ou l'histoire de cette initiative locale..."
           placeholderTextColor={COLORS.champagne}
           multiline
-          numberOfLines={5}
+          numberOfLines={6}
           textAlignVertical="top"
           style={[styles.input, styles.textArea]}
         />
 
         {/* OPTION D'ANONYMAT RGPD */}
-        {mode === 'article' && (
-          <View style={styles.rgpdCard}>
-            <View style={{ flex: 1 }}>
-              <View style={styles.rgpdTitleRow}>
-                <ShieldCheck size={16} color={COLORS.vert} />
-                <Text style={styles.rgpdTitle}>Anonymat citoyen (RGPD)</Text>
-              </View>
-              <Text style={styles.rgpdDesc}>
-                Masque votre nom au public (« Citoyen Anonyme »). Seule la mairie conserve la trace.
-              </Text>
+        <View style={styles.rgpdCard}>
+          <View style={{ flex: 1 }}>
+            <View style={styles.rgpdTitleRow}>
+              <ShieldCheck size={16} color={COLORS.vert} />
+              <Text style={styles.rgpdTitle}>Anonymat citoyen (RGPD)</Text>
             </View>
-            <Switch
-              value={isAnonymous}
-              onValueChange={setIsAnonymous}
-              trackColor={{ false: '#D1CFC9', true: COLORS.or }}
-              thumbColor={COLORS.vert}
-            />
+            <Text style={styles.rgpdDesc}>
+              Masque votre nom au public (« Citoyen Anonyme »). La rédaction conserve la traçabilité.
+            </Text>
           </View>
-        )}
+          <Switch
+            value={isAnonymous}
+            onValueChange={setIsAnonymous}
+            trackColor={{ false: '#D1CFC9', true: COLORS.or }}
+            thumbColor={COLORS.vert}
+          />
+        </View>
 
-        {/* BOUTON DE SOUMISSION */}
+        {/* BOUTON D'ENVOI */}
         <Pressable
           onPress={handleSubmit}
           disabled={isSubmitting}
           style={({ pressed }) => [
             styles.submitBtn,
-            pressed && { opacity: 0.9 },
+            pressed && { opacity: 0.9, transform: [{ scale: 0.99 }] },
           ]}
         >
           {isSubmitting ? (
             <ActivityIndicator color={COLORS.blanc} />
           ) : (
             <>
-              <Send size={18} color={COLORS.or} />
-              <Text style={styles.submitBtnText}>Envoyer au comité de rédaction</Text>
+              <Send size={17} color={COLORS.or} />
+              <Text style={styles.submitBtnText}>Soumettre au comité de rédaction</Text>
             </>
           )}
         </Pressable>
@@ -276,6 +285,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   modalTitle: {
     fontFamily: FONTS.headingBold,
     fontSize: 18,
@@ -293,29 +307,12 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 48,
   },
-  segmentedControl: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.surface,
-    padding: 4,
-    borderRadius: 14,
-    marginBottom: 22,
-  },
-  segmentBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 11,
-    alignItems: 'center',
-  },
-  segmentActive: {
-    backgroundColor: COLORS.or,
-  },
-  segmentText: {
-    fontFamily: FONTS.bodyBold,
-    fontSize: 12,
+  headerSubtitle: {
+    fontFamily: FONTS.body,
+    fontSize: 13,
     color: COLORS.champagne,
-  },
-  segmentTextActive: {
-    color: COLORS.noir,
+    lineHeight: 18,
+    marginBottom: 20,
   },
   label: {
     fontFamily: FONTS.bodyBold,
@@ -334,15 +331,15 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderWidth: 1.5,
     borderStyle: 'dashed',
-    borderColor: COLORS.champagne,
+    borderColor: 'rgba(142, 134, 113, 0.4)',
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
   },
   cameraIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: COLORS.blanc,
     alignItems: 'center',
     justifyContent: 'center',
@@ -374,7 +371,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 12,
     right: 12,
-    backgroundColor: COLORS.urgent,
+    backgroundColor: 'rgba(26, 26, 26, 0.85)',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -411,7 +408,7 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: 'rgba(11, 28, 16, 0.15)',
+    borderColor: 'rgba(11, 28, 16, 0.12)',
   },
   rgpdTitleRow: {
     flexDirection: 'row',
@@ -431,13 +428,18 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   submitBtn: {
-    backgroundColor: COLORS.noir,
+    backgroundColor: COLORS.vert,
     paddingVertical: 16,
     borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 10,
+    shadowColor: COLORS.vert,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
   },
   submitBtnText: {
     fontFamily: FONTS.bodyBold,

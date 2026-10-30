@@ -1,9 +1,21 @@
-import { Entity, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Journal } from '../../tenant/entities/journal.entity';
+import { Entity, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { Users } from '../../users/entities/user.entity';
 import { CustomBaseEntity } from '../../common/base/base.entity';
 
 @Entity('declaration_objet')
 export class DeclarationObjet extends CustomBaseEntity {
+  @Index('IDX_declaration_objet_journal')
+  @Column({ name: 'journal_id', type: 'int' })
+  journalId!: number;
+
+  @ManyToOne(() => Journal, { onDelete: 'RESTRICT' })
+  @JoinColumn({
+    name: 'journal_id',
+    foreignKeyConstraintName: 'FK_declaration_objet_journal',
+  })
+  journal!: Journal;
+
   @Column({ type: 'varchar', length: 50 })
   type_declaration!: string;
 

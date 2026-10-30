@@ -9,6 +9,7 @@ import { Repository } from 'typeorm';
 import { Categorie } from './entities/categorie.entity';
 import { CreateCategorieDto } from './dto/create-categorie.dto';
 import { UpdateCategorieDto } from './dto/update-categorie.dto';
+import { TenantContext } from '../tenant/tenant.context';
 
 /**
  * Service de gestion des catégories.
@@ -19,6 +20,7 @@ export class CategorieService {
   constructor(
     @InjectRepository(Categorie)
     private readonly categorieRepository: Repository<Categorie>,
+    private readonly tenant: TenantContext,
   ) {}
 
   /**
@@ -30,7 +32,10 @@ export class CategorieService {
    */
   async create(createCategorieDto: CreateCategorieDto): Promise<Categorie> {
     const existing = await this.categorieRepository.findOne({
-      where: { libelle: createCategorieDto.libelle },
+      where: {
+        libelle: createCategorieDto.libelle,
+        journalId: this.tenant.journalId,
+      },
       withDeleted: true,
     });
 
@@ -40,7 +45,10 @@ export class CategorieService {
       );
     }
 
-    const newCategorie = this.categorieRepository.create(createCategorieDto);
+    const newCategorie = this.categorieRepository.create({
+      ...createCategorieDto,
+      journalId: this.tenant.journalId,
+    });
     return this.categorieRepository.save(newCategorie);
   }
 
@@ -52,6 +60,7 @@ export class CategorieService {
    */
   findAll(): Promise<Categorie[]> {
     return this.categorieRepository.find({
+      where: { journalId: this.tenant.journalId },
       order: { created_at: 'DESC' },
     });
   }
@@ -67,7 +76,7 @@ export class CategorieService {
    */
   async findOne(id: number): Promise<Categorie> {
     const categorie = await this.categorieRepository.findOne({
-      where: { id },
+      where: { id, journalId: this.tenant.journalId },
       withDeleted: true,
     });
 

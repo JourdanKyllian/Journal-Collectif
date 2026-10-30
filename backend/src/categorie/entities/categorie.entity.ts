@@ -1,10 +1,29 @@
+import { Journal } from '../../tenant/entities/journal.entity';
 import { Article } from 'src/article/entities/article.entity';
 import { CustomBaseEntity } from 'src/common/base/base.entity';
 import { FavorisCategorie } from 'src/favoris-categorie/entities/favoris-categorie.entity/favoris-categorie.entity';
-import { Entity, Column, OneToMany } from 'typeorm';
+import {
+  Entity,
+  Column,
+  OneToMany,
+  Index,
+  JoinColumn,
+  ManyToOne,
+} from 'typeorm';
 
 @Entity('categorie')
 export class Categorie extends CustomBaseEntity {
+  @Index('IDX_categorie_journal')
+  @Column({ name: 'journal_id', type: 'int' })
+  journalId!: number;
+
+  @ManyToOne(() => Journal, { onDelete: 'RESTRICT' })
+  @JoinColumn({
+    name: 'journal_id',
+    foreignKeyConstraintName: 'FK_categorie_journal',
+  })
+  journal!: Journal;
+
   @Column({ type: 'varchar', length: 100 })
   libelle!: string;
 

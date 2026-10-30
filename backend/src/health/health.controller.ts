@@ -6,8 +6,10 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
+import { SkipTenantGate } from '../tenant/skip-tenant-gate.decorator';
 import Redis from 'ioredis';
 
+@SkipTenantGate()
 @Controller('health')
 export class HealthController {
   private readonly logger = new Logger(HealthController.name);

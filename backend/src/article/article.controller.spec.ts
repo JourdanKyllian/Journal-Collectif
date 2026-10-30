@@ -8,6 +8,7 @@ import { Categorie } from '../categorie/entities/categorie.entity';
 import { AuteurArticle } from '../auteur-article/entities/auteur-article.entity/auteur-article.entity';
 import { ArticleRevision } from './entities/article-revision.entity';
 import { ArticleHistory } from './entities/article-history.entity';
+import { TenantContext } from '../tenant/tenant.context';
 
 describe('ArticleController', () => {
   let controller: ArticleController;
@@ -16,6 +17,7 @@ describe('ArticleController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ArticleController],
       providers: [
+        { provide: TenantContext, useValue: { journalId: 1 } },
         ArticleService,
         // On fournit des mocks vides pour satisfaire les dépendances du service
         { provide: getRepositoryToken(Article), useValue: {} },
