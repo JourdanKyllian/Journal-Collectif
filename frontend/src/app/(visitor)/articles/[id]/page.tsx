@@ -67,6 +67,7 @@ export default function ArticleReadPage() {
   const categoryName = article.categorie?.libelle || "Général";
   const uiConfig = getCategoryUI(categoryName);
   const CatIcon = uiConfig.icon;
+  const coverUrl = resolveImageUrl(article.image_couverture);
 
   const handleShare = () => {
     if (navigator.share) {
@@ -79,18 +80,34 @@ export default function ArticleReadPage() {
 
   return (
     <article className="w-full bg-blanc pb-24">
-      {/* HEADER */}
-      <header className={`${uiConfig.gradient} pt-20 pb-16 px-6 text-blanc`}>
-        <div className="max-w-4xl mx-auto">
+      {/* HEADER AVEC COUVERTURE EN FOND */}
+      <header className="relative w-full overflow-hidden text-blanc pt-20 pb-16 px-6">
+        {coverUrl ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={coverUrl}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover"
+              aria-hidden="true"
+            />
+            {/* Filtre sombre pour garantir une lisibilité optimale des textes */}
+            <div className="absolute inset-0 bg-gradient-to-b from-noir/65 via-noir/75 to-noir/90 backdrop-blur-[1px]" />
+          </>
+        ) : (
+          <div className={`absolute inset-0 ${uiConfig.gradient}`} />
+        )}
+
+        <div className="relative z-10 max-w-4xl mx-auto">
           <Link href="/articles" className="inline-flex items-center text-blanc/70 hover:text-blanc font-montserrat text-sm mb-10 transition-colors">
             <ArrowLeft size={16} className="mr-2" /> Retour
           </Link>
           
-          <Badge className="bg-blanc/20 hover:bg-blanc/30 text-blanc border-0 font-poppins font-black px-4 py-1.5 rounded-full mb-6 flex items-center gap-2 w-fit text-sm">
+          <Badge className="bg-blanc/20 hover:bg-blanc/30 text-blanc border-0 font-poppins font-black px-4 py-1.5 rounded-full mb-6 flex items-center gap-2 w-fit text-sm backdrop-blur-md">
             <CatIcon size={16} /> {categoryName}
           </Badge>
 
-          <h1 className="font-poppins font-black text-3xl md:text-5xl lg:text-6xl leading-tight mb-8">
+          <h1 className="font-poppins font-black text-3xl md:text-5xl lg:text-6xl leading-tight mb-8 drop-shadow-sm">
             {article.titre}
           </h1>
 
@@ -104,20 +121,6 @@ export default function ArticleReadPage() {
           </div>
         </div>
       </header>
-
-      {/* IMAGE DE COUVERTURE */}
-      {resolveImageUrl(article.image_couverture) && (
-        <div className="max-w-4xl mx-auto px-6 -mt-8 mb-4 relative z-10">
-          <div className="rounded-3xl overflow-hidden shadow-2xl border border-champagne/20 aspect-video md:max-h-[440px] w-full bg-champagne/10">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={resolveImageUrl(article.image_couverture)!}
-              alt={article.titre}
-              className="w-full h-full object-cover"
-            />
-          </div>
-        </div>
-      )}
 
       {/* CONTENU */}
       <div className="max-w-3xl mx-auto px-6 py-16">
