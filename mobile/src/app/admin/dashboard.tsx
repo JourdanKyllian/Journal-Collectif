@@ -26,6 +26,11 @@ import {
   Archive,
   Trash2,
   Sparkles,
+  Newspaper,
+  Tag,
+  Briefcase,
+  Car,
+  Search,
 } from 'lucide-react-native';
 
 import { COLORS, FONTS } from '@/theme/tokens';
@@ -36,12 +41,30 @@ import {
   EditorialArticle,
   EditorialStats,
 } from '@/lib/services/editorial.service';
+import {
+  DealsService,
+  BonPlan,
+  MOCK_DEALS,
+} from '@/lib/services/deals.service';
 import SwipeableModerationCard from '@/components/admin/SwipeableModerationCard';
+import ParkingView from '@/components/tools/ParkingView';
+import LostObjectsView from '@/components/tools/LostObjectsView';
+
+type MainNavType = 'articles' | 'deals' | 'tools';
+type ArticleFilterType = 'pending' | 'published' | 'drafts';
+type ToolsSubType = 'parking' | 'lost';
 
 export default function MobileAdminDashboardScreen() {
   const { currentCity } = useCity();
 
-  const [activeTab, setActiveTab] = useState<'pending' | 'published' | 'drafts'>('pending');
+  // Navigation principale à 3 onglets demandée : Articles | Bons plans | Outils
+  const [mainNav, setMainNav] = useState<MainNavType>('articles');
+
+  // Sous-filtres spécifiques
+  const [articleFilter, setArticleFilter] = useState<ArticleFilterType>('pending');
+  const [toolsSubType, setToolsSubType] = useState<ToolsSubType>('parking');
+
+  // Données éditoriales
   const [pendingArticles, setPendingArticles] = useState<EditorialArticle[]>([]);
   const [publishedArticles, setPublishedArticles] = useState<EditorialArticle[]>([]);
   const [draftArticles, setDraftArticles] = useState<EditorialArticle[]>([]);
@@ -52,21 +75,27 @@ export default function MobileAdminDashboardScreen() {
     planifie: 0,
     total: 0,
   });
+
+  // Données Bons Plans
+  const [deals, setDeals] = useState<BonPlan[]>(MOCK_DEALS);
+
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   const fetchData = useCallback(async () => {
     try {
-      const [pending, published, drafts, statsData] = await Promise.all([
+      const [pending, published, drafts, statsData, dealsData] = await Promise.all([
         EditorialService.getArticlesByStatus('en_attente'),
         EditorialService.getArticlesByStatus('publie'),
         EditorialService.getArticlesByStatus('brouillon'),
         EditorialService.getStats(),
+        DealsService.getDeals(),
       ]);
 
       setPendingArticles(pending);
       setPublishedArticles(published);
       setDraftArticles(drafts);
+      setDeals(dealsData);
       setStats({
         ...statsData,
         en_attente: pending.length,
@@ -95,7 +124,7 @@ export default function MobileAdminDashboardScreen() {
     fetchData();
   };
 
-  // 1. Validation & publication immédiate d'une proposition citoyenne
+  // --- ACTIONS ARTICLES ---
   const handleApprovePending = async (article: EditorialArticle) => {
     try {
       await EditorialService.publishArticle(article.id);
@@ -124,7 +153,6 @@ export default function MobileAdminDashboardScreen() {
     }
   };
 
-  // 2. Refus d'une proposition citoyenne
   const handleRejectPending = async (article: EditorialArticle) => {
     try {
       await EditorialService.deleteArticle(article.id);
@@ -148,7 +176,6 @@ export default function MobileAdminDashboardScreen() {
     }
   };
 
-  // 3. Dépublication d'un article en ligne
   const handleUnpublish = (article: EditorialArticle) => {
     Alert.alert(
       'Dépublier cet article ?',
@@ -159,33 +186,41 @@ export default function MobileAdminDashboardScreen() {
           text: 'Dépublier',
           style: 'destructive',
           onPress: async () => {
-            if (Platform.OS !== 'web') {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            try {
+              await EditorialService.unpublishArticle(article.id);
+              setPublishedArticles((prev) => prev.filter((a) => a.id !== article.id));
+              setDraftArticles((prev) => [
+                { ...article, statut: 'brouillon' },
+                ...prev,
+              ]);
+              setStats((prev) => ({
+                ...prev,
+                publie: Math.max(0, prev.publie - 1),
+                brouillon: prev.brouillon + 1,
+              }));
+
+              Toast.show({
+                type: 'info',
+                text1: 'Article retiré du direct',
+                text2: `"${article.titre}" est à nouveau en brouillon.`,
+              });
+            } catch {
+              Toast.show({
+                type: 'error',
+                text1: 'Erreur',
+                text2: 'Impossible de dépublier cet article.',
+              });
             }
-            await EditorialService.unpublishArticle(article.id);
-            setPublishedArticles((prev) => prev.filter((a) => a.id !== article.id));
-            setDraftArticles((prev) => [{ ...article, statut: 'brouillon' }, ...prev]);
-            setStats((prev) => ({
-              ...prev,
-              publie: Math.max(0, prev.publie - 1),
-              brouillon: prev.brouillon + 1,
-            }));
-            Toast.show({
-              type: 'info',
-              text1: 'Article dépublié',
-              text2: 'Bascule en brouillon effectuée.',
-            });
           },
         },
       ]
     );
   };
 
-  // 4. Suppression définitive d'un brouillon
   const handleDeleteDraft = (id: number) => {
     Alert.alert(
-      'Supprimer le brouillon ?',
-      'Cette action est irréversible.',
+      'Supprimer ce brouillon ?',
+      'Cette action est irréversible. Le texte sera définitivement effacé.',
       [
         { text: 'Annuler', style: 'cancel' },
         {
@@ -198,13 +233,16 @@ export default function MobileAdminDashboardScreen() {
               ...prev,
               brouillon: Math.max(0, prev.brouillon - 1),
             }));
+            Toast.show({
+              type: 'info',
+              text1: 'Brouillon supprimé',
+            });
           },
         },
       ]
     );
   };
 
-  // 5. Ouverture de l'éditeur mobile avec préremplissage
   const handleEdit = (article: EditorialArticle) => {
     router.push({
       pathname: '/admin/editor',
@@ -218,6 +256,108 @@ export default function MobileAdminDashboardScreen() {
       },
     });
   };
+
+  // --- ACTIONS BONS PLANS ---
+  const handleToggleDealStatus = async (id: number) => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    const updated = await DealsService.toggleDealStatus(id);
+    if (updated) {
+      setDeals((prev) =>
+        prev.map((d) => (d.id === id ? { ...d, statut: updated.statut } : d))
+      );
+      Toast.show({
+        type: 'success',
+        text1: updated.statut === 'actif' ? 'Bon plan réactivé ✨' : 'Bon plan mis en pause ⏸️',
+        text2: updated.titre,
+      });
+    }
+  };
+
+  const handleDeleteDeal = (id: number, titre: string) => {
+    Alert.alert(
+      'Supprimer ce bon plan ?',
+      `Confirmez-vous la suppression de l'offre "${titre}" ?`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Supprimer',
+          style: 'destructive',
+          onPress: async () => {
+            await DealsService.deleteDeal(id);
+            setDeals((prev) => prev.filter((d) => d.id !== id));
+            Toast.show({
+              type: 'info',
+              text1: 'Offre retirée',
+            });
+          },
+        },
+      ]
+    );
+  };
+
+  const handleAddDealQuick = () => {
+    Alert.alert(
+      'Nouveau bon plan local',
+      'Souhaitez-vous ajouter une offre partenaire (billetterie, concours ou code promo) pour les citoyens ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Créer une offre',
+          onPress: () => {
+            const newDeal: BonPlan = {
+              id: Date.now(),
+              titre: 'Remise Privilège Commerce Local',
+              description: 'Offre exclusive réservée aux lecteurs de ' + currentCity.name + '.',
+              categorie: 'code_promo',
+              partenaire: 'Partenaire Local',
+              valeur: '-20%',
+              codePromo: 'CITOYEN26',
+              dateFin: '31 déc. 2026',
+              statut: 'actif',
+            };
+            setDeals((prev) => [newDeal, ...prev]);
+            Toast.show({
+              type: 'success',
+              text1: 'Bon plan ajouté ! 🏷️',
+              text2: 'Visible dès maintenant par les citoyens',
+            });
+          },
+        },
+      ]
+    );
+  };
+
+  // Titres & sous-titres dynamiques selon l'onglet principal actif
+  const getHeaderInfo = () => {
+    switch (mainNav) {
+      case 'deals':
+        return {
+          subtitle: 'COMMERCE & PRIVILÈGES',
+          title: 'Bons Plans Partenaires',
+          actionText: 'Nouveau',
+          onAction: handleAddDealQuick,
+        };
+      case 'tools':
+        return {
+          subtitle: 'SERVICES MUNICIPAUX',
+          title: 'Voirie & Stationnement',
+          actionText: undefined,
+          onAction: undefined,
+        };
+      case 'articles':
+      default:
+        return {
+          subtitle: 'STUDIO DE RÉDACTION',
+          title: currentCity.nomJournal || currentCity.name,
+          actionText: 'Écrire',
+          onAction: () => router.push('/admin/editor'),
+        };
+    }
+  };
+
+  const headerInfo = getHeaderInfo();
 
   return (
     <View style={styles.container}>
@@ -241,302 +381,519 @@ export default function MobileAdminDashboardScreen() {
 
         <View style={styles.titleRow}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.journalSubtitle}>STUDIO DE RÉDACTION</Text>
+            <Text style={styles.journalSubtitle}>{headerInfo.subtitle}</Text>
             <Text style={styles.journalName} numberOfLines={1}>
-              {currentCity.nomJournal || currentCity.name}
+              {headerInfo.title}
             </Text>
           </View>
 
-          <Pressable
-            onPress={() => router.push('/admin/editor')}
-            style={styles.newArticleButton}
-            hitSlop={6}
-          >
-            <Plus size={16} color={COLORS.noir} strokeWidth={2.8} />
-            <Text style={styles.newArticleButtonText}>Écrire</Text>
-          </Pressable>
-        </View>
-
-        {/* Cartes de statistiques / Compteurs cliquables */}
-        <View style={styles.statsRow}>
-          <Pressable
-            onPress={() => setActiveTab('pending')}
-            style={[
-              styles.statCard,
-              activeTab === 'pending' && styles.statCardActive,
-            ]}
-          >
-            <View style={[styles.statIconBox, { backgroundColor: '#FBF0D8' }]}>
-              <Clock size={15} color="#B7791F" />
-            </View>
-            <Text style={styles.statCount}>{stats.en_attente}</Text>
-            <Text style={styles.statLabel}>En attente</Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() => setActiveTab('published')}
-            style={[
-              styles.statCard,
-              activeTab === 'published' && styles.statCardActive,
-            ]}
-          >
-            <View style={[styles.statIconBox, { backgroundColor: '#E2F3EB' }]}>
-              <CheckCircle2 size={15} color="#276749" />
-            </View>
-            <Text style={styles.statCount}>{stats.publie}</Text>
-            <Text style={styles.statLabel}>En ligne</Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() => setActiveTab('drafts')}
-            style={[
-              styles.statCard,
-              activeTab === 'drafts' && styles.statCardActive,
-            ]}
-          >
-            <View style={[styles.statIconBox, { backgroundColor: '#EDE9E2' }]}>
-              <FileText size={15} color="#4A5568" />
-            </View>
-            <Text style={styles.statCount}>{stats.brouillon}</Text>
-            <Text style={styles.statLabel}>Brouillons</Text>
-          </Pressable>
-        </View>
-      </View>
-
-      {/* Barre d'onglets de filtrage */}
-      <View style={styles.tabBar}>
-        <Pressable
-          onPress={() => setActiveTab('pending')}
-          style={[styles.tabItem, activeTab === 'pending' && styles.tabItemActive]}
-        >
-          <Text
-            style={[
-              styles.tabItemText,
-              activeTab === 'pending' && styles.tabItemTextActive,
-            ]}
-          >
-            Demandes citoyennes ({pendingArticles.length})
-          </Text>
-        </Pressable>
-
-        <Pressable
-          onPress={() => setActiveTab('published')}
-          style={[styles.tabItem, activeTab === 'published' && styles.tabItemActive]}
-        >
-          <Text
-            style={[
-              styles.tabItemText,
-              activeTab === 'published' && styles.tabItemTextActive,
-            ]}
-          >
-            En ligne ({publishedArticles.length})
-          </Text>
-        </Pressable>
-
-        <Pressable
-          onPress={() => setActiveTab('drafts')}
-          style={[styles.tabItem, activeTab === 'drafts' && styles.tabItemActive]}
-        >
-          <Text
-            style={[
-              styles.tabItemText,
-              activeTab === 'drafts' && styles.tabItemTextActive,
-            ]}
-          >
-            Brouillons ({draftArticles.length})
-          </Text>
-        </Pressable>
-      </View>
-
-      {/* CONTENU PRINCIPAL SELON L'ONGLET */}
-      {isLoading && pendingArticles.length === 0 ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.vert} />
-          <Text style={styles.loadingText}>Chargement du studio de rédaction...</Text>
-        </View>
-      ) : activeTab === 'pending' ? (
-        /* --- ONGLET : DEMANDES CITOYENNES (AVEC GESTE DE SWIPE WHATSAPP) --- */
-        <FlatList
-          data={pendingArticles}
-          keyExtractor={(item) => `pending-${item.id}`}
-          refreshControl={
-            <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
-          }
-          contentContainerStyle={styles.listContent}
-          ListHeaderComponent={
-            <View style={styles.moderationHeader}>
-              <Sparkles size={14} color={COLORS.or} />
-              <Text style={styles.moderationNotice}>
-                Glissez une carte vers la droite pour publier ou vers la gauche pour refuser
-              </Text>
-            </View>
-          }
-          renderItem={({ item }) => (
-            <SwipeableModerationCard
-              article={item}
-              onApprove={handleApprovePending}
-              onReject={handleRejectPending}
-              onEdit={handleEdit}
-            />
+          {headerInfo.actionText && (
+            <Pressable
+              onPress={headerInfo.onAction}
+              style={styles.newArticleButton}
+              hitSlop={6}
+            >
+              <Plus size={16} color={COLORS.noir} strokeWidth={2.8} />
+              <Text style={styles.newArticleButtonText}>{headerInfo.actionText}</Text>
+            </Pressable>
           )}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyEmoji}>🎉</Text>
-              <Text style={styles.emptyTitle}>File de modération vide</Text>
-              <Text style={styles.emptyDesc}>
-                Toutes les propositions citoyennes de votre commune ont été traitées.
-              </Text>
-            </View>
-          }
-        />
-      ) : activeTab === 'published' ? (
-        /* --- ONGLET : ARTICLES EN LIGNE DU JOURNAL --- */
-        <FlatList
-          data={publishedArticles}
-          keyExtractor={(item) => `published-${item.id}`}
-          refreshControl={
-            <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
-          }
-          contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => (
-            <View style={styles.standardCard}>
-              <View style={styles.cardHeaderRow}>
-                <View style={styles.catBadgeSmall}>
-                  <Text style={styles.catEmojiSmall}>
-                    {item.categorie?.icon || '📰'}
-                  </Text>
-                  <Text style={styles.catTextSmall}>
-                    {item.categorie?.libelle || 'Vie Locale'}
-                  </Text>
-                </View>
+        </View>
 
-                <View style={styles.onlineBadge}>
-                  <View style={styles.onlineDot} />
-                  <Text style={styles.onlineText}>En ligne</Text>
-                </View>
+        {/* 3 Navigations Principales : Articles | Bons plans | Outils */}
+        <View style={styles.mainNavRow}>
+          <Pressable
+            onPress={() => {
+              if (Platform.OS !== 'web') Haptics.selectionAsync();
+              setMainNav('articles');
+            }}
+            style={[
+              styles.mainNavItem,
+              mainNav === 'articles' && styles.mainNavItemActive,
+            ]}
+          >
+            <Newspaper
+              size={15}
+              color={mainNav === 'articles' ? COLORS.noir : 'rgba(255,255,255,0.7)'}
+            />
+            <Text
+              style={[
+                styles.mainNavItemText,
+                mainNav === 'articles' && styles.mainNavItemTextActive,
+              ]}
+            >
+              Articles
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => {
+              if (Platform.OS !== 'web') Haptics.selectionAsync();
+              setMainNav('deals');
+            }}
+            style={[
+              styles.mainNavItem,
+              mainNav === 'deals' && styles.mainNavItemActive,
+            ]}
+          >
+            <Tag
+              size={15}
+              color={mainNav === 'deals' ? COLORS.noir : 'rgba(255,255,255,0.7)'}
+            />
+            <Text
+              style={[
+                styles.mainNavItemText,
+                mainNav === 'deals' && styles.mainNavItemTextActive,
+              ]}
+            >
+              Bons plans ({deals.filter((d) => d.statut === 'actif').length})
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => {
+              if (Platform.OS !== 'web') Haptics.selectionAsync();
+              setMainNav('tools');
+            }}
+            style={[
+              styles.mainNavItem,
+              mainNav === 'tools' && styles.mainNavItemActive,
+            ]}
+          >
+            <Briefcase
+              size={15}
+              color={mainNav === 'tools' ? COLORS.noir : 'rgba(255,255,255,0.7)'}
+            />
+            <Text
+              style={[
+                styles.mainNavItemText,
+                mainNav === 'tools' && styles.mainNavItemTextActive,
+              ]}
+            >
+              Outils
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+
+      {/* --- ONGLET 1 : ARTICLES (FILTRABLE VIA LES 3 COMPTEURS) --- */}
+      {mainNav === 'articles' && (
+        <>
+          {/* Cartes de statistiques / Compteurs cliquables */}
+          <View style={styles.statsRow}>
+            <Pressable
+              onPress={() => {
+                if (Platform.OS !== 'web') Haptics.selectionAsync();
+                setArticleFilter('pending');
+              }}
+              style={[
+                styles.statCard,
+                articleFilter === 'pending' && styles.statCardActive,
+              ]}
+            >
+              <View style={[styles.statIconBox, { backgroundColor: '#FBF0D8' }]}>
+                <Clock size={15} color="#B7791F" />
               </View>
+              <Text style={styles.statCount}>{stats.en_attente}</Text>
+              <Text style={styles.statLabel}>En attente</Text>
+            </Pressable>
 
-              <View style={styles.standardCardBody}>
-                <View style={{ flex: 1, paddingRight: 10 }}>
+            <Pressable
+              onPress={() => {
+                if (Platform.OS !== 'web') Haptics.selectionAsync();
+                setArticleFilter('published');
+              }}
+              style={[
+                styles.statCard,
+                articleFilter === 'published' && styles.statCardActive,
+              ]}
+            >
+              <View style={[styles.statIconBox, { backgroundColor: '#E2F3EB' }]}>
+                <CheckCircle2 size={15} color="#276749" />
+              </View>
+              <Text style={styles.statCount}>{stats.publie}</Text>
+              <Text style={styles.statLabel}>En ligne</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => {
+                if (Platform.OS !== 'web') Haptics.selectionAsync();
+                setArticleFilter('drafts');
+              }}
+              style={[
+                styles.statCard,
+                articleFilter === 'drafts' && styles.statCardActive,
+              ]}
+            >
+              <View style={[styles.statIconBox, { backgroundColor: '#EDE9E2' }]}>
+                <FileText size={15} color="#4A5568" />
+              </View>
+              <Text style={styles.statCount}>{stats.brouillon}</Text>
+              <Text style={styles.statLabel}>Brouillons</Text>
+            </Pressable>
+          </View>
+
+          {/* CONTENU PRINCIPAL SELON LE FILTRE D'ARTICLE */}
+          {isLoading && pendingArticles.length === 0 ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={COLORS.vert} />
+              <Text style={styles.loadingText}>Chargement du studio...</Text>
+            </View>
+          ) : articleFilter === 'pending' ? (
+            <FlatList
+              data={pendingArticles}
+              keyExtractor={(item) => `pending-${item.id}`}
+              refreshControl={
+                <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
+              }
+              contentContainerStyle={styles.listContent}
+              ListHeaderComponent={
+                <View style={styles.moderationHeader}>
+                  <Sparkles size={14} color={COLORS.or} />
+                  <Text style={styles.moderationNotice}>
+                    Glissez une carte vers la droite pour publier ou vers la gauche pour refuser
+                  </Text>
+                </View>
+              }
+              renderItem={({ item }) => (
+                <SwipeableModerationCard
+                  article={item}
+                  onApprove={handleApprovePending}
+                  onReject={handleRejectPending}
+                  onEdit={handleEdit}
+                />
+              )}
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyEmoji}>🎉</Text>
+                  <Text style={styles.emptyTitle}>File de modération vide</Text>
+                  <Text style={styles.emptyDesc}>
+                    Toutes les propositions citoyennes de votre commune ont été traitées.
+                  </Text>
+                </View>
+              }
+            />
+          ) : articleFilter === 'published' ? (
+            <FlatList
+              data={publishedArticles}
+              keyExtractor={(item) => `published-${item.id}`}
+              refreshControl={
+                <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
+              }
+              contentContainerStyle={styles.listContent}
+              renderItem={({ item }) => (
+                <View style={styles.standardCard}>
+                  <View style={styles.cardHeaderRow}>
+                    <View style={styles.catBadgeSmall}>
+                      <Text style={styles.catEmojiSmall}>
+                        {item.categorie?.icon || '📰'}
+                      </Text>
+                      <Text style={styles.catTextSmall}>
+                        {item.categorie?.libelle || 'Vie Locale'}
+                      </Text>
+                    </View>
+
+                    <View style={styles.onlineBadge}>
+                      <View style={styles.onlineDot} />
+                      <Text style={styles.onlineText}>En ligne</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.standardCardBody}>
+                    <View style={{ flex: 1, paddingRight: 10 }}>
+                      <Text style={styles.standardTitle} numberOfLines={2}>
+                        {item.titre}
+                      </Text>
+                      <Text style={styles.standardExcerpt} numberOfLines={2}>
+                        {item.excerpt}
+                      </Text>
+                    </View>
+
+                    {resolveImageUrl(item.image_couverture) && (
+                      <Image
+                        source={{ uri: resolveImageUrl(item.image_couverture)! }}
+                        style={styles.standardThumbnail}
+                        contentFit="cover"
+                      />
+                    )}
+                  </View>
+
+                  <View style={styles.standardActionsRow}>
+                    <Pressable
+                      onPress={() => router.push(`/articles/${item.id}`)}
+                      style={styles.actionPill}
+                      hitSlop={4}
+                    >
+                      <Eye size={13} color="#4A5568" />
+                      <Text style={styles.actionPillText}>Voir la fiche</Text>
+                    </Pressable>
+
+                    <Pressable
+                      onPress={() => handleEdit(item)}
+                      style={styles.actionPill}
+                      hitSlop={4}
+                    >
+                      <FileEdit size={13} color={COLORS.vert} />
+                      <Text style={[styles.actionPillText, { color: COLORS.vert }]}>
+                        Modifier
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      onPress={() => handleUnpublish(item)}
+                      style={[styles.actionPill, styles.actionPillDanger]}
+                      hitSlop={4}
+                    >
+                      <Archive size={13} color="#C53030" />
+                      <Text style={[styles.actionPillText, { color: '#C53030' }]}>
+                        Dépublier
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
+              )}
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyTitle}>Aucun article en ligne</Text>
+                </View>
+              }
+            />
+          ) : (
+            <FlatList
+              data={draftArticles}
+              keyExtractor={(item) => `draft-${item.id}`}
+              refreshControl={
+                <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
+              }
+              contentContainerStyle={styles.listContent}
+              renderItem={({ item }) => (
+                <View style={styles.standardCard}>
+                  <View style={styles.cardHeaderRow}>
+                    <View style={styles.catBadgeSmall}>
+                      <Text style={styles.catEmojiSmall}>
+                        {item.categorie?.icon || '📝'}
+                      </Text>
+                      <Text style={styles.catTextSmall}>
+                        {item.categorie?.libelle || 'Brouillon'}
+                      </Text>
+                    </View>
+
+                    <Text style={styles.draftDateText}>Brouillon de rédaction</Text>
+                  </View>
+
                   <Text style={styles.standardTitle} numberOfLines={2}>
                     {item.titre}
                   </Text>
                   <Text style={styles.standardExcerpt} numberOfLines={2}>
                     {item.excerpt}
                   </Text>
+
+                  <View style={styles.standardActionsRow}>
+                    <Pressable
+                      onPress={() => handleEdit(item)}
+                      style={[styles.actionPill, { backgroundColor: '#E2F3EB' }]}
+                      hitSlop={4}
+                    >
+                      <FileEdit size={13} color={COLORS.vert} />
+                      <Text
+                        style={[
+                          styles.actionPillText,
+                          { color: COLORS.vert, fontWeight: '700' },
+                        ]}
+                      >
+                        Continuer la rédaction
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      onPress={() => handleDeleteDraft(item.id)}
+                      style={[styles.actionPill, styles.actionPillDanger]}
+                      hitSlop={4}
+                    >
+                      <Trash2 size={13} color="#C53030" />
+                      <Text style={[styles.actionPillText, { color: '#C53030' }]}>
+                        Supprimer
+                      </Text>
+                    </Pressable>
+                  </View>
                 </View>
-
-                {resolveImageUrl(item.image_couverture) && (
-                  <Image
-                    source={{ uri: resolveImageUrl(item.image_couverture)! }}
-                    style={styles.standardThumbnail}
-                    contentFit="cover"
-                  />
-                )}
-              </View>
-
-              <View style={styles.standardActionsRow}>
-                <Pressable
-                  onPress={() => router.push(`/articles/${item.id}`)}
-                  style={styles.actionPill}
-                  hitSlop={4}
-                >
-                  <Eye size={13} color="#4A5568" />
-                  <Text style={styles.actionPillText}>Voir la fiche</Text>
-                </Pressable>
-
-                <Pressable
-                  onPress={() => handleEdit(item)}
-                  style={styles.actionPill}
-                  hitSlop={4}
-                >
-                  <FileEdit size={13} color={COLORS.vert} />
-                  <Text style={[styles.actionPillText, { color: COLORS.vert }]}>
-                    Modifier
-                  </Text>
-                </Pressable>
-
-                <Pressable
-                  onPress={() => handleUnpublish(item)}
-                  style={[styles.actionPill, styles.actionPillDanger]}
-                  hitSlop={4}
-                >
-                  <Archive size={13} color="#C53030" />
-                  <Text style={[styles.actionPillText, { color: '#C53030' }]}>
-                    Dépublier
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
-          )}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyTitle}>Aucun article en ligne</Text>
-            </View>
-          }
-        />
-      ) : (
-        /* --- ONGLET : BROUILLONS --- */
-        <FlatList
-          data={draftArticles}
-          keyExtractor={(item) => `draft-${item.id}`}
-          refreshControl={
-            <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
-          }
-          contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => (
-            <View style={styles.standardCard}>
-              <View style={styles.cardHeaderRow}>
-                <View style={styles.catBadgeSmall}>
-                  <Text style={styles.catEmojiSmall}>
-                    {item.categorie?.icon || '📝'}
-                  </Text>
-                  <Text style={styles.catTextSmall}>
-                    {item.categorie?.libelle || 'Brouillon'}
-                  </Text>
+              )}
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyTitle}>Aucun brouillon</Text>
                 </View>
-
-                <Text style={styles.draftDateText}>Brouillon de rédaction</Text>
-              </View>
-
-              <Text style={styles.standardTitle} numberOfLines={2}>
-                {item.titre}
-              </Text>
-              <Text style={styles.standardExcerpt} numberOfLines={2}>
-                {item.excerpt}
-              </Text>
-
-              <View style={styles.standardActionsRow}>
-                <Pressable
-                  onPress={() => handleEdit(item)}
-                  style={[styles.actionPill, { backgroundColor: '#E2F3EB' }]}
-                  hitSlop={4}
-                >
-                  <FileEdit size={13} color={COLORS.vert} />
-                  <Text style={[styles.actionPillText, { color: COLORS.vert, fontWeight: '700' }]}>
-                    Continuer la rédaction
-                  </Text>
-                </Pressable>
-
-                <Pressable
-                  onPress={() => handleDeleteDraft(item.id)}
-                  style={[styles.actionPill, styles.actionPillDanger]}
-                  hitSlop={4}
-                >
-                  <Trash2 size={13} color="#C53030" />
-                  <Text style={[styles.actionPillText, { color: '#C53030' }]}>
-                    Supprimer
-                  </Text>
-                </Pressable>
-              </View>
-            </View>
+              }
+            />
           )}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyTitle}>Aucun brouillon</Text>
+        </>
+      )}
+
+      {/* --- ONGLET 2 : GESTION DES BONS PLANS --- */}
+      {mainNav === 'deals' && (
+        <View style={{ flex: 1 }}>
+          {/* Statistiques bons plans */}
+          <View style={styles.statsRow}>
+            <View style={styles.statCardStatic}>
+              <Text style={styles.statCountStatic}>{deals.length}</Text>
+              <Text style={styles.statLabelStatic}>Total Offres</Text>
             </View>
-          }
-        />
+
+            <View style={styles.statCardStatic}>
+              <Text style={[styles.statCountStatic, { color: '#276749' }]}>
+                {deals.filter((d) => d.statut === 'actif').length}
+              </Text>
+              <Text style={styles.statLabelStatic}>Actifs en direct</Text>
+            </View>
+
+            <View style={styles.statCardStatic}>
+              <Text style={[styles.statCountStatic, { color: '#B7791F' }]}>
+                {new Set(deals.map((d) => d.partenaire)).size}
+              </Text>
+              <Text style={styles.statLabelStatic}>Partenaires</Text>
+            </View>
+          </View>
+
+          {/* Liste d'administration des bons plans */}
+          <FlatList
+            data={deals}
+            keyExtractor={(item) => `deal-${item.id}`}
+            refreshControl={
+              <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
+            }
+            contentContainerStyle={styles.listContent}
+            renderItem={({ item }) => {
+              const isActive = item.statut === 'actif';
+              return (
+                <View style={styles.dealAdminCard}>
+                  <View style={styles.dealAdminHeader}>
+                    <View style={styles.dealBadgeRow}>
+                      <View style={[styles.catBadgeSmall, { backgroundColor: '#F0EBE1' }]}>
+                        <Text style={styles.catTextSmall}>
+                          {item.categorie.toUpperCase()}
+                        </Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.statusBadge,
+                          isActive ? styles.statusBadgeActive : styles.statusBadgeInactive,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.statusBadgeText,
+                            isActive
+                              ? styles.statusBadgeTextActive
+                              : styles.statusBadgeTextInactive,
+                          ]}
+                        >
+                          {isActive ? 'Actif' : 'Mis en pause'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <Text style={styles.dealValueBadge}>{item.valeur}</Text>
+                  </View>
+
+                  <Text style={styles.dealAdminTitle}>{item.titre}</Text>
+                  <Text style={styles.dealAdminPartner}>
+                    Partenaire : <Text style={{ color: COLORS.noir }}>{item.partenaire}</Text>
+                  </Text>
+                  {item.codePromo && (
+                    <Text style={styles.dealAdminCode}>
+                      Code promo : <Text style={styles.codeTextHighlight}>{item.codePromo}</Text>
+                    </Text>
+                  )}
+
+                  <View style={styles.dealAdminActions}>
+                    <Pressable
+                      onPress={() => handleToggleDealStatus(item.id)}
+                      style={[
+                        styles.dealActionBtn,
+                        isActive ? styles.dealActionBtnPause : styles.dealActionBtnPlay,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.dealActionBtnText,
+                          isActive ? { color: '#744210' } : { color: '#22543D' },
+                        ]}
+                      >
+                        {isActive ? 'Mettre en pause' : 'Activer l’offre'}
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      onPress={() => handleDeleteDeal(item.id, item.titre)}
+                      style={styles.dealDeleteBtn}
+                    >
+                      <Trash2 size={15} color="#C53030" />
+                    </Pressable>
+                  </View>
+                </View>
+              );
+            }}
+          />
+        </View>
+      )}
+
+      {/* --- ONGLET 3 : OUTILS MUNICIPAUX (PARKINGS & OBJETS TROUVÉS) --- */}
+      {mainNav === 'tools' && (
+        <View style={{ flex: 1 }}>
+          {/* Sous-sélecteur Parkings vs Objets Perdus */}
+          <View style={styles.toolsSubNav}>
+            <Pressable
+              onPress={() => {
+                if (Platform.OS !== 'web') Haptics.selectionAsync();
+                setToolsSubType('parking');
+              }}
+              style={[
+                styles.toolsSubItem,
+                toolsSubType === 'parking' && styles.toolsSubItemActive,
+              ]}
+            >
+              <Car
+                size={14}
+                color={toolsSubType === 'parking' ? COLORS.noir : '#7D8680'}
+              />
+              <Text
+                style={[
+                  styles.toolsSubItemText,
+                  toolsSubType === 'parking' && styles.toolsSubItemTextActive,
+                ]}
+              >
+                Parkings & Affluence
+              </Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => {
+                if (Platform.OS !== 'web') Haptics.selectionAsync();
+                setToolsSubType('lost');
+              }}
+              style={[
+                styles.toolsSubItem,
+                toolsSubType === 'lost' && styles.toolsSubItemActive,
+              ]}
+            >
+              <Search
+                size={14}
+                color={toolsSubType === 'lost' ? COLORS.noir : '#7D8680'}
+              />
+              <Text
+                style={[
+                  styles.toolsSubItemText,
+                  toolsSubType === 'lost' && styles.toolsSubItemTextActive,
+                ]}
+              >
+                Objets trouvés & perdus
+              </Text>
+            </Pressable>
+          </View>
+
+          {/* Affichage direct de l'outil sélectionné */}
+          <View style={{ flex: 1 }}>
+            {toolsSubType === 'parking' ? <ParkingView /> : <LostObjectsView />}
+          </View>
+        </View>
       )}
     </View>
   );
@@ -550,7 +907,7 @@ const styles = StyleSheet.create({
   topHeader: {
     backgroundColor: COLORS.vert,
     paddingTop: Platform.OS === 'ios' ? 54 : 40,
-    paddingBottom: 16,
+    paddingBottom: 14,
     paddingHorizontal: 16,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
@@ -559,7 +916,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   backButton: {
     flexDirection: 'row',
@@ -596,7 +953,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   journalSubtitle: {
     fontFamily: FONTS.montserratSemiBold,
@@ -625,72 +982,109 @@ const styles = StyleSheet.create({
     color: COLORS.noir,
     fontWeight: '700',
   },
+  mainNavRow: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    padding: 3,
+    borderRadius: 14,
+    gap: 4,
+  },
+  mainNavItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    borderRadius: 11,
+    gap: 6,
+  },
+  mainNavItemActive: {
+    backgroundColor: COLORS.blanc,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  mainNavItemText: {
+    fontFamily: FONTS.montserratSemiBold,
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.85)',
+  },
+  mainNavItemTextActive: {
+    color: COLORS.noir,
+    fontWeight: '700',
+  },
   statsRow: {
     flexDirection: 'row',
     gap: 10,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 6,
   },
   statCard: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.14)',
+    borderColor: '#EAE6DD',
     borderRadius: 14,
     padding: 10,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 3,
+    elevation: 1,
   },
   statCardActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderColor: COLORS.or,
+    borderColor: COLORS.vert,
+    backgroundColor: '#F5FAF7',
+    borderWidth: 1.5,
   },
   statIconBox: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
   },
   statCount: {
     fontFamily: FONTS.poppinsBold,
-    fontSize: 18,
-    color: COLORS.blanc,
-    lineHeight: 22,
+    fontSize: 17,
+    color: COLORS.noir,
+    lineHeight: 20,
   },
   statLabel: {
-    fontFamily: FONTS.montserrat,
+    fontFamily: FONTS.montserratSemiBold,
     fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.85)',
+    color: '#718096',
     marginTop: 2,
   },
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.blanc,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EBE7DE',
-    paddingHorizontal: 12,
-  },
-  tabItem: {
+  statCardStatic: {
     flex: 1,
-    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#EAE6DD',
+    borderRadius: 14,
+    padding: 12,
     alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
   },
-  tabItemActive: {
-    borderBottomColor: COLORS.vert,
+  statCountStatic: {
+    fontFamily: FONTS.poppinsBold,
+    fontSize: 20,
+    color: COLORS.noir,
+    lineHeight: 24,
   },
-  tabItemText: {
-    fontFamily: FONTS.montserratSemiBold,
-    fontSize: 12,
-    color: '#7D8680',
-  },
-  tabItemTextActive: {
-    color: COLORS.vert,
-    fontWeight: '700',
+  statLabelStatic: {
+    fontFamily: FONTS.montserrat,
+    fontSize: 11,
+    color: '#718096',
+    marginTop: 2,
   },
   listContent: {
-    paddingVertical: 10,
-    paddingBottom: 40,
+    paddingVertical: 8,
+    paddingBottom: 50,
   },
   moderationHeader: {
     flexDirection: 'row',
@@ -752,87 +1146,88 @@ const styles = StyleSheet.create({
   catBadgeSmall: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F2EA',
-    paddingVertical: 2,
-    paddingHorizontal: 6,
+    gap: 4,
+    backgroundColor: '#F5F2EB',
+    paddingVertical: 3,
+    paddingHorizontal: 8,
     borderRadius: 6,
   },
   catEmojiSmall: {
     fontSize: 11,
-    marginRight: 4,
   },
   catTextSmall: {
-    fontFamily: FONTS.montserratSemiBold,
-    fontSize: 10,
-    color: COLORS.vert,
+    fontFamily: FONTS.montserratBold,
+    fontSize: 11,
+    color: '#5C6560',
   },
   onlineBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: '#EAF6F0',
+    backgroundColor: '#E8F5E9',
     paddingVertical: 3,
     paddingHorizontal: 8,
-    borderRadius: 10,
+    borderRadius: 12,
   },
   onlineDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#2E7D5B',
+    backgroundColor: '#2E7D32',
   },
   onlineText: {
     fontFamily: FONTS.montserratSemiBold,
     fontSize: 10,
-    color: '#2E7D5B',
+    color: '#2E7D32',
   },
   draftDateText: {
     fontFamily: FONTS.montserrat,
-    fontSize: 10,
-    color: '#8A928C',
+    fontSize: 11,
+    color: '#8E9A92',
   },
   standardCardBody: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    justifyContent: 'space-between',
     marginBottom: 10,
+  },
+  standardThumbnail: {
+    width: 64,
+    height: 64,
+    borderRadius: 8,
+    backgroundColor: '#EAE6DD',
   },
   standardTitle: {
     fontFamily: FONTS.poppinsBold,
-    fontSize: 14,
+    fontSize: 15,
     color: COLORS.noir,
-    lineHeight: 19,
+    lineHeight: 20,
     marginBottom: 4,
   },
   standardExcerpt: {
     fontFamily: FONTS.montserrat,
     fontSize: 12,
-    color: '#657169',
+    color: '#6B7570',
     lineHeight: 16,
-  },
-  standardThumbnail: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    backgroundColor: '#EBE7DE',
   },
   standardActionsRow: {
     flexDirection: 'row',
+    justifyContent: 'flex-end',
     gap: 8,
-    paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: '#F5F2EA',
+    borderTopColor: '#F5F2EB',
+    paddingTop: 10,
   },
   actionPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: '#F2EFE8',
-    paddingVertical: 5,
+    backgroundColor: '#F5F2EB',
+    paddingVertical: 6,
     paddingHorizontal: 10,
     borderRadius: 8,
   },
   actionPillDanger: {
-    backgroundColor: '#FDF0F0',
+    backgroundColor: '#FFF5F5',
   },
   actionPillText: {
     fontFamily: FONTS.montserratSemiBold,
@@ -844,11 +1239,142 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 60,
+    gap: 12,
   },
   loadingText: {
     fontFamily: FONTS.montserrat,
     fontSize: 13,
-    color: '#657169',
-    marginTop: 12,
+    color: '#718096',
+  },
+  // --- STYLES BONS PLANS ADMIN ---
+  dealAdminCard: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginVertical: 6,
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#EAE6DD',
+  },
+  dealAdminHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  dealBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  statusBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  statusBadgeActive: {
+    backgroundColor: '#E2F3EB',
+  },
+  statusBadgeInactive: {
+    backgroundColor: '#FEEBC8',
+  },
+  statusBadgeText: {
+    fontSize: 10,
+    fontFamily: FONTS.montserratBold,
+  },
+  statusBadgeTextActive: {
+    color: '#217346',
+  },
+  statusBadgeTextInactive: {
+    color: '#C05621',
+  },
+  dealValueBadge: {
+    fontSize: 12,
+    fontFamily: FONTS.poppinsBlack,
+    color: COLORS.vert,
+  },
+  dealAdminTitle: {
+    fontSize: 15,
+    fontFamily: FONTS.poppinsBold,
+    color: COLORS.noir,
+    marginBottom: 4,
+  },
+  dealAdminPartner: {
+    fontSize: 12,
+    fontFamily: FONTS.montserrat,
+    color: '#718096',
+    marginBottom: 2,
+  },
+  dealAdminCode: {
+    fontSize: 12,
+    fontFamily: FONTS.montserrat,
+    color: '#718096',
+    marginBottom: 10,
+  },
+  codeTextHighlight: {
+    fontFamily: FONTS.montserratBold,
+    color: COLORS.vert,
+  },
+  dealAdminActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: '#F7FAFC',
+    paddingTop: 10,
+  },
+  dealActionBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  dealActionBtnPause: {
+    backgroundColor: '#FEEBC8',
+  },
+  dealActionBtnPlay: {
+    backgroundColor: '#E2F3EB',
+  },
+  dealActionBtnText: {
+    fontSize: 12,
+    fontFamily: FONTS.montserratBold,
+  },
+  dealDeleteBtn: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: '#FFF5F5',
+  },
+  // --- STYLES OUTILS ADMIN ---
+  toolsSubNav: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EBE7DE',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  toolsSubItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 9,
+    borderRadius: 10,
+    backgroundColor: '#F7FAFC',
+  },
+  toolsSubItemActive: {
+    backgroundColor: '#EAF4EE',
+    borderWidth: 1,
+    borderColor: '#C2E5D4',
+  },
+  toolsSubItemText: {
+    fontSize: 12,
+    fontFamily: FONTS.montserratSemiBold,
+    color: '#718096',
+  },
+  toolsSubItemTextActive: {
+    color: COLORS.vert,
+    fontWeight: '700',
   },
 });

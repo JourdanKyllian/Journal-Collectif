@@ -16,7 +16,7 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen name="index" />
-      <Tabs.Screen name="categories" />
+      <Tabs.Screen name="deals" />
       <Tabs.Screen name="action" />
       <Tabs.Screen name="tools" />
       <Tabs.Screen name="profile" />

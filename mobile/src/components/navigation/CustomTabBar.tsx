@@ -17,7 +17,7 @@ import { GlassContainer, GlassView } from 'expo-glass-effect';
 import { BlurView } from 'expo-blur';
 import {
   Newspaper,
-  LayoutGrid,
+  Tag,
   Plus,
   Briefcase,
   User,
@@ -74,8 +74,8 @@ export default function CustomTabBar({ state, navigation }: any) {
     switch (routeName) {
       case 'index':
         return <Newspaper color={color} size={size} strokeWidth={sw} />;
-      case 'categories':
-        return <LayoutGrid color={color} size={size} strokeWidth={sw} />;
+      case 'deals':
+        return <Tag color={color} size={size} strokeWidth={sw} />;
       case 'action':
         return (
           <View style={styles.actionBtn}>
