@@ -3,6 +3,50 @@ import { apiClient } from '@/lib/api';
 export type ParkingType = 'Souterrain' | 'Surface' | 'Gare' | 'Enclos';
 export type AffluenceMediane = 'calme' | 'moderee' | 'forte' | 'saturee';
 
+export interface AffluenceInfo {
+  key: AffluenceMediane;
+  label: string;
+  badge: string;
+  desc: string;
+  color: string;
+  bgColor: string;
+}
+
+export const AFFLUENCE_CONFIG: Record<AffluenceMediane, AffluenceInfo> = {
+  calme: {
+    key: 'calme',
+    label: 'Calme',
+    badge: '🟢',
+    desc: 'Places faciles à trouver',
+    color: '#217346',
+    bgColor: '#E2F3EB',
+  },
+  moderee: {
+    key: 'moderee',
+    label: 'Modérée',
+    badge: '🟡',
+    desc: 'Affluence habituelle',
+    color: '#975A16',
+    bgColor: '#FEFCBF',
+  },
+  forte: {
+    key: 'forte',
+    label: 'Forte',
+    badge: '🟠',
+    desc: 'Stationnement difficile',
+    color: '#C05621',
+    bgColor: '#FEEBC8',
+  },
+  saturee: {
+    key: 'saturee',
+    label: 'Saturée',
+    badge: '🔴',
+    desc: 'Quasi complet',
+    color: '#9B2C2C',
+    bgColor: '#FED7D7',
+  },
+};
+
 export interface ParkingSpot {
   id: string;
   name: string;

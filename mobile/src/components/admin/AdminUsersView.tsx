@@ -19,7 +19,6 @@ import {
   ShieldAlert,
   UserCheck,
   User,
-  Search,
   Plus,
   Trash2,
   Mail,
@@ -31,6 +30,8 @@ import {
 
 import { COLORS, FONTS } from '@/theme/tokens';
 import { UsersService, ManagedUser, UserRole } from '@/lib/services/users.service';
+import SearchBar from '@/components/common/SearchBar';
+import EmptyState from '@/components/common/EmptyState';
 
 const ROLE_CONFIG: Record<
   UserRole,
@@ -262,22 +263,13 @@ export default function AdminUsersView() {
         </View>
       </View>
 
-      {/* Barre de recherche */}
-      <View style={styles.searchContainer}>
-        <Search size={16} color="#94A3B8" />
-        <TextInput
-          style={styles.searchInput}
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder="Rechercher par nom, prénom ou email..."
-          placeholderTextColor="#94A3B8"
-        />
-        {searchQuery.length > 0 && (
-          <Pressable onPress={() => setSearchQuery('')} hitSlop={6}>
-            <X size={16} color="#94A3B8" />
-          </Pressable>
-        )}
-      </View>
+      {/* Barre de recherche partagée */}
+      <SearchBar
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        placeholder="Rechercher par nom, prénom ou email..."
+        containerStyle={{ marginHorizontal: 16, marginBottom: 12 }}
+      />
 
       {/* Filtres par Rôle */}
       <View style={styles.filtersRow}>
@@ -398,13 +390,11 @@ export default function AdminUsersView() {
         })}
 
         {filteredUsers.length === 0 && (
-          <View style={styles.emptyState}>
-            <UsersIcon size={36} color="#CBD5E1" />
-            <Text style={styles.emptyStateTitle}>Aucun membre trouvé</Text>
-            <Text style={styles.emptyStateDesc}>
-              Essayez de modifier votre recherche ou vos filtres.
-            </Text>
-          </View>
+          <EmptyState
+            icon={UsersIcon}
+            title="Aucun membre trouvé"
+            description="Essayez de modifier votre recherche ou vos filtres."
+          />
         )}
       </ScrollView>
 

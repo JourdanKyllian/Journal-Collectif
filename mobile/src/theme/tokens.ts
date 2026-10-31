@@ -8,6 +8,7 @@ export const COLORS = {
   urgent: '#DC2626',
   info: '#EA580C',
   success: '#16A34A',
+  bleu: '#2563EB',
 } as const;
 
 export const FONTS = {
@@ -18,6 +19,10 @@ export const FONTS = {
   bodyBold: 'Montserrat_700Bold',
   accent: 'Raleway_600SemiBold',
   // Alias pour confort développeur
+  regular: 'Montserrat_400Regular',
+  medium: 'Montserrat_600SemiBold',
+  semiBold: 'Montserrat_600SemiBold',
+  bold: 'Montserrat_700Bold',
   poppinsBold: 'Poppins_700Bold',
   poppinsBlack: 'Poppins_900Black',
   montserrat: 'Montserrat_400Regular',

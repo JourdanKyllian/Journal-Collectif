@@ -16,7 +16,7 @@ import { Car, Zap, Navigation, Clock, ShieldCheck, MapPin, Radio } from 'lucide-
 import * as Haptics from 'expo-haptics';
 import { COLORS, FONTS } from '@/theme/tokens';
 import { useCity } from '@/context/CityContext';
-import { ParkingService, ParkingSpot } from '@/lib/services/parking.service';
+import { ParkingService, ParkingSpot, AFFLUENCE_CONFIG } from '@/lib/services/parking.service';
 
 export default function ParkingView() {
   const { currentCity } = useCity();
@@ -268,13 +268,12 @@ export default function ParkingView() {
               ) : (
                 <View style={styles.medianVisitorBox}>
                   <Text style={styles.medianVisitorText}>
-                    {parking.affluenceMediane === 'calme'
-                      ? '🟢 Affluence calme • Places faciles'
-                      : parking.affluenceMediane === 'forte'
-                      ? '🟠 Affluence forte constatée'
-                      : parking.affluenceMediane === 'saturee'
-                      ? '🔴 Affluence saturée • Souvent complet'
-                      : '🟡 Affluence habituelle (Modérée)'}
+                    {(() => {
+                      const aff = parking.affluenceMediane
+                        ? AFFLUENCE_CONFIG[parking.affluenceMediane]
+                        : AFFLUENCE_CONFIG.moderee;
+                      return `${aff.badge} Affluence ${aff.label.toLowerCase()} • ${aff.desc}`;
+                    })()}
                   </Text>
                 </View>
               )}

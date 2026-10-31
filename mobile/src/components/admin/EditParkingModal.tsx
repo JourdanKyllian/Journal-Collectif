@@ -24,7 +24,7 @@ import {
 } from 'lucide-react-native';
 
 import { COLORS, FONTS } from '@/theme/tokens';
-import { ParkingSpot, ParkingType, AffluenceMediane } from '@/lib/services/parking.service';
+import { ParkingSpot, ParkingType, AffluenceMediane, AFFLUENCE_CONFIG } from '@/lib/services/parking.service';
 
 interface EditParkingModalProps {
   visible: boolean;
@@ -41,17 +41,7 @@ const PARKING_TYPES: { type: ParkingType; label: string; icon: string }[] = [
   { type: 'Enclos', label: 'Enclos barriéré', icon: '🚧' },
 ];
 
-const AFFLUENCE_OPTIONS: {
-  key: AffluenceMediane;
-  label: string;
-  badge: string;
-  desc: string;
-}[] = [
-  { key: 'calme', label: 'Calme', badge: '🟢', desc: 'Places faciles' },
-  { key: 'moderee', label: 'Modérée', badge: '🟡', desc: 'Habituelle' },
-  { key: 'forte', label: 'Forte', badge: '🟠', desc: 'Difficile' },
-  { key: 'saturee', label: 'Saturée', badge: '🔴', desc: 'Quasi complet' },
-];
+const AFFLUENCE_OPTIONS = Object.values(AFFLUENCE_CONFIG);
 
 function EditParkingForm({
   onClose,

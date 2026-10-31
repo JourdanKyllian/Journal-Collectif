@@ -35,44 +35,12 @@ import {
   ParkingService,
   ParkingSpot,
   AffluenceMediane,
+  AFFLUENCE_CONFIG,
 } from '@/lib/services/parking.service';
 import EditParkingModal from '@/components/admin/EditParkingModal';
+import EmptyState from '@/components/common/EmptyState';
 
 type FilterSubCategory = 'all' | 'sensors' | 'non_sensors' | 'ev' | 'inactive';
-
-const AFFLUENCE_CONFIG: Record<
-  AffluenceMediane,
-  { label: string; badge: string; desc: string; color: string; bgColor: string }
-> = {
-  calme: {
-    label: 'Calme',
-    badge: '🟢',
-    desc: 'Places faciles à trouver',
-    color: '#217346',
-    bgColor: '#E2F3EB',
-  },
-  moderee: {
-    label: 'Habituelle (Modérée)',
-    badge: '🟡',
-    desc: 'Affluence moyenne constatée',
-    color: '#975A16',
-    bgColor: '#FEFCBF',
-  },
-  forte: {
-    label: 'Forte affluence',
-    badge: '🟠',
-    desc: 'Recherche difficile',
-    color: '#C05621',
-    bgColor: '#FEEBC8',
-  },
-  saturee: {
-    label: 'Saturée / Quasi complet',
-    badge: '🔴',
-    desc: 'Très peu ou pas de places',
-    color: '#C53030',
-    bgColor: '#FED7D7',
-  },
-};
 
 const AFFLUENCE_LIST: { key: AffluenceMediane; label: string; badge: string }[] = [
   { key: 'calme', label: 'Calme', badge: '🟢' },
@@ -597,20 +565,13 @@ export default function AdminParkingView() {
         })}
 
         {filteredParkings.length === 0 && (
-          <View style={styles.emptyCard}>
-            <Car size={32} color="#CBD5E0" />
-            <Text style={styles.emptyTitle}>Aucun équipement trouvé</Text>
-            <Text style={styles.emptyDesc}>
-              Aucun parking ne correspond à ce filtre pour votre commune.
-            </Text>
-            <Pressable
-              onPress={handleOpenCreate}
-              style={[styles.addParkingQuickBtn, { marginTop: 12 }]}
-            >
-              <Plus size={14} color={COLORS.blanc} />
-              <Text style={styles.addParkingQuickText}>Créer un parking</Text>
-            </Pressable>
-          </View>
+          <EmptyState
+            icon={Car}
+            title="Aucun équipement trouvé"
+            description="Aucun parking ne correspond à ce filtre pour votre commune."
+            actionLabel="Créer un parking"
+            onAction={handleOpenCreate}
+          />
         )}
       </View>
 

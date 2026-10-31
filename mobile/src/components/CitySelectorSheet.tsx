@@ -7,7 +7,6 @@ import {
   Modal,
   Dimensions,
   Platform,
-  TextInput,
   ScrollView,
 } from 'react-native';
 import Animated, {
@@ -25,7 +24,6 @@ import {
   MapPin,
   Sparkles,
   Star,
-  Search,
   BookmarkCheck,
   BookmarkPlus,
   Compass,
@@ -33,6 +31,7 @@ import {
 } from 'lucide-react-native';
 import { COLORS, FONTS } from '@/theme/tokens';
 import { City, useCity } from '@/context/CityContext';
+import SearchBar from '@/components/common/SearchBar';
 
 interface CitySelectorSheetProps {
   visible: boolean;
@@ -343,22 +342,12 @@ export default function CitySelectorSheet({
           ) : (
             <View style={{ flex: 1 }}>
               {/* Barre de recherche dans l'annuaire */}
-              <View style={styles.searchBarContainer}>
-                <Search size={16} color={COLORS.champagne} />
-                <TextInput
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  placeholder="Rechercher une ville, code postal, journal..."
-                  placeholderTextColor={COLORS.champagne}
-                  style={styles.searchInput}
-                  clearButtonMode="while-editing"
-                />
-                {searchQuery.length > 0 && Platform.OS !== 'ios' && (
-                  <Pressable onPress={() => setSearchQuery('')} hitSlop={6}>
-                    <X size={16} color={COLORS.champagne} />
-                  </Pressable>
-                )}
-              </View>
+              <SearchBar
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Rechercher une ville, code postal, journal..."
+                containerStyle={styles.searchBarContainer}
+              />
 
               <ScrollView
                 contentContainerStyle={styles.scrollList}
