@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -31,6 +31,8 @@ import {
   Briefcase,
   Car,
   Search,
+  AlertTriangle,
+  Users as UsersGroupIcon,
 } from 'lucide-react-native';
 
 import { COLORS, FONTS } from '@/theme/tokens';
@@ -46,13 +48,16 @@ import {
   BonPlan,
   MOCK_DEALS,
 } from '@/lib/services/deals.service';
+import { AlertsService } from '@/lib/services/alerts.service';
 import SwipeableModerationCard from '@/components/admin/SwipeableModerationCard';
 import AddDealModal from '@/components/admin/AddDealModal';
 import AdminParkingView from '@/components/admin/AdminParkingView';
 import LostObjectsView from '@/components/tools/LostObjectsView';
+import AdminAlertsView from '@/components/admin/AdminAlertsView';
+import AdminUsersView from '@/components/admin/AdminUsersView';
 
-type MainNavType = 'articles' | 'deals' | 'tools';
-type ArticleFilterType = 'pending' | 'published' | 'drafts';
+type MainNavType = 'articles' | 'deals' | 'tools' | 'team';
+type ArticleFilterType = 'pending' | 'published' | 'drafts' | 'alerts';
 type ToolsSubType = 'lost' | 'parking';
 
 export default function MobileAdminDashboardScreen() {
@@ -80,6 +85,11 @@ export default function MobileAdminDashboardScreen() {
   // Données Bons Plans
   const [deals, setDeals] = useState<BonPlan[]>(MOCK_DEALS);
   const [isAddDealModalVisible, setIsAddDealModalVisible] = useState<boolean>(false);
+
+  // Données Alertes (compteur actif en temps réel)
+  const [activeAlertsCount, setActiveAlertsCount] = useState<number>(() =>
+    AlertsService.getAlerts().filter((a) => a.isActive).length
+  );
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
@@ -117,6 +127,12 @@ export default function MobileAdminDashboardScreen() {
       fetchData();
     }, [fetchData])
   );
+
+  useEffect(() => {
+    return AlertsService.subscribe((updated) => {
+      setActiveAlertsCount(updated.filter((a) => a.isActive).length);
+    });
+  }, []);
 
   const onRefresh = () => {
     setIsRefreshing(true);
@@ -312,6 +328,13 @@ export default function MobileAdminDashboardScreen() {
   // Titres & sous-titres dynamiques selon l'onglet principal actif
   const getHeaderInfo = () => {
     switch (mainNav) {
+      case 'team':
+        return {
+          subtitle: 'COLLABORATEURS & ACCÈS',
+          title: 'Gestion Équipe',
+          actionText: undefined,
+          onAction: undefined,
+        };
       case 'deals':
         return {
           subtitle: 'PRIVILÈGES & SORTIES',
@@ -336,6 +359,14 @@ export default function MobileAdminDashboardScreen() {
         };
       case 'articles':
       default:
+        if (articleFilter === 'alerts') {
+          return {
+            subtitle: 'DISPOSITIF DE PRÉVENTION',
+            title: 'Bannières d’alerte',
+            actionText: undefined,
+            onAction: undefined,
+          };
+        }
         return {
           subtitle: 'STUDIO DE RÉDACTION',
           title: currentCity.nomJournal || currentCity.name,
@@ -432,8 +463,9 @@ export default function MobileAdminDashboardScreen() {
                 styles.mainNavItemText,
                 mainNav === 'deals' && styles.mainNavItemTextActive,
               ]}
+              numberOfLines={1}
             >
-              Bons plans ({deals.filter((d) => d.statut === 'actif').length})
+              Bons plans
             </Text>
           </Pressable>
 
@@ -460,14 +492,39 @@ export default function MobileAdminDashboardScreen() {
               Outils
             </Text>
           </Pressable>
+
+          <Pressable
+            onPress={() => {
+              if (Platform.OS !== 'web') Haptics.selectionAsync();
+              setMainNav('team');
+            }}
+            style={[
+              styles.mainNavItem,
+              mainNav === 'team' && styles.mainNavItemActive,
+            ]}
+          >
+            <UsersGroupIcon
+              size={15}
+              color={mainNav === 'team' ? COLORS.noir : 'rgba(255,255,255,0.7)'}
+            />
+            <Text
+              style={[
+                styles.mainNavItemText,
+                mainNav === 'team' && styles.mainNavItemTextActive,
+              ]}
+            >
+              Équipe
+            </Text>
+          </Pressable>
         </View>
       </View>
 
       {/* --- ONGLET 1 : ARTICLES (FILTRABLE VIA LES 3 COMPTEURS) --- */}
       {mainNav === 'articles' && (
         <>
-          {/* Cartes de statistiques / Compteurs cliquables */}
+          {/* Cartes de statistiques / 4 Compteurs cliquables : En attente | En ligne | Brouillons | Alertes */}
           <View style={styles.statsRow}>
+            {/* 1. En attente */}
             <Pressable
               onPress={() => {
                 if (Platform.OS !== 'web') Haptics.selectionAsync();
@@ -479,12 +536,13 @@ export default function MobileAdminDashboardScreen() {
               ]}
             >
               <View style={[styles.statIconBox, { backgroundColor: '#FBF0D8' }]}>
-                <Clock size={15} color="#B7791F" />
+                <Clock size={14} color="#B7791F" />
               </View>
               <Text style={styles.statCount}>{stats.en_attente}</Text>
-              <Text style={styles.statLabel}>En attente</Text>
+              <Text style={styles.statLabel} numberOfLines={1}>En attente</Text>
             </Pressable>
 
+            {/* 2. En ligne */}
             <Pressable
               onPress={() => {
                 if (Platform.OS !== 'web') Haptics.selectionAsync();
@@ -496,12 +554,13 @@ export default function MobileAdminDashboardScreen() {
               ]}
             >
               <View style={[styles.statIconBox, { backgroundColor: '#E2F3EB' }]}>
-                <CheckCircle2 size={15} color="#276749" />
+                <CheckCircle2 size={14} color="#276749" />
               </View>
               <Text style={styles.statCount}>{stats.publie}</Text>
-              <Text style={styles.statLabel}>En ligne</Text>
+              <Text style={styles.statLabel} numberOfLines={1}>En ligne</Text>
             </Pressable>
 
+            {/* 3. Brouillons */}
             <Pressable
               onPress={() => {
                 if (Platform.OS !== 'web') Haptics.selectionAsync();
@@ -513,10 +572,43 @@ export default function MobileAdminDashboardScreen() {
               ]}
             >
               <View style={[styles.statIconBox, { backgroundColor: '#EDE9E2' }]}>
-                <FileText size={15} color="#4A5568" />
+                <FileText size={14} color="#4A5568" />
               </View>
               <Text style={styles.statCount}>{stats.brouillon}</Text>
-              <Text style={styles.statLabel}>Brouillons</Text>
+              <Text style={styles.statLabel} numberOfLines={1}>Brouillons</Text>
+            </Pressable>
+
+            {/* 4. Alertes */}
+            <Pressable
+              onPress={() => {
+                if (Platform.OS !== 'web') Haptics.selectionAsync();
+                setArticleFilter('alerts');
+              }}
+              style={[
+                styles.statCard,
+                articleFilter === 'alerts' && styles.statCardAlertActive,
+              ]}
+            >
+              <View style={[styles.statIconBox, { backgroundColor: '#FEE2E2' }]}>
+                <AlertTriangle size={14} color="#DC2626" />
+              </View>
+              <Text
+                style={[
+                  styles.statCount,
+                  activeAlertsCount > 0 && { color: '#DC2626' },
+                ]}
+              >
+                {activeAlertsCount}
+              </Text>
+              <Text
+                style={[
+                  styles.statLabel,
+                  activeAlertsCount > 0 && { color: '#B91C1C' },
+                ]}
+                numberOfLines={1}
+              >
+                Alertes
+              </Text>
             </Pressable>
           </View>
 
@@ -645,6 +737,10 @@ export default function MobileAdminDashboardScreen() {
                 </View>
               }
             />
+          ) : articleFilter === 'alerts' ? (
+            <View style={{ flex: 1 }}>
+              <AdminAlertsView />
+            </View>
           ) : (
             <FlatList
               data={draftArticles}
@@ -865,7 +961,7 @@ export default function MobileAdminDashboardScreen() {
         </View>
       )}
 
-      {/* --- ONGLET 3 : OUTILS MUNICIPAUX (PARKINGS & OBJETS TROUVÉS) --- */}
+      {/* --- ONGLET 3 : OUTILS MUNICIPAUX (OBJETS TROUVÉS & PARKINGS) --- */}
       {mainNav === 'tools' && (
         <View style={{ flex: 1 }}>
           {/* Sous-sélecteur ordonné à l'identique de la vue visiteur : 1. Objets perdus, 2. Parkings */}
@@ -925,6 +1021,13 @@ export default function MobileAdminDashboardScreen() {
           <View style={{ flex: 1 }}>
             {toolsSubType === 'lost' ? <LostObjectsView /> : <AdminParkingView />}
           </View>
+        </View>
+      )}
+
+      {/* --- ONGLET 4 : GESTION DE L'ÉQUIPE & UTILISATEURS --- */}
+      {mainNav === 'team' && (
+        <View style={{ flex: 1 }}>
+          <AdminUsersView />
         </View>
       )}
 
@@ -1035,8 +1138,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 8,
+    paddingHorizontal: 2,
     borderRadius: 11,
-    gap: 6,
+    gap: 4,
   },
   mainNavItemActive: {
     backgroundColor: COLORS.blanc,
@@ -1048,7 +1152,7 @@ const styles = StyleSheet.create({
   },
   mainNavItemText: {
     fontFamily: FONTS.montserratSemiBold,
-    fontSize: 12,
+    fontSize: 11.5,
     color: 'rgba(255, 255, 255, 0.85)',
   },
   mainNavItemTextActive: {
@@ -1057,7 +1161,7 @@ const styles = StyleSheet.create({
   },
   statsRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 6,
     paddingHorizontal: 16,
     paddingTop: 12,
     paddingBottom: 6,
@@ -1068,7 +1172,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#EAE6DD',
     borderRadius: 14,
-    padding: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -1079,6 +1184,11 @@ const styles = StyleSheet.create({
   statCardActive: {
     borderColor: COLORS.vert,
     backgroundColor: '#F5FAF7',
+    borderWidth: 1.5,
+  },
+  statCardAlertActive: {
+    borderColor: '#EF4444',
+    backgroundColor: '#FEF2F2',
     borderWidth: 1.5,
   },
   statIconBox: {
