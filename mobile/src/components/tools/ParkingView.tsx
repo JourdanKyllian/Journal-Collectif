@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,14 +12,15 @@ import {
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import Toast from 'react-native-toast-message';
-import { Car, Zap, Navigation, Clock, ShieldCheck, MapPin, Radio } from 'lucide-react-native';
+import { Car, Zap, Navigation, Clock, ShieldCheck, MapPin, Radio, Compass } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { COLORS, FONTS } from '@/theme/tokens';
 import { useCity } from '@/context/CityContext';
 import { ParkingService, ParkingSpot, AFFLUENCE_CONFIG } from '@/lib/services/parking.service';
+import { LocationService } from '@/lib/services/location.service';
 
 export default function ParkingView() {
-  const { currentCity } = useCity();
+  const { currentCity, userLocation, requestLocationPermission } = useCity();
   const [filterType, setFilterType] = useState<'all' | 'ev' | 'free'>('all');
   const [parkings, setParkings] = useState<ParkingSpot[]>(() => ParkingService.getParkings());
 
@@ -37,11 +38,42 @@ export default function ParkingView() {
     .reduce((sum, p) => sum + p.available, 0);
   const openCount = activeParkings.length;
 
-  const filteredParkings = activeParkings.filter((p) => {
-    if (filterType === 'ev') return p.evSpots > 0;
-    if (filterType === 'free') return p.freeGracePeriod.toLowerCase().includes('gratuit');
-    return true;
-  });
+  // Calcul dynamique de la distance et tri par proximité si la géoloc est active
+  const parkingsWithDistance = useMemo(() => {
+    return activeParkings.map((p) => {
+      if (userLocation && p.coordinates) {
+        const distMeters = LocationService.calculateDistanceMeters(
+          userLocation.latitude,
+          userLocation.longitude,
+          p.coordinates.latitude,
+          p.coordinates.longitude
+        );
+        return {
+          ...p,
+          displayDistance: LocationService.formatDistance(distMeters),
+          distanceMeters: distMeters,
+        };
+      }
+      return {
+        ...p,
+        displayDistance: p.distance,
+        distanceMeters: Infinity,
+      };
+    });
+  }, [activeParkings, userLocation]);
+
+  const filteredParkings = useMemo(() => {
+    let result = parkingsWithDistance.filter((p) => {
+      if (filterType === 'ev') return p.evSpots > 0;
+      if (filterType === 'free') return p.freeGracePeriod.toLowerCase().includes('gratuit');
+      return true;
+    });
+
+    if (userLocation) {
+      result = [...result].sort((a, b) => a.distanceMeters - b.distanceMeters);
+    }
+    return result;
+  }, [parkingsWithDistance, filterType, userLocation]);
 
   const handleFilterChange = (filter: 'all' | 'ev' | 'free') => {
     if (Platform.OS !== 'web') {
@@ -181,6 +213,24 @@ export default function ParkingView() {
         ))}
       </View>
 
+      {/* Bannière d'invitation si géolocalisation inactive */}
+      {!userLocation && (
+        <Pressable onPress={requestLocationPermission} style={styles.locationBanner}>
+          <View style={styles.locationBannerIconCircle}>
+            <Compass size={18} color={COLORS.or} />
+          </View>
+          <View style={{ flex: 1, marginRight: 8 }}>
+            <Text style={styles.locationBannerTitle}>Trier par distance réelle</Text>
+            <Text style={styles.locationBannerSubtitle}>
+              Calculez les distances exactes et affichez les parkings les plus proches de vous.
+            </Text>
+          </View>
+          <View style={styles.locationBannerBtn}>
+            <Text style={styles.locationBannerBtnText}>Activer</Text>
+          </View>
+        </Pressable>
+      )}
+
       {/* Liste des parkings */}
       <View style={styles.list}>
         {filteredParkings.map((parking, index) => {
@@ -218,9 +268,24 @@ export default function ParkingView() {
                         {parking.hasSensors ? 'Capteurs en direct' : 'Non équipé'}
                       </Text>
                     </View>
-                    <View style={styles.distanceBadge}>
-                      <MapPin size={11} color={COLORS.champagne} />
-                      <Text style={styles.distanceText}>{parking.distance}</Text>
+                    <View
+                      style={[
+                        styles.distanceBadge,
+                        userLocation && styles.distanceBadgeLive,
+                      ]}
+                    >
+                      <MapPin
+                        size={11}
+                        color={userLocation ? COLORS.vert : COLORS.champagne}
+                      />
+                      <Text
+                        style={[
+                          styles.distanceText,
+                          userLocation && styles.distanceTextLive,
+                        ]}
+                      >
+                        {parking.displayDistance || parking.distance}
+                      </Text>
                     </View>
                   </View>
                   <Text style={styles.cardTitle}>{parking.name}</Text>
@@ -580,6 +645,61 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.vert,
     lineHeight: 16,
+  },
+  locationBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1.5,
+    borderColor: 'rgba(209, 160, 84, 0.4)',
+    marginBottom: 16,
+    shadowColor: COLORS.or,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  locationBannerIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FDF2D9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  locationBannerTitle: {
+    fontSize: 13,
+    fontFamily: FONTS.bold,
+    color: COLORS.noir,
+    marginBottom: 2,
+  },
+  locationBannerSubtitle: {
+    fontSize: 11,
+    fontFamily: FONTS.regular,
+    color: '#64748B',
+    lineHeight: 15,
+  },
+  locationBannerBtn: {
+    backgroundColor: COLORS.vert,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  locationBannerBtnText: {
+    fontSize: 11,
+    fontFamily: FONTS.semiBold,
+    color: '#FFFFFF',
+  },
+  distanceBadgeLive: {
+    backgroundColor: '#E2F3EB',
+    borderColor: '#C2E5D4',
+  },
+  distanceTextLive: {
+    color: '#217346',
+    fontFamily: FONTS.semiBold,
   },
 });
 

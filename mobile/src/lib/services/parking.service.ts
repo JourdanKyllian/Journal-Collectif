@@ -62,6 +62,7 @@ export interface ParkingSpot {
   statusNote?: string;
   address?: string;
   googleMapsUrl?: string;
+  coordinates?: { latitude: number; longitude: number };
 }
 
 export const INITIAL_PARKINGS: ParkingSpot[] = [
@@ -78,6 +79,7 @@ export const INITIAL_PARKINGS: ParkingSpot[] = [
     isActive: true,
     statusNote: 'Capteurs connectés • Circulation fluide',
     address: 'Place de la Mairie',
+    coordinates: { latitude: 48.9565, longitude: 4.3638 },
   },
   {
     id: '2',
@@ -92,6 +94,7 @@ export const INITIAL_PARKINGS: ParkingSpot[] = [
     isActive: true,
     statusNote: 'Capteurs connectés • Forte affluence pendulaire',
     address: 'Avenue de la Gare',
+    coordinates: { latitude: 48.9592, longitude: 4.3524 },
   },
   {
     id: '3',
@@ -107,6 +110,7 @@ export const INITIAL_PARKINGS: ParkingSpot[] = [
     isActive: true,
     statusNote: 'Affluence habituelle • Marché le samedi',
     address: 'Place de la République',
+    coordinates: { latitude: 48.9548, longitude: 4.3672 },
   },
   {
     id: '4',
@@ -122,6 +126,7 @@ export const INITIAL_PARKINGS: ParkingSpot[] = [
     isActive: false,
     statusNote: 'Fermé temporairement (travaux)',
     address: 'Esplanade du Stade',
+    coordinates: { latitude: 48.9615, longitude: 4.3725 },
   },
 ];
 

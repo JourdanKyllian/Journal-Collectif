@@ -23,6 +23,7 @@ import { COLORS, FONTS } from '@/theme/tokens';
 import ScreenContainer from '@/components/layout/ScreenContainer';
 import LostObjectsView from '@/components/tools/LostObjectsView';
 import ParkingView from '@/components/tools/ParkingView';
+import DetectedCityBanner from '@/components/location/DetectedCityBanner';
 
 const { width } = Dimensions.get('window');
 const SEGMENT_PADDING = 3;
@@ -58,6 +59,9 @@ export default function ToolsScreen() {
 
   return (
     <ScreenContainer headerContextTitle="Outils Municipaux">
+      {/* Suggestion intelligente si déplacement dans une autre commune */}
+      <DetectedCityBanner />
+
       {/* Sous-navigation Liquid Glass avec bulle coulissante fluide */}
       <View style={styles.selectorWrapper}>
         <View style={styles.segmentedContainer}>

@@ -8,9 +8,10 @@ import {
   Trash2,
   Compass,
   Plus,
+  MapPin,
 } from 'lucide-react-native';
 import { COLORS, FONTS } from '@/theme/tokens';
-import { City } from '@/context/CityContext';
+import { City, useCity } from '@/context/CityContext';
 
 interface CityPreferencesSectionProps {
   currentCity: City;
@@ -37,6 +38,7 @@ export default function CityPreferencesSection({
   onRemoveFollowed,
   onOpenDirectory,
 }: CityPreferencesSectionProps) {
+  const { userLocation, detectedCity, requestLocationPermission } = useCity();
   return (
     <View style={styles.container}>
       <View style={styles.sectionHeaderRow}>
@@ -186,6 +188,30 @@ export default function CityPreferencesSection({
           <Text style={styles.addJournalButtonText}>
             Explorer l&apos;annuaire des journaux locaux
           </Text>
+        </Pressable>
+
+        {/* Tuile de gestion de la géolocalisation */}
+        <Pressable onPress={requestLocationPermission} style={styles.locationTile}>
+          <View style={[styles.locationTileIconBox, userLocation && styles.locationTileIconBoxActive]}>
+            <MapPin size={18} color={userLocation ? '#FFFFFF' : COLORS.or} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <View style={styles.locationTileHeader}>
+              <Text style={styles.locationTileTitle}>GÉOLOCALISATION CITOYENNE</Text>
+              <View style={[styles.statusPill, userLocation && styles.statusPillActive]}>
+                <Text style={[styles.statusPillText, userLocation && styles.statusPillTextActive]}>
+                  {userLocation ? 'ACTIVE' : 'DÉSACTIVÉE'}
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.locationTileDesc}>
+              {userLocation
+                ? detectedCity
+                  ? `Position synchronisée • Commune : ${detectedCity.name}`
+                  : 'Position synchronisée • Prêt pour vos déplacements'
+                : 'Activer pour détecter automatiquement vos éditions et parkings'}
+            </Text>
+          </View>
         </Pressable>
       </View>
     </View>
@@ -389,5 +415,67 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: FONTS.semiBold,
     color: COLORS.vert,
+  },
+  locationTile: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginTop: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+  locationTileIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: '#FDF2D9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  locationTileIconBoxActive: {
+    backgroundColor: COLORS.vert,
+  },
+  locationTileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
+  locationTileTitle: {
+    fontSize: 11,
+    fontFamily: FONTS.bold,
+    color: COLORS.vert,
+    letterSpacing: 0.5,
+  },
+  statusPill: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  statusPillActive: {
+    backgroundColor: '#E2F3EB',
+  },
+  statusPillText: {
+    fontSize: 9,
+    fontFamily: FONTS.bold,
+    color: '#64748B',
+  },
+  statusPillTextActive: {
+    color: '#217346',
+  },
+  locationTileDesc: {
+    fontSize: 11,
+    fontFamily: FONTS.regular,
+    color: '#64748B',
+    lineHeight: 15,
   },
 });

@@ -58,6 +58,9 @@ export default function CitySelectorSheet({
     setPrimaryCity,
     searchCities,
     isProManager,
+    userLocation,
+    detectedCity,
+    requestLocationPermission,
   } = useCity();
 
   const [modalVisible, setModalVisible] = useState(visible);
@@ -348,6 +351,39 @@ export default function CitySelectorSheet({
                 placeholder="Rechercher une ville, code postal, journal..."
                 containerStyle={styles.searchBarContainer}
               />
+
+              {/* Raccourci intelligent de géolocalisation */}
+              {detectedCity ? (
+                <Pressable
+                  onPress={() => handleCitySelect(detectedCity)}
+                  style={styles.detectedCityShortcut}
+                >
+                  <View style={styles.detectedCityIconBox}>
+                    <MapPin size={16} color={COLORS.or} />
+                  </View>
+                  <View style={{ flex: 1, marginRight: 8 }}>
+                    <Text style={styles.detectedCityTag}>COMMUNE ACTUELLE DÉTECTÉE</Text>
+                    <Text style={styles.detectedCityName}>
+                      {detectedCity.name} ({detectedCity.postalCode})
+                    </Text>
+                  </View>
+                  <View style={styles.selectQuickBtn}>
+                    <Text style={styles.selectQuickBtnText}>Sélectionner</Text>
+                  </View>
+                </Pressable>
+              ) : !userLocation ? (
+                <Pressable
+                  onPress={async () => {
+                    await requestLocationPermission();
+                  }}
+                  style={styles.enableLocationShortcut}
+                >
+                  <MapPin size={15} color={COLORS.vert} />
+                  <Text style={styles.enableLocationShortcutText}>
+                    Détecter automatiquement mon édition locale par GPS
+                  </Text>
+                </Pressable>
+              ) : null}
 
               <ScrollView
                 contentContainerStyle={styles.scrollList}
@@ -738,5 +774,71 @@ const styles = StyleSheet.create({
     color: COLORS.champagne,
     textAlign: 'center',
     marginTop: 4,
+  },
+  detectedCityShortcut: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1.5,
+    borderColor: 'rgba(209, 160, 84, 0.45)',
+    marginHorizontal: 16,
+    marginBottom: 10,
+    shadowColor: COLORS.or,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  detectedCityIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.vert,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  detectedCityTag: {
+    fontSize: 9,
+    fontFamily: FONTS.bold,
+    color: COLORS.or,
+    letterSpacing: 0.5,
+  },
+  detectedCityName: {
+    fontSize: 13,
+    fontFamily: FONTS.semiBold,
+    color: COLORS.noir,
+  },
+  selectQuickBtn: {
+    backgroundColor: COLORS.vert,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  selectQuickBtnText: {
+    fontSize: 11,
+    fontFamily: FONTS.semiBold,
+    color: '#FFFFFF',
+  },
+  enableLocationShortcut: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginHorizontal: 16,
+    marginBottom: 10,
+  },
+  enableLocationShortcutText: {
+    fontSize: 12,
+    fontFamily: FONTS.medium,
+    color: COLORS.vert,
   },
 });

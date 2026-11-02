@@ -7,6 +7,11 @@ import {
 } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import Toast from 'react-native-toast-message';
+import {
+  LocationService,
+  UserCoordinates,
+  LocationPermissionMode,
+} from '@/lib/services/location.service';
 
 export interface City {
   slug: string;
@@ -18,6 +23,7 @@ export interface City {
   isPopular?: boolean;
   typeJournal?: string;
   nomJournal?: string;
+  coordinates?: { latitude: number; longitude: number };
 }
 
 export const CITIES: City[] = [
@@ -31,6 +37,7 @@ export const CITIES: City[] = [
     isPopular: true,
     typeJournal: 'Journal associatif indépendant',
     nomJournal: 'Collectif Chalonnais',
+    coordinates: { latitude: 48.9567, longitude: 4.3644 },
   },
   {
     slug: 'chateau-thierry',
@@ -42,6 +49,7 @@ export const CITIES: City[] = [
     isPopular: true,
     typeJournal: 'Journal territorial citoyen',
     nomJournal: 'Le Courrier Castel',
+    coordinates: { latitude: 49.0465, longitude: 3.4034 },
   },
   {
     slug: 'mairie-epernay',
@@ -53,6 +61,7 @@ export const CITIES: City[] = [
     isPopular: true,
     typeJournal: 'Journal municipal & associatif',
     nomJournal: 'Épernay Actu',
+    coordinates: { latitude: 49.0436, longitude: 3.9559 },
   },
   {
     slug: 'vitry-le-francois',
@@ -63,6 +72,7 @@ export const CITIES: City[] = [
     tagline: 'Porte du Lac du Der',
     typeJournal: 'Journal local participatif',
     nomJournal: 'Vitry Ensemble',
+    coordinates: { latitude: 48.7247, longitude: 4.5861 },
   },
 ];
 
@@ -119,6 +129,16 @@ export interface CityContextType {
   /** Rafraîchir les journaux et le tenant */
   refreshTenant: () => Promise<void>;
   isLoading: boolean;
+  /** Position GPS de l'utilisateur si autorisée */
+  userLocation: UserCoordinates | null;
+  /** Statut actuel de la permission */
+  locationPermission: LocationPermissionMode;
+  /** Commune détectée automatiquement par GPS */
+  detectedCity: City | null;
+  /** Déclenche directement la demande de permission système native (iOS / Android) */
+  requestLocationPermission: () => Promise<boolean>;
+  refreshUserLocation: () => Promise<void>;
+  dismissDetectedCity: () => void;
 }
 
 const CityContext = createContext<CityContextType | undefined>(undefined);
@@ -137,6 +157,11 @@ export function CityProvider({ children }: { children: ReactNode }) {
   const [primarySlug, setPrimarySlug] = useState<string>(DEFAULT_PREFS.primarySlug);
   const [alertsBySlug, setAlertsBySlug] = useState<Record<string, boolean>>(DEFAULT_PREFS.alertsBySlug);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // États de Géolocalisation
+  const [userLocation, setUserLocation] = useState<UserCoordinates | null>(null);
+  const [locationPermission, setLocationPermission] = useState<LocationPermissionMode>('not_asked');
+  const [detectedCity, setDetectedCity] = useState<City | null>(null);
 
   const isProManager = Boolean(
     user?.journal?.slug &&
@@ -418,6 +443,89 @@ export function CityProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const detectNearestCity = (coords: UserCoordinates, availableCities: City[]) => {
+    let closestCity: City | null = null;
+    let minDistance = Infinity;
+
+    for (const city of availableCities) {
+      if (city.coordinates) {
+        const dist = LocationService.calculateDistanceMeters(
+          coords.latitude,
+          coords.longitude,
+          city.coordinates.latitude,
+          city.coordinates.longitude
+        );
+        if (dist < minDistance) {
+          minDistance = dist;
+          closestCity = city;
+        }
+      }
+    }
+
+    if (closestCity && minDistance <= 35000) {
+      setDetectedCity(closestCity);
+    } else {
+      setDetectedCity(null);
+    }
+  };
+
+  useEffect(() => {
+    async function checkLocation() {
+      try {
+        const pref = await LocationService.getSavedPermissionPreference();
+        setLocationPermission(pref);
+
+        // N'interroger le système que si l'utilisateur a déjà préalablement autorisé la géolocalisation
+        if (pref === 'foreground' || pref === 'always') {
+          const sys = await LocationService.checkSystemPermission();
+          if (sys.granted) {
+            const coords = await LocationService.getCurrentLocation();
+            if (coords) {
+              setUserLocation(coords);
+              detectNearestCity(coords, citiesList);
+            }
+          }
+        }
+      } catch {
+        // Garde-fou silencieux pour préserver la stabilité du démarrage
+      }
+    }
+    checkLocation();
+  }, [citiesList]);
+
+  const requestLocationPermission = async (): Promise<boolean> => {
+    // Déclenche directement la popup système native iOS / Android
+    const granted = await LocationService.requestPermission('foreground');
+    const pref = await LocationService.getSavedPermissionPreference();
+    setLocationPermission(pref);
+
+    if (granted) {
+      const coords = await LocationService.getCurrentLocation();
+      if (coords) {
+        setUserLocation(coords);
+        detectNearestCity(coords, citiesList);
+      }
+      Toast.show({
+        type: 'success',
+        text1: 'Position actualisée 📍',
+        text2: 'Vos parkings et communes sont désormais synchronisés.',
+      });
+    }
+    return granted;
+  };
+
+  const refreshUserLocation = async () => {
+    const coords = await LocationService.getCurrentLocation();
+    if (coords) {
+      setUserLocation(coords);
+      detectNearestCity(coords, citiesList);
+    }
+  };
+
+  const dismissDetectedCity = () => {
+    setDetectedCity(null);
+  };
+
   return (
     <CityContext.Provider
       value={{
@@ -437,6 +545,12 @@ export function CityProvider({ children }: { children: ReactNode }) {
         isProManager,
         refreshTenant,
         isLoading,
+        userLocation,
+        locationPermission,
+        detectedCity,
+        requestLocationPermission,
+        refreshUserLocation,
+        dismissDetectedCity,
       }}
     >
       {children}

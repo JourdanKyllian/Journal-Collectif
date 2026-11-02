@@ -17,6 +17,7 @@ import { FeedService } from '@/lib/services/feed.service';
 
 import ScreenContainer from '@/components/layout/ScreenContainer';
 import AlertBanner from '@/components/AlertBanner';
+import DetectedCityBanner from '@/components/location/DetectedCityBanner';
 import CategoryPillsBar, { PillCategory } from '@/components/common/CategoryPillsBar';
 import HeroCard from '@/components/articles/HeroCard';
 import ArticleListItem from '@/components/articles/ArticleListItem';
@@ -157,6 +158,9 @@ export default function FeedScreen() {
 
   return (
     <ScreenContainer>
+      {/* Suggestion intelligente si déplacement dans une autre commune */}
+      <DetectedCityBanner />
+
       {/* Bandeau alerte (sous le header, non flottant) */}
       <AlertBanner alerts={alerts} />
 

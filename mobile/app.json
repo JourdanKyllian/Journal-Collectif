@@ -12,7 +12,9 @@
       "icon": "./assets/expo.icon",
       "infoPlist": {
         "NSCameraUsageDescription": "Journal Collectif utilise votre appareil photo pour illustrer vos propositions d'articles et déclarations d'objets perdus.",
-        "NSPhotoLibraryUsageDescription": "Journal Collectif accède à votre galerie pour joindre une photo à votre publication."
+        "NSPhotoLibraryUsageDescription": "Journal Collectif accède à votre galerie pour joindre une photo à votre publication.",
+        "NSLocationWhenInUseUsageDescription": "Journal Collectif utilise votre position pour vous afficher les parkings à proximité et vous suggérer l'édition locale de la commune où vous vous trouvez.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Journal Collectif utilise votre position pour vous transmettre les alertes d'urgence et de prévention de votre commune."
       }
     },
     "android": {
@@ -41,6 +43,13 @@
         }
       ],
       "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Journal Collectif utilise votre position pour vous afficher les parkings à proximité et vous suggérer l'édition locale de la commune où vous vous trouvez.",
+          "locationAlwaysAndWhenInUsePermission": "Journal Collectif utilise votre position pour vous transmettre les alertes d'urgence et de prévention de votre commune."
+        }
+      ],
       [
         "expo-image-picker",
         {
