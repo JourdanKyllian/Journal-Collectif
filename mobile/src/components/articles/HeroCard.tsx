@@ -12,7 +12,7 @@ import Animated, {
   withSequence,
   Easing,
 } from 'react-native-reanimated';
-import { ChevronDown, Calendar, BookOpen } from 'lucide-react-native';
+import { ChevronDown, Calendar, BookOpen, Bookmark } from 'lucide-react-native';
 
 import { COLORS, FONTS } from '@/theme/tokens';
 import { MobileArticle } from '@/lib/mock-data';
@@ -22,9 +22,15 @@ const HERO_HEIGHT = 300;
 
 interface HeroCardProps {
   article: MobileArticle;
+  isFavorite?: boolean;
+  onToggleFavorite?: (id: number) => void;
 }
 
-export default function HeroCard({ article }: HeroCardProps) {
+export default function HeroCard({
+  article,
+  isFavorite = false,
+  onToggleFavorite,
+}: HeroCardProps) {
   const bounceY = useSharedValue(0);
 
   React.useEffect(() => {
@@ -75,6 +81,28 @@ export default function HeroCard({ article }: HeroCardProps) {
         style={StyleSheet.absoluteFill}
       />
 
+      {/* Bouton favori hors-ligne */}
+      {onToggleFavorite && (
+        <Pressable
+          onPress={(e) => {
+            e.stopPropagation();
+            if (Platform.OS !== 'web') {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }
+            onToggleFavorite(article.id);
+          }}
+          style={styles.bookmarkBtn}
+          hitSlop={8}
+          accessibilityLabel={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris hors-ligne'}
+        >
+          <Bookmark
+            size={18}
+            color={isFavorite ? COLORS.or : COLORS.blanc}
+            fill={isFavorite ? COLORS.or : 'none'}
+          />
+        </Pressable>
+      )}
+
       {/* Contenu bas */}
       <View style={styles.heroContent}>
         {/* Badge catégorie */}
@@ -122,6 +150,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.18,
     shadowRadius: 20,
     elevation: 8,
+  },
+  bookmarkBtn: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(11, 28, 16, 0.65)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    zIndex: 10,
   },
   heroContent: {
     position: 'absolute',

@@ -5,6 +5,7 @@ import Toast from 'react-native-toast-message';
 
 import { useCity } from '@/context/CityContext';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 import ScreenContainer from '@/components/layout/ScreenContainer';
 import CitySelectorSheet from '@/components/CitySelectorSheet';
 import ProfileHeader from '@/components/profile/ProfileHeader';
@@ -32,13 +33,14 @@ export default function ProfileScreen() {
   const [isCitySheetOpen, setIsCitySheetOpen] = useState(false);
   const [contributionsCount, setContributionsCount] = useState<number>(2);
 
+  const { isDark, toggleDarkMode } = useTheme();
+
   // Préférences & Switchs (Exigences du barème)
   const [subscribedCategories, setSubscribedCategories] = useState<string[]>([
     'culture',
     'evenements',
   ]);
   const [alertsEnabled, setAlertsEnabled] = useState(true);
-  const [darkModeEnabled, setDarkModeEnabled] = useState(false);
 
   const isStaff =
     user?.is_platform_admin === true ||
@@ -75,8 +77,8 @@ export default function ProfileScreen() {
     });
   };
 
-  const handleToggleDarkMode = (value: boolean) => {
-    setDarkModeEnabled(value);
+  const handleToggleDarkMode = async (value: boolean) => {
+    await toggleDarkMode(value);
     Toast.show({
       type: 'info',
       text1: value ? 'Mode Sombre actif' : 'Mode Clair actif',
@@ -159,7 +161,7 @@ export default function ProfileScreen() {
               currentCityName={currentCity.name}
               subscribedCategories={subscribedCategories}
               alertsEnabled={alertsEnabled}
-              darkModeEnabled={darkModeEnabled}
+              darkModeEnabled={isDark}
               onToggleCategory={handleToggleCategory}
               onToggleAlerts={handleToggleAlerts}
               onToggleDarkMode={handleToggleDarkMode}

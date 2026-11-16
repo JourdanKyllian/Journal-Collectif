@@ -15,11 +15,69 @@ import { Raleway_600SemiBold } from '@expo-google-fonts/raleway';
 import { useJuryNotificationDemo } from '@/hooks/useJuryNotificationDemo';
 import { CityProvider } from '@/context/CityContext';
 import { AuthProvider } from '@/context/AuthContext';
-import { COLORS } from '@/theme/tokens';
+import { ThemeProvider, useTheme } from '@/context/ThemeContext';
 import Toast from 'react-native-toast-message';
 import { toastConfig } from '@/components/common/CustomToast';
 
 SplashScreen.preventAutoHideAsync();
+
+function RootNavigation() {
+  const { isDark, theme } = useTheme();
+
+  return (
+    <>
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: theme.background },
+        }}
+      >
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="articles/[id]"
+          options={{
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="admin/dashboard"
+          options={{
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="admin/editor"
+          options={{
+            animation: 'slide_from_bottom',
+          }}
+        />
+        <Stack.Screen
+          name="modals/submit"
+          options={{
+            presentation: 'modal',
+            animation: 'slide_from_bottom',
+          }}
+        />
+        <Stack.Screen
+          name="modals/declare-lost"
+          options={{
+            presentation: 'modal',
+            animation: 'slide_from_bottom',
+          }}
+        />
+        <Stack.Screen
+          name="modals/login"
+          options={{
+            presentation: 'modal',
+            animation: 'slide_from_bottom',
+          }}
+        />
+      </Stack>
+      <Toast config={toastConfig} topOffset={54} />
+    </>
+  );
+}
 
 export default function RootLayout() {
   useJuryNotificationDemo();
@@ -45,59 +103,13 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar style="light" />
-      <AuthProvider>
-        <CityProvider>
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: COLORS.blanc },
-            }}
-          >
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="articles/[id]"
-              options={{
-                animation: 'slide_from_right',
-              }}
-            />
-            <Stack.Screen
-              name="admin/dashboard"
-              options={{
-                animation: 'slide_from_right',
-              }}
-            />
-            <Stack.Screen
-              name="admin/editor"
-              options={{
-                animation: 'slide_from_bottom',
-              }}
-            />
-            <Stack.Screen
-              name="modals/submit"
-              options={{
-                presentation: 'modal',
-                animation: 'slide_from_bottom',
-              }}
-            />
-            <Stack.Screen
-              name="modals/declare-lost"
-              options={{
-                presentation: 'modal',
-                animation: 'slide_from_bottom',
-              }}
-            />
-            <Stack.Screen
-              name="modals/login"
-              options={{
-                presentation: 'modal',
-                animation: 'slide_from_bottom',
-              }}
-            />
-          </Stack>
-          <Toast config={toastConfig} topOffset={54} />
-        </CityProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <CityProvider>
+            <RootNavigation />
+          </CityProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </GestureHandlerRootView>
   );
 }

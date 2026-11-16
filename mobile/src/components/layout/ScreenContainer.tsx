@@ -3,6 +3,7 @@ import { StyleSheet, ViewStyle } from 'react-native';
 import { SafeAreaView, Edge } from 'react-native-safe-area-context';
 
 import { COLORS } from '@/theme/tokens';
+import { useTheme } from '@/context/ThemeContext';
 import AppHeader from '@/components/navigation/AppHeader';
 
 interface ScreenContainerProps {
@@ -22,8 +23,13 @@ export default function ScreenContainer({
   style,
   edges = ['top', 'left', 'right'],
 }: ScreenContainerProps) {
+  const { theme } = useTheme();
+
   return (
-    <SafeAreaView edges={edges} style={[styles.container, style]}>
+    <SafeAreaView
+      edges={edges}
+      style={[styles.container, { backgroundColor: theme.background }, style]}
+    >
       {!hideHeader && <AppHeader pageContextTitle={headerContextTitle} />}
       {children}
     </SafeAreaView>

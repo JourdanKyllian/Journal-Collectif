@@ -9,11 +9,13 @@ import {
 } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
+import { Newspaper, BookmarkCheck } from 'lucide-react-native';
 
 import { COLORS, FONTS } from '@/theme/tokens';
 import { MobileArticle, MobileAlert, MOCK_ARTICLES, MOCK_CATEGORIES, MOCK_ALERTS } from '@/lib/mock-data';
 import { useCity } from '@/context/CityContext';
 import { FeedService } from '@/lib/services/feed.service';
+import { OfflineService } from '@/lib/services/offline.service';
 
 import ScreenContainer from '@/components/layout/ScreenContainer';
 import AlertBanner from '@/components/AlertBanner';
@@ -22,16 +24,42 @@ import CategoryPillsBar, { PillCategory } from '@/components/common/CategoryPill
 import HeroCard from '@/components/articles/HeroCard';
 import ArticleListItem from '@/components/articles/ArticleListItem';
 import ArticleCardSkeleton from '@/components/common/ArticleCardSkeleton';
+import EmptyState from '@/components/common/EmptyState';
+import ErrorState from '@/components/common/ErrorState';
+import DataCountBadge from '@/components/common/DataCountBadge';
+
+const FAVORITES_PILL: PillCategory = {
+  id: -1,
+  libelle: 'Favoris',
+  icon: '⭐',
+};
 
 export default function FeedScreen() {
   const { currentCity } = useCity();
   const [selectedCategory, setSelectedCategory] = useState<string>('Tous');
 
   const [articles, setArticles] = useState<MobileArticle[]>(MOCK_ARTICLES);
-  const [categories, setCategories] = useState<PillCategory[]>(MOCK_CATEGORIES);
+  const [categories, setCategories] = useState<PillCategory[]>([FAVORITES_PILL, ...MOCK_CATEGORIES]);
   const [alerts, setAlerts] = useState<MobileAlert[]>(MOCK_ALERTS);
+  const [favoriteIds, setFavoriteIds] = useState<number[]>([]);
+
+  // 6 états des écrans de données :
+  // 1. Données nominales (articles affichés)
+  // 2. Chargement (isLoading)
+  // 3. Vide (EmptyState si aucun résultat)
+  // 4. Erreur avec retry (isError + ErrorState)
+  // 5. Total de lignes (DataCountBadge affichant le décompte)
+  // 6. Rafraîchissement / partiel (isRefreshing + RefreshControl)
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [isOffline, setIsOffline] = useState<boolean>(false);
+  const [isError, setIsError] = useState<boolean>(false);
+  const [isRetrying, setIsRetrying] = useState<boolean>(false);
+
+  // Initialisation des favoris hors-ligne
+  useEffect(() => {
+    OfflineService.getFavoriteIds().then(setFavoriteIds);
+  }, []);
 
   // Chargement des catégories & alertes
   useEffect(() => {
@@ -41,23 +69,26 @@ export default function FeedScreen() {
           FeedService.getCategories(),
           FeedService.getAlerts(),
         ]);
-        setCategories(cats);
+        // Intègre la catégorie virtuelle 'Favoris' en début
+        setCategories([FAVORITES_PILL, ...cats]);
         setAlerts(alertsData);
       } catch {
-        // Fallback silencieux sur mock
+        // Garde la liste de repli avec Favoris
+        setCategories([FAVORITES_PILL, ...MOCK_CATEGORIES]);
       }
     }
     loadMeta();
   }, [currentCity.slug]);
 
-  // Chargement des articles au changement de commune ou de filtre
+  // Chargement des articles au montage et lors du changement de commune/catégorie
   useEffect(() => {
     let isMounted = true;
 
-    async function fetchFeed() {
+    async function fetchArticles() {
       try {
         const activeCatObj = categories.find((c) => c.libelle === selectedCategory);
-        const catId = activeCatObj && activeCatObj.id !== 0 ? activeCatObj.id : undefined;
+        const catId =
+          activeCatObj && activeCatObj.id > 0 ? activeCatObj.id : undefined;
 
         const result = await FeedService.getPublishedArticles({
           categorieId: catId,
@@ -67,54 +98,139 @@ export default function FeedScreen() {
         if (!isMounted) return;
 
         let list = result.articles;
-        if (selectedCategory !== 'Tous') {
+        if (selectedCategory !== 'Tous' && selectedCategory !== 'Favoris') {
           list = list.filter((a) => a.categorie.libelle === selectedCategory);
         }
+
         setArticles(list);
+        setIsOffline(false);
+        setIsError(false);
+
+        // Sauvegarde silencieuse en cache local offline
+        await OfflineService.saveCachedArticles(currentCity.slug, result.articles);
       } catch {
         if (!isMounted) return;
-        if (selectedCategory === 'Tous') {
-          setArticles(MOCK_ARTICLES);
+        // En cas d'échec réseau : tentative de lecture du cache offline
+        const cached = await OfflineService.getCachedArticles(currentCity.slug);
+        if (cached && cached.length > 0) {
+          let list = cached;
+          if (selectedCategory !== 'Tous' && selectedCategory !== 'Favoris') {
+            list = list.filter((a) => a.categorie.libelle === selectedCategory);
+          }
+          setArticles(list);
+          setIsOffline(true);
+          setIsError(false);
+        } else if (MOCK_ARTICLES.length > 0) {
+          // Dernier fallback mock si pas de cache
+          let list = MOCK_ARTICLES;
+          if (selectedCategory !== 'Tous' && selectedCategory !== 'Favoris') {
+            list = list.filter((a) => a.categorie.libelle === selectedCategory);
+          }
+          setArticles(list);
+          setIsOffline(true);
         } else {
-          setArticles(MOCK_ARTICLES.filter((a) => a.categorie.libelle === selectedCategory));
+          setIsError(true);
         }
       } finally {
         if (isMounted) {
           setIsLoading(false);
           setIsRefreshing(false);
+          setIsRetrying(false);
         }
       }
     }
 
-    fetchFeed();
+    fetchArticles();
     return () => {
       isMounted = false;
     };
-  }, [categories, selectedCategory, currentCity.slug]);
+  }, [categories, currentCity.slug, selectedCategory]);
 
-  const onRefresh = useCallback(() => {
-    setIsRefreshing(true);
+  const onRefresh = useCallback(async () => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    const activeCatObj = categories.find((c) => c.libelle === selectedCategory);
-    const catId = activeCatObj && activeCatObj.id !== 0 ? activeCatObj.id : undefined;
-    FeedService.getPublishedArticles({ categorieId: catId, limit: 20 })
-      .then((result) => {
-        let list = result.articles;
-        if (selectedCategory !== 'Tous') {
-          list = list.filter((a) => a.categorie.libelle === selectedCategory);
-        }
-        setArticles(list);
-      })
-      .catch(() => {})
-      .finally(() => setIsRefreshing(false));
-  }, [categories, selectedCategory]);
+    setIsRefreshing(true);
+    try {
+      const activeCatObj = categories.find((c) => c.libelle === selectedCategory);
+      const catId =
+        activeCatObj && activeCatObj.id > 0 ? activeCatObj.id : undefined;
 
-  // Premier article = Hero
-  const heroArticle = articles[0] ?? null;
-  // Reste de la liste (sans le hero)
-  const listArticles = articles.slice(1);
+      const result = await FeedService.getPublishedArticles({
+        categorieId: catId,
+        limit: 20,
+      });
+
+      let list = result.articles;
+      if (selectedCategory !== 'Tous' && selectedCategory !== 'Favoris') {
+        list = list.filter((a) => a.categorie.libelle === selectedCategory);
+      }
+      setArticles(list);
+      setIsOffline(false);
+      setIsError(false);
+      await OfflineService.saveCachedArticles(currentCity.slug, result.articles);
+    } catch {
+      // Garde l'état actuel si échec pendant le refresh
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [categories, currentCity.slug, selectedCategory]);
+
+  const handleRetry = useCallback(async () => {
+    setIsRetrying(true);
+    setIsLoading(true);
+    setIsError(false);
+    try {
+      const activeCatObj = categories.find((c) => c.libelle === selectedCategory);
+      const catId =
+        activeCatObj && activeCatObj.id > 0 ? activeCatObj.id : undefined;
+
+      const result = await FeedService.getPublishedArticles({
+        categorieId: catId,
+        limit: 20,
+      });
+
+      let list = result.articles;
+      if (selectedCategory !== 'Tous' && selectedCategory !== 'Favoris') {
+        list = list.filter((a) => a.categorie.libelle === selectedCategory);
+      }
+      setArticles(list);
+      setIsOffline(false);
+      setIsError(false);
+      await OfflineService.saveCachedArticles(currentCity.slug, result.articles);
+    } catch {
+      const cached = await OfflineService.getCachedArticles(currentCity.slug);
+      if (cached && cached.length > 0) {
+        setArticles(cached);
+        setIsOffline(true);
+      } else {
+        setIsError(true);
+      }
+    } finally {
+      setIsRetrying(false);
+      setIsLoading(false);
+    }
+  }, [categories, currentCity.slug, selectedCategory]);
+
+  const handleToggleFavorite = useCallback(async (id: number) => {
+    const isNowFav = await OfflineService.toggleFavorite(id);
+    setFavoriteIds((prev) =>
+      isNowFav ? [...prev, id] : prev.filter((favId) => favId !== id),
+    );
+  }, []);
+
+  // Filtrage effectif pour la vue
+  const displayedArticles = React.useMemo(() => {
+    if (selectedCategory === 'Favoris') {
+      return articles.filter((a) => favoriteIds.includes(a.id));
+    }
+    return articles;
+  }, [articles, selectedCategory, favoriteIds]);
+
+  // Premier article = Hero (si pas en filtre favoris vide)
+  const heroArticle = displayedArticles[0] ?? null;
+  // Reste de la liste
+  const listArticles = displayedArticles.slice(1);
 
   const handleCategorySelect = useCallback((cat: string) => {
     setSelectedCategory(cat);
@@ -125,58 +241,101 @@ export default function FeedScreen() {
       {/* Hero Card */}
       {heroArticle && (
         <Animated.View entering={FadeIn.duration(350)}>
-          <HeroCard article={heroArticle} />
+          <HeroCard
+            article={heroArticle}
+            isFavorite={favoriteIds.includes(heroArticle.id)}
+            onToggleFavorite={handleToggleFavorite}
+          />
         </Animated.View>
       )}
 
-      {/* Section title */}
+      {/* Section title & total ligne count */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Autres articles</Text>
-        <Text style={styles.sectionCaption}>
-          Actualités de {currentCity.shortName}
-        </Text>
+        <View style={styles.sectionHeaderLeft}>
+          <Text style={styles.sectionTitle}>
+            {selectedCategory === 'Favoris' ? 'Vos favoris enregistrés' : 'Actualités'}
+          </Text>
+          <Text style={styles.sectionCaption}>
+            {selectedCategory === 'Favoris'
+              ? 'Disponibles hors-ligne sur votre appareil'
+              : `Édition locale : ${currentCity.shortName}`}
+          </Text>
+        </View>
+
+        {/* Compteur total de lignes & statut hors-ligne */}
+        <DataCountBadge
+          total={displayedArticles.length}
+          labelSingular="article"
+          labelPlural="articles"
+          isOffline={isOffline}
+        />
       </View>
     </View>
   );
 
   const renderItem = useCallback(
     ({ item, index }: { item: MobileArticle; index: number }) => (
-      <ArticleListItem item={item} index={index} />
+      <ArticleListItem
+        item={item}
+        index={index}
+        isFavorite={favoriteIds.includes(item.id)}
+        onToggleFavorite={handleToggleFavorite}
+      />
     ),
-    [],
+    [favoriteIds, handleToggleFavorite],
   );
 
-  const renderEmpty = () => (
-    <Animated.View entering={FadeIn.duration(300)} style={styles.emptyState}>
-      <Text style={styles.emptyEmoji}>🔍</Text>
-      <Text style={styles.emptyTitle}>Aucun article</Text>
-      <Text style={styles.emptyCaption}>
-        Aucune actualité dans cette rubrique pour le moment.
-      </Text>
-    </Animated.View>
-  );
+  const renderEmpty = () => {
+    if (selectedCategory === 'Favoris') {
+      return (
+        <EmptyState
+          icon={BookmarkCheck}
+          title="Aucun favori enregistré"
+          description="Touchez l'icône marque-page sur un article pour le sauvegarder et le lire hors-ligne à tout moment."
+          actionLabel="Explorer les actualités"
+          onAction={() => setSelectedCategory('Tous')}
+        />
+      );
+    }
+    return (
+      <EmptyState
+        icon={Newspaper}
+        title="Aucun article dans cette rubrique"
+        description={`Aucune actualité publiée pour ${currentCity.shortName} sous la catégorie sélectionnée.`}
+        actionLabel="Voir toutes les actualités"
+        onAction={() => setSelectedCategory('Tous')}
+      />
+    );
+  };
 
   return (
     <ScreenContainer>
       {/* Suggestion intelligente si déplacement dans une autre commune */}
       <DetectedCityBanner />
 
-      {/* Bandeau alerte (sous le header, non flottant) */}
+      {/* Bandeau alerte mairie */}
       <AlertBanner alerts={alerts} />
 
-      {/* Filtre categories sticky DRY */}
+      {/* Filtre catégories sticky avec pilule 'Favoris' */}
       <CategoryPillsBar
         categories={categories}
         selectedLabel={selectedCategory}
         onSelect={handleCategorySelect}
       />
 
-      {/* Feed ou Skeleton pendant chargement initial */}
+      {/* Gestion des 6 états */}
       {isLoading ? (
         <View style={styles.skeletonContainer}>
           <ArticleCardSkeleton />
           <ArticleCardSkeleton />
         </View>
+      ) : isError && displayedArticles.length === 0 ? (
+        <ErrorState
+          title="Impossible de joindre le serveur"
+          message="Vérifiez votre connexion réseau. Vos articles en cache s'afficheront automatiquement dès qu'ils seront disponibles."
+          onRetry={handleRetry}
+          isRetrying={isRetrying}
+        />
       ) : (
         <FlatList
           data={listArticles}
@@ -206,6 +365,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 24,
     paddingBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  sectionHeaderLeft: {
+    flex: 1,
+    marginRight: 12,
   },
   sectionTitle: {
     fontFamily: FONTS.headingBold,
@@ -225,28 +391,5 @@ const styles = StyleSheet.create({
   skeletonContainer: {
     paddingHorizontal: 16,
     paddingTop: 16,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingTop: 48,
-    paddingHorizontal: 40,
-  },
-  emptyEmoji: {
-    fontSize: 40,
-    marginBottom: 12,
-  },
-  emptyTitle: {
-    fontFamily: FONTS.headingBold,
-    fontSize: 18,
-    color: COLORS.noir,
-    marginBottom: 6,
-    textAlign: 'center',
-  },
-  emptyCaption: {
-    fontFamily: FONTS.body,
-    fontSize: 13,
-    color: COLORS.champagne,
-    lineHeight: 19,
-    textAlign: 'center',
   },
 });

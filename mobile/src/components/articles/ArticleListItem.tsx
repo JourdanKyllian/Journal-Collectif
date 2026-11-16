@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import Animated, { FadeInDown } from 'react-native-reanimated';
-import { Calendar, BookOpen } from 'lucide-react-native';
+import { Calendar, BookOpen, Bookmark } from 'lucide-react-native';
 
 import { COLORS, FONTS } from '@/theme/tokens';
 import { MobileArticle } from '@/lib/mock-data';
@@ -13,9 +13,16 @@ import { resolveImageUrl } from '@/lib/api';
 interface ArticleListItemProps {
   item: MobileArticle;
   index: number;
+  isFavorite?: boolean;
+  onToggleFavorite?: (id: number) => void;
 }
 
-export default function ArticleListItem({ item, index }: ArticleListItemProps) {
+export default function ArticleListItem({
+  item,
+  index,
+  isFavorite = false,
+  onToggleFavorite,
+}: ArticleListItemProps) {
   const handlePress = () => {
     if (Platform.OS !== 'web') {
       Haptics.selectionAsync();
@@ -55,6 +62,26 @@ export default function ArticleListItem({ item, index }: ArticleListItemProps) {
         <View style={styles.listBody}>
           <View style={styles.listCategoryRow}>
             <Text style={styles.listCategory}>{item.categorie.libelle}</Text>
+            {onToggleFavorite && (
+              <Pressable
+                onPress={(e) => {
+                  e.stopPropagation();
+                  if (Platform.OS !== 'web') {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }
+                  onToggleFavorite(item.id);
+                }}
+                hitSlop={8}
+                accessibilityLabel={isFavorite ? 'Retirer des favoris' : 'Ajouter aux favoris hors-ligne'}
+                style={styles.bookmarkBtn}
+              >
+                <Bookmark
+                  size={15}
+                  color={isFavorite ? COLORS.or : COLORS.champagne}
+                  fill={isFavorite ? COLORS.or : 'none'}
+                />
+              </Pressable>
+            )}
           </View>
           <Text style={styles.listTitle} numberOfLines={2}>
             {item.titre}
@@ -116,7 +143,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   listCategoryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 4,
+  },
+  bookmarkBtn: {
+    padding: 2,
   },
   listCategory: {
     fontFamily: FONTS.bodySemiBold,
