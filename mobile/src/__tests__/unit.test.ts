@@ -4,6 +4,8 @@ import { AFFLUENCE_CONFIG, INITIAL_PARKINGS } from '@/lib/services/parking.servi
 import { LIGHT_THEME, DARK_THEME } from '@/context/ThemeContext';
 import { COLORS } from '@/theme/tokens';
 import { MOCK_ARTICLES } from '@/lib/mock-data';
+import { SyncQueueService } from '@/lib/services/sync-queue.service';
+import { AiAssistantService } from '@/lib/services/ai-assistant.service';
 
 // Mock pour expo-secure-store
 const storeMock = new Map<string, string>();
@@ -123,6 +125,42 @@ describe('Mobile Unit Tests (Suite d\'évaluation finale)', () => {
         expect(article.categorie).toHaveProperty('libelle');
         expect(article.published_at).toBeDefined();
       }
+    });
+  });
+
+  // ==========================================
+  // 5. Tests Bonus : Synchronisation Hors-Ligne & IA Citoyenne
+  // ==========================================
+  describe('Bonus Barème : Hors-ligne synchronisé & Fonction IA', () => {
+    test('13. SyncQueueService : met en file d\'attente chiffrée les contributions réalisées en mode hors-ligne', async () => {
+      const item = await SyncQueueService.enqueue({
+        type: 'article_submission',
+        citySlug: 'chalons-en-champagne',
+        payload: { titre: 'Brocante citoyenne', contenu: 'Super événement' },
+      });
+      expect(item.id).toBeDefined();
+      expect(item.type).toBe('article_submission');
+
+      const count = await SyncQueueService.getPendingCount();
+      expect(count).toBeGreaterThanOrEqual(1);
+
+      await SyncQueueService.remove(item.id);
+      const after = await SyncQueueService.getPendingCount();
+      expect(after).toBe(0);
+    });
+
+    test('14. AiAssistantService : raffine la syntaxe et le vocabulaire citoyen sans inventer ni changer le sens (0 € de coût)', async () => {
+      const rawDraft = "il y a eu pas mal de gens à la fête et c'est super important pour le quartier.";
+      const refined = await AiAssistantService.refineCitizenArticle({
+        title: 'fête de quartier.',
+        content: rawDraft,
+      });
+
+      expect(refined.improvedText).toContain('s\'est déroulé');
+      expect(refined.improvedText).toContain('de nombreux');
+      expect(refined.improvedTitle).toBe('Fête de quartier');
+      expect(refined.highlights.length).toBeGreaterThan(0);
+      expect(refined.correctionsCount).toBeGreaterThan(0);
     });
   });
 });

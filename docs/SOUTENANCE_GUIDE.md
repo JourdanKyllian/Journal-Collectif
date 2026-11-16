@@ -27,23 +27,28 @@ Ce document fournit l'ensemble des éléments exigés par le barème officiel du
    - Se reconnecter avec `superadmin@journal.fr`.
    - Montrer l'apparition du bandeau **« Studio d'Administration »** et l'accès aux écrans de modération réservés aux gestionnaires de la commune.
 
-### [01:00 - 02:00] 2. Les 2 Fonctionnalités du Téléphone (Position & Notifications)
+### [01:00 - 02:00] 2. Les 2 Fonctionnalités du Téléphone & Les Bonus Actifs
 1. **Position géographique (GPS / Haversine)** :
    - Montrer le bandeau `DetectedCityBanner` (« Vous semblez être à Châlons-en-Champagne ») calculé en direct par rapport aux coordonnées du centre-ville.
    - Ouvrir le sélecteur de commune (`CitySelectorSheet`) et changer d'édition pour montrer l'isolation multi-tenant.
 2. **Notifications & Alertes Mairie** :
    - Déclencher ou pointer le bandeau d'alerte travaux/urgence de la mairie sous le header (`AlertBanner`).
+3. **Bonus IA Embarquée (Relecture citoyenne & clarté)** :
+   - Ouvrir la modal de proposition d'article (`Proposer un article`).
+   - Rédiger un court texte avec répétitions ou langage familier.
+   - Cliquer sur le bouton **« ✨ Améliorer la clarté & syntaxe (IA) »** : montrer la modal d'arbitrage (l'IA propose une reformulation soignée sans inventer de faits, l'utilisateur valide). Coût : **0 €** (moteur local éthique).
 
 ### [02:00 - 03:15] 3. Les 5 États des Écrans de Données & La Feature Offline
 1. **État 1 (Contenu nominal)** : Montrer la `HeroCard` cinématique avec image plein format et la liste des articles.
 2. **État 2 (Chargement)** : Lors du changement de filtre, observer les skeletons shimmer non bloquants (`ArticleCardSkeleton`).
 3. **État 3 (Vide)** : Sélectionner une catégorie sans article pour faire apparaître l'animation `EmptyState` et le bouton d'action contextuel.
 4. **État 4 (Erreur)** : Montrer le composant `ErrorState` avec bouton `[🔄 Réessayer]` et retour haptique.
-5. **État 5 (Hors-ligne / Cache)** :
+5. **État 5 (Hors-ligne / Cache) & Synchronisation Différée (Bonus Barème)** :
    - Mettre 2 articles en favoris via le bouton marque-page.
    - Basculer le téléphone en **Mode Avion**.
    - Tirer vers le bas (pull-to-refresh) : le badge bascule instantanément en `⚡ Hors-ligne (cache)` et la pilule **« ⭐ Favoris »** permet de lire les articles stockés dans le trousseau sécurisé (`SecureStore`).
-   - Désactiver le Mode Avion pour rétablir la connexion.
+   - Remplir un signalement ou un article en mode avion : l'app notifie « Enregistré hors-ligne ! 💾 ».
+   - Désactiver le Mode Avion : dès le rétablissement de la connexion, le `SyncQueueService` synchronise la contribution avec l'API et affiche le toast « ✅ Synchronisation réussie ! ».
 
 ### [03:15 - 04:15] 4. Profil Personnalisé, Switchs & Mode Sombre
 1. **Onglet Profil & Statistiques** : Montrer les 2 compteurs réels (nombre de contributions et édition communale active).

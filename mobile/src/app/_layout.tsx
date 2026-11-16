@@ -16,6 +16,7 @@ import { useJuryNotificationDemo } from '@/hooks/useJuryNotificationDemo';
 import { CityProvider } from '@/context/CityContext';
 import { AuthProvider } from '@/context/AuthContext';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
+import { SyncQueueService } from '@/lib/services/sync-queue.service';
 import Toast from 'react-native-toast-message';
 import { toastConfig } from '@/components/common/CustomToast';
 
@@ -23,6 +24,11 @@ SplashScreen.preventAutoHideAsync();
 
 function RootNavigation() {
   const { isDark, theme } = useTheme();
+
+  useEffect(() => {
+    // Synchronisation automatique des actions en attente enregistrées hors-ligne
+    SyncQueueService.syncPendingActions().catch(() => {});
+  }, []);
 
   return (
     <>

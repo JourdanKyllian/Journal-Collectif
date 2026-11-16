@@ -31,6 +31,7 @@ import { COLORS, FONTS } from '@/theme/tokens';
 import Toast from 'react-native-toast-message';
 import { useCity } from '@/context/CityContext';
 import { uploadImageMobile } from '@/lib/api';
+import { SyncQueueService } from '@/lib/services/sync-queue.service';
 
 export default function DeclareLostModalScreen() {
   const { currentCity } = useCity();
@@ -139,13 +140,27 @@ export default function DeclareLostModalScreen() {
       });
       router.back();
     } catch {
+      // BONUS DU BARÈME : HORS-LIGNE SYNCHRONISÉ
+      await SyncQueueService.enqueue({
+        type: 'lost_object_declaration',
+        citySlug: currentCity.slug,
+        payload: {
+          type,
+          nomObjet: nomObjet.trim(),
+          lieu: lieu.trim(),
+          date,
+          description: description.trim(),
+          contact: contact.trim(),
+        },
+      });
+
       if (Platform.OS !== 'web') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
       Toast.show({
         type: 'info',
-        text1: 'Signalement enregistré ✨',
-        text2: `Enregistré en mode local pour la commune de ${currentCity.shortName}.`,
+        text1: 'Enregistré hors-ligne ! 💾',
+        text2: `Votre déclaration sera synchronisée avec la mairie de ${currentCity.shortName}.`,
       });
       router.back();
     } finally {

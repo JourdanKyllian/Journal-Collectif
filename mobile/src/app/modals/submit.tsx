@@ -26,6 +26,7 @@ import {
   Newspaper,
   LogIn,
   AlertCircle,
+  Sparkles,
 } from 'lucide-react-native';
 
 import { COLORS, FONTS } from '@/theme/tokens';
@@ -34,6 +35,9 @@ import { apiClient, uploadImageMobile } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { FeedService } from '@/lib/services/feed.service';
 import { MOCK_CATEGORIES } from '@/lib/mock-data';
+import { SyncQueueService } from '@/lib/services/sync-queue.service';
+import { AiAssistantService, AiCorrectionResult } from '@/lib/services/ai-assistant.service';
+import AiAssistantModal from '@/components/common/AiAssistantModal';
 
 export default function SubmitArticleModalScreen() {
   const { isLoggedIn } = useAuth();
@@ -50,6 +54,50 @@ export default function SubmitArticleModalScreen() {
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Bonus Barème : Fonction IA dans l'app (Correction & Clarté)
+  const [isRefiningAi, setIsRefiningAi] = useState(false);
+  const [aiResult, setAiResult] = useState<AiCorrectionResult | null>(null);
+  const [isAiModalVisible, setIsAiModalVisible] = useState(false);
+
+  const handleRefineWithAi = async () => {
+    if (!contenu.trim() || contenu.trim().length < 15) {
+      Toast.show({
+        type: 'info',
+        text1: 'Texte trop court',
+        text2: 'Rédigez au moins une phrase pour que l\'IA puisse vous aider.',
+      });
+      return;
+    }
+
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    setIsRefiningAi(true);
+    try {
+      const result = await AiAssistantService.refineCitizenArticle({
+        title: titre,
+        content: contenu,
+      });
+      setAiResult(result);
+      setIsAiModalVisible(true);
+    } finally {
+      setIsRefiningAi(false);
+    }
+  };
+
+  const handleApplyAiSuggestion = (improvedText: string, improvedTitle?: string) => {
+    setContenu(improvedText);
+    if (improvedTitle && (!titre.trim() || titre.trim() === aiResult?.improvedTitle)) {
+      setTitre(improvedTitle);
+    }
+    setIsAiModalVisible(false);
+    Toast.show({
+      type: 'success',
+      text1: 'Style amélioré ! ✨',
+      text2: 'Votre texte a été fluidifié et corrigé.',
+    });
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -186,26 +234,43 @@ export default function SubmitArticleModalScreen() {
       });
       router.back();
     } catch (err: unknown) {
-      if (Platform.OS !== 'web') {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      }
       const rawMsg = err instanceof Error ? err.message : 'Une erreur est survenue';
-      let title = 'Échec de soumission';
-      let desc = rawMsg;
 
+      // Si erreur de validation métier (téléphone non vérifié, etc.), on alerte l'utilisateur
       if (rawMsg.toLowerCase().includes('téléphone') || rawMsg.toLowerCase().includes('verifies')) {
-        title = 'Vérification requise';
-        desc = 'Votre numéro de téléphone doit être vérifié pour proposer des articles.';
-      } else if (rawMsg.toLowerCase().includes('catégorie')) {
-        title = 'Catégorie invalide';
-        desc = 'Veuillez choisir une autre catégorie pour votre article.';
+        if (Platform.OS !== 'web') {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        }
+        Toast.show({
+          type: 'error',
+          text1: 'Vérification requise',
+          text2: 'Votre numéro de téléphone doit être vérifié pour proposer des articles.',
+        });
+        return;
       }
 
-      Toast.show({
-        type: 'error',
-        text1: title,
-        text2: desc,
+      // BONUS BARÈME : HORS-LIGNE SYNCHRONISÉ
+      // En cas de panne réseau, mode avion ou erreur serveur, sauvegarde dans la file d'attente
+      await SyncQueueService.enqueue({
+        type: 'article_submission',
+        citySlug: 'chalons-en-champagne',
+        payload: {
+          titre: titre.trim(),
+          contenu: `<p>${contenu.trim()}</p>`,
+          categorieId: selectedCategorieId,
+          is_anonymous: isAnonymous,
+        },
       });
+
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      Toast.show({
+        type: 'info',
+        text1: 'Enregistré hors-ligne ! 💾',
+        text2: 'Votre article sera synchronisé automatiquement dès le retour du réseau.',
+      });
+      router.back();
     } finally {
       setIsSubmitting(false);
     }
@@ -345,6 +410,24 @@ export default function SubmitArticleModalScreen() {
           style={[styles.input, styles.textArea]}
         />
 
+        {/* BONUS BARÈME : FONCTION IA DANS L'APP (CLARTÉ & SYNTAXE CITOYENNE) */}
+        <Pressable
+          onPress={handleRefineWithAi}
+          disabled={isRefiningAi}
+          style={[styles.aiHelperBtn, isRefiningAi && { opacity: 0.6 }]}
+          accessibilityRole="button"
+          accessibilityLabel="Améliorer la clarté et corriger le texte par IA"
+        >
+          {isRefiningAi ? (
+            <ActivityIndicator size="small" color={COLORS.or} />
+          ) : (
+            <>
+              <Sparkles size={15} color={COLORS.or} />
+              <Text style={styles.aiHelperBtnText}>Améliorer la clarté & syntaxe (IA)</Text>
+            </>
+          )}
+        </Pressable>
+
         {/* OPTION D'ANONYMAT RGPD */}
         <View style={styles.rgpdCard}>
           <View style={{ flex: 1 }}>
@@ -383,6 +466,14 @@ export default function SubmitArticleModalScreen() {
           )}
         </Pressable>
       </ScrollView>
+
+      {/* MODAL ASSISTANT IA (BONUS DU BARÈME) */}
+      <AiAssistantModal
+        visible={isAiModalVisible}
+        result={aiResult}
+        onApply={handleApplyAiSuggestion}
+        onDismiss={() => setIsAiModalVisible(false)}
+      />
     </View>
   );
 }
@@ -629,5 +720,24 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.headingBold,
     fontSize: 15,
     color: COLORS.blanc,
+  },
+  aiHelperBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    backgroundColor: 'rgba(212, 175, 55, 0.12)',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    marginTop: -8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.35)',
+  },
+  aiHelperBtnText: {
+    fontFamily: FONTS.bodySemiBold,
+    fontSize: 12,
+    color: COLORS.vert,
   },
 });

@@ -7,6 +7,7 @@ module.exports = {
   moduleNameMapper: {
     '^react-native$': '<rootDir>/src/__mocks__/react-native.ts',
     '^react-native-svg$': '<rootDir>/src/__mocks__/react-native-svg.ts',
+    '^react-native-toast-message$': '<rootDir>/src/__mocks__/react-native-toast-message.ts',
     '^expo-file-system$': '<rootDir>/src/__mocks__/expo-file-system.ts',
     '^@/(.*)$': '<rootDir>/src/$1',
   },
