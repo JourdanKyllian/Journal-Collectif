@@ -6,6 +6,7 @@ module.exports = {
   moduleDirectories: ['node_modules', '<rootDir>/src'],
   moduleNameMapper: {
     '^react-native$': '<rootDir>/src/__mocks__/react-native.ts',
+    '^react-native-svg$': '<rootDir>/src/__mocks__/react-native-svg.ts',
     '^expo-file-system$': '<rootDir>/src/__mocks__/expo-file-system.ts',
     '^@/(.*)$': '<rootDir>/src/$1',
   },
@@ -22,5 +23,5 @@ module.exports = {
       },
     ],
   },
-  testMatch: ['<rootDir>/src/**/__tests__/**/*.test.ts'],
+  testMatch: ['<rootDir>/src/**/__tests__/**/*.test.{ts,tsx}'],
 };

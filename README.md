@@ -1,39 +1,92 @@
-# Évaluation Technique & Architecture (TP DevOps/Qualité)
+# 📱 Collectif Territorial - Journal Local & Services Citoyens
 
-Ce document détaille les choix architecturaux, les pratiques de code et la configuration de l'infrastructure mis en place pour répondre aux exigences de qualité logicielle.
+Plateforme territoriale citoyenne multi-tenant composée d'une **application mobile native (Expo SDK 57 / React Native 0.86)**, d'un **backend modulaire (NestJS 11 / Node 22 LTS / Prisma)** et d'une base de données **PostgreSQL hébergée sur Supabase**.
 
-## 1. Architecture & Design Patterns
+---
 
-L'application backend est construite avec le framework **NestJS**, imposant naturellement une architecture modulaire et une forte ségrégation des responsabilités.
+## 🚀 1. Installation & Démarrage Rapide
 
-- **Pattern Repository :** L'accès aux données PostgreSQL est abstrait via TypeORM. Cela permet de séparer la logique métier (Services) des requêtes SQL, facilitant l'écriture de tests unitaires avec des mocks (ex: `mockArticleRepository`).
-- **Pattern Dependency Injection (DI) :** Utilisé de manière intensive via les `@Injectable()` de NestJS pour découpler les contrôleurs des services, garantissant une meilleure testabilité et maintenabilité.
-- **Pattern Singleton :** L'instance de la base de données et le client Redis sont gérés comme des singletons au sein du cycle de vie de l'application.
+### Prérequis
+- Node.js version 20 ou 22 LTS
+- npm version 10+
+- Expo Go ou Xcode (iOS) / Android Studio (Android) pour l'exécution mobile
 
-## 2. Qualité Logicielle & Tests
+### Application Mobile (`/mobile`)
+```bash
+# Se déplacer dans le dossier mobile
+cd mobile
 
-- **Mode Strict TypeScript :** Le projet est configuré en mode strict (`strict: true`), évitant les erreurs d'assignation au runtime.
-- **Linter & Formatter :** Utilisation d'ESLint et de Prettier.
-- **Pre-commit Hooks (Husky) :** Un pipeline local bloque tout commit ne respectant pas les règles de linting (`npm run lint`), empêchant la dette technique d'atteindre le dépôt distant.
-- **Tests :** L'application intègre des tests unitaires (`.spec.ts`) validant la logique métier des services indépendamment de l'infrastructure de données.
+# Installer les dépendances
+npm install
 
-## 3. Conteneurisation & Sécurité (Docker)
+# Lancer le serveur de développement Expo
+npm run start
 
-L'ensemble de la stack (Frontend, Backend, Postgres, Redis, Nginx) est orchestré via un `docker-compose.yml` centralisé. Un soin particulier a été apporté à l'optimisation et à la sécurité des images.
+# Exécuter sur simulateur ou téléphone
+npm run ios       # Lancement sur iOS (Xcode / simulateur)
+npm run android   # Lancement sur Android
 
-**Choix de conception du `Dockerfile` (Backend & Frontend) :**
-- **Multi-stage Build :** Séparation des étapes de dépendances, de compilation et de production pour réduire drastiquement le poids de l'image finale.
-- **Distroless (`gcr.io/distroless/nodejs22-debian12:nonroot`) :** L'image finale ne contient ni shell, ni gestionnaire de paquets, ce qui réduit considérablement la surface d'attaque en production (mitigation des CVE au niveau de l'OS).
-- **Privilèges Restreints :** Le conteneur s'exécute avec l'utilisateur `nonroot` (UID 65532), évitant qu'une potentielle faille applicative ne donne un accès root au conteneur.
+# Lancer la suite de tests (Unitaires, Composants & E2E)
+npm test
 
-## 4. Pipeline CI/CD (GitHub Actions)
+# Vérifications de qualité de code
+npm run typecheck # Validation stricte TypeScript (0 erreur)
+npm run lint      # Validation ESLint Expo
+```
 
-Un workflow automatisé (`.github/workflows/ci.yml`) est déclenché à chaque push ou Pull Request sur la branche `main`.
+### Backend d'API (`/backend`)
+```bash
+cd backend
+npm install
+npm run start:dev
 
-1. **Build & Test :** Installation propre des dépendances (`npm ci`), compilation (`npm run build`) et exécution de la suite de tests métier.
-2. **Analyse de Vulnérabilités (Trivy) :** Le pipeline intègre l'action `aquasecurity/trivy-action` pour scanner les failles de sécurité de l'image (de niveau HIGH et CRITICAL). En cas de faille détectée, le pipeline échoue.
+# Lancer les tests unitaires et d'intégration backend (219 tests)
+npm test
+```
 
-## 5. Observabilité & Monitoring
+---
 
-- **Health Checks :** Mise en place d'une route API `GET /api/v1/health` vérifiant de manière asynchrone l'état de la connexion PostgreSQL, du client Redis et calculant l'uptime de l'API. Ce point d'entrée permet à l'orchestrateur de vérifier si le conteneur est réellement apte à traiter les requêtes.
-- **Logs Structurés (JSON) :** Intégration de `nestjs-pino` et `pino-http`. Le système remplace le logger standard par une sortie standardisée au format JSON, comprenant le contexte, la latence des requêtes et les statuts HTTP, facilitant ainsi l'ingestion par des outils de monitoring (ex: stack ELK ou Datadog).
+## 🏛️ 2. Architecture du Projet
+
+Le projet suit une architecture modulaire découplée et sécurisée par conception :
+
+```
+Journal-Collectif/
+├── mobile/                   # Application Mobile React Native (Expo SDK 57)
+│   ├── src/
+│   │   ├── app/              # Navigation par fichiers (Expo Router)
+│   │   ├── components/       # Composants UI réutilisables (DRY)
+│   │   ├── context/          # Contextes globaux (Auth, City Multi-Tenant, Theme)
+│   │   ├── lib/services/     # Services métier (Location, Offline, Feed, Parking)
+│   │   ├── theme/            # Tokens de design (Couleurs, Typographies, Thèmes)
+│   │   └── __tests__/        # Tests unitaires, composants & E2E
+│   └── jest.config.js        # Configuration du runner Jest
+├── backend/                  # API REST modulaire NestJS
+│   ├── src/                  # Modules métier (Auth, Article, Tenant, Parking...)
+│   └── Dockerfile            # Dockerfile multi-stage Distroless Stage 3
+└── docs/                     # Dossier d'évaluation & documentation
+    ├── ARCHITECTURE_DECISIONS.md  # Justification détaillée des choix techniques
+    ├── SECURITY_CHECKLIST.md      # Checklist sécurité & conformité RGPD
+    ├── AGENTS.md                  # Documentation IA (prompts, skills, MCP, méthode)
+    └── SOUTENANCE_GUIDE.md        # Script de démo (5 min), slides et synthèse
+```
+
+---
+
+## ⚙️ 3. Choix Techniques & Décisions Clés
+
+- **Expo SDK 57 & Expo Router** : Navigation typée par système de fichiers, réduisant le boilerplate et garantissant la parité native iOS/Android.
+- **Sécurité Matérielle (SecureStore)** : Les sessions et favoris sont chiffrés sur le matériel via iOS Keychain (Secure Enclave) et Android Keystore.
+- **Architecture Offline-First & 5 États UI** : Mise en cache locale automatique par commune. Tous les écrans de flux gèrent les 5 états obligatoires : *Contenu*, *Chargement* (Skeleton), *Vide* (`EmptyState`), *Erreur* (`ErrorState` avec bouton Réessayer), et *Hors-ligne* (Pastille dégradée).
+- **Conformité RGPD** : Droit à l'effacement direct (`DELETE /auth/me`), modal dédiée de politique de confidentialité et minimisation stricte des données.
+- **Docker Distroless en Production** : Image finale sans shell (`/bin/sh`) ni gestionnaire de paquets pour réduire la surface d'attaque de 95%.
+- **Déploiement Blue/Green Zero-Downtime** : Bascule de trafic orchestrée après validation de l'endpoint `/health`.
+
+---
+
+## 📚 4. Liens Utiles & Documentation d'Évaluation
+
+- [Choix d'Architecture Détaillés](docs/ARCHITECTURE_DECISIONS.md)
+- [Checklist de Sécurité & RGPD](docs/SECURITY_CHECKLIST.md)
+- [Documentation IA (AGENTS.md)](docs/AGENTS.md)
+- [Guide de Soutenance & Script Chronométré](docs/SOUTENANCE_GUIDE.md)

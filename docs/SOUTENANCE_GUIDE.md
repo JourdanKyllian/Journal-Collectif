@@ -4,49 +4,57 @@ Ce document fournit l'ensemble des éléments exigés par le barème officiel du
 
 ---
 
-## ⏱️ Déroulé Officiel de la Soutenance (10 minutes)
+## ⏱️ Déroulé Officiel de la Soutenance (10 minutes, Seul)
 | Durée | Phase | Objectif |
 | :--- | :--- | :--- |
-| **2 min 30 s** | **Démonstration live** | Parcours fluide sur téléphone (connexion, géoloc, offline, profil, 6 états) |
-| **3 min 00 s** | **Retour technique** | Présentation des 5 slides techniques et choix d'architecture |
-| **2 min 00 s** | **Questions du jury** | Justification des décisions (sécurité, conteneurisation, RGPD, multi-tenancy) |
+| **5 min 00 s** | **Démo sur un vrai téléphone** | Parcours fluide : Connexion, géoloc, notifications, offline, profil, 5 états UI |
+| **3 min 00 s** | **Revue technique** | Architecture globale, données et règles d'accès (Multi-tenancy & Sécurité) |
+| **2 min 00 s** | **Questions du jury** | Justification des décisions (Docker Distroless, RGPD, choix techniques) |
 
 ---
 
-## 📱 Partie 1 : Script de Démo Chronométré (2 min 30 s)
+## 📱 Partie 1 : Script de Démo Chronométré (5 minutes)
 
 > [!TIP]
 > **Conseil pratique pour la démo** : Mettez votre téléphone en luminosité haute et activez le mode "Ne pas déranger".
 
-### [00:00 - 00:30] Introduction & Détection Intelligente du Territoire
-1. **Lancement de l'application** : Montrer le splash screen et l'arrivée fluide sur le fil d'actualité de Châlons-en-Champagne.
-2. **Détection de localisation** : Montrer le bandeau `DetectedCityBanner` (« Vous semblez être à Châlons-en-Champagne ») qui calcule la distance via l'algorithme d'Haversine.
-3. **Changement d'édition** : Ouvrir le sélecteur de commune (`CitySelectorSheet`) et basculer sur une autre édition pour prouver le multi-tenancy.
+### [00:00 - 01:00] 1. Connexion & Règles d'accès (2 comptes de rôles distincts)
+1. **Lancement de l'application** : Montrer le splash screen et l'accueil.
+2. **Connexion Compte 1 (Citoyen / Lecteur)** :
+   - Ouvrir la modal de connexion (`visiteur.complet@exemple.fr`).
+   - Montrer l'accès aux actualités, signalement d'objets perdus et consultation des parkings en temps réel.
+3. **Changement vers Compte 2 (Gérant / SuperAdmin)** :
+   - Se reconnecter avec `superadmin@journal.fr`.
+   - Montrer l'apparition du bandeau **« Studio d'Administration »** et l'accès aux écrans de modération réservés aux gestionnaires de la commune.
 
-### [00:30 - 01:05] Navigation, 6 États UI & Recherche
-1. **Feed d'actualités** : Montrer la `HeroCard` cinématique avec l'image plein format et le dégradé.
-2. **Total de lignes** : Pointer le badge `DataCountBadge` indiquant par ex. « 8 articles ».
-3. **Filtres de catégories** : Cliquer sur les pills horizontales (Culture, Travaux, Événements).
-4. **État vide** : Choisir une catégorie sans article pour faire apparaître l'animation `EmptyState` avec bouton d'action direct.
-5. **Pull-to-Refresh** : Tirer vers le bas (`RefreshControl`) pour illustrer l'état rafraîchissement partiel sans blocage.
+### [01:00 - 02:00] 2. Les 2 Fonctionnalités du Téléphone (Position & Notifications)
+1. **Position géographique (GPS / Haversine)** :
+   - Montrer le bandeau `DetectedCityBanner` (« Vous semblez être à Châlons-en-Champagne ») calculé en direct par rapport aux coordonnées du centre-ville.
+   - Ouvrir le sélecteur de commune (`CitySelectorSheet`) et changer d'édition pour montrer l'isolation multi-tenant.
+2. **Notifications & Alertes Mairie** :
+   - Déclencher ou pointer le bandeau d'alerte travaux/urgence de la mairie sous le header (`AlertBanner`).
 
-### [01:05 - 01:45] La Fonctionnalité Hors-Ligne (Offline First)
-1. **Mise en favoris** : Touchez l'icône marque-page sur 2 articles différents (retour haptique immédiat).
-2. **Filtre Favoris** : Cliquer sur la pilule **« ⭐ Favoris »** pour isoler les articles sauvegardés.
-3. **Démonstration Mode Avion** :
-   - Basculer le téléphone en **Mode Avion** (ou couper le Wi-Fi/données).
-   - Rafraîchir l'écran : le badge bascule instantanément en `⚡ Hors-ligne (cache)`. Les articles restent parfaitement consultables grâce au cache local chiffré (`SecureStore`).
-   - Rétablir la connexion réseau.
+### [02:00 - 03:15] 3. Les 5 États des Écrans de Données & La Feature Offline
+1. **État 1 (Contenu nominal)** : Montrer la `HeroCard` cinématique avec image plein format et la liste des articles.
+2. **État 2 (Chargement)** : Lors du changement de filtre, observer les skeletons shimmer non bloquants (`ArticleCardSkeleton`).
+3. **État 3 (Vide)** : Sélectionner une catégorie sans article pour faire apparaître l'animation `EmptyState` et le bouton d'action contextuel.
+4. **État 4 (Erreur)** : Montrer le composant `ErrorState` avec bouton `[🔄 Réessayer]` et retour haptique.
+5. **État 5 (Hors-ligne / Cache)** :
+   - Mettre 2 articles en favoris via le bouton marque-page.
+   - Basculer le téléphone en **Mode Avion**.
+   - Tirer vers le bas (pull-to-refresh) : le badge bascule instantanément en `⚡ Hors-ligne (cache)` et la pilule **« ⭐ Favoris »** permet de lire les articles stockés dans le trousseau sécurisé (`SecureStore`).
+   - Désactiver le Mode Avion pour rétablir la connexion.
 
-### [01:45 - 02:30] Profil, Personnalisation, Switchs & RGPD
-1. **Onglet Profil** : Montrer les 2 statistiques réelles (contributions & édition active).
-2. **Onglet Identité** : Montrer les champs modifiables (Prénom, Nom, Bio avec compteur /250) et la palette de sélection de la couleur d'avatar.
-3. **Onglet Préférences** :
-   - Actionner le **Switch 1 : Alertes Mairie** (vibration haptique + Toast contextuel).
-   - Actionner le **Switch 2 : Mode Sombre** -> bascule instantanée de toute l'application en dark theme.
-4. **Onglet Sécurité (RGPD)** :
-   - Cliquer sur le lien **« Politique de confidentialité & RGPD »** (ouverture du modal avec les 4 articles de conformité).
-   - Montrer la **Zone de Danger** avec le bouton rouge `Supprimer mon compte`. Cliquer pour faire apparaître l'alerte native de confirmation sécurisée.
+### [03:15 - 04:15] 4. Profil Personnalisé, Switchs & Mode Sombre
+1. **Onglet Profil & Statistiques** : Montrer les 2 compteurs réels (nombre de contributions et édition communale active).
+2. **Onglet Identité** : Montrer les champs textuels modifiables (Nom, Prénom, Bio /250) et le sélecteur de couleur d'avatar.
+3. **Onglet Préférences & 2 Switchs** :
+   - **Switch 1 : Alertes Mairie** (vibration haptique + Toast confirmation).
+   - **Switch 2 : Mode Sombre** -> bascule instantanée de toute l'application en thème sombre.
+
+### [04:15 - 05:00] 5. Sécurité, RGPD & Clôture
+1. **Modal Politique de Confidentialité** : Ouvrir la politique RGPD rédigée en 4 articles.
+2. **Droit à l'effacement** : Pointer la zone de danger dans l'onglet Sécurité avec le bouton `Supprimer mon compte` et l'alerte native de confirmation.
 
 ---
 

@@ -8,7 +8,19 @@ export const StyleSheet = {
   absoluteFill: {},
 };
 
+export const View = (props: Record<string, unknown>) => props.children ?? null;
+export const Text = (props: Record<string, unknown>) => props.children ?? null;
+export const Pressable = (props: Record<string, unknown>) => props.children ?? null;
+
+export const Touchable = {
+  Mixin: {},
+};
+
 export default {
   Platform,
   StyleSheet,
+  View,
+  Text,
+  Pressable,
+  Touchable,
 };
