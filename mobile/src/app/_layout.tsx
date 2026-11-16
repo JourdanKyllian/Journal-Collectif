@@ -73,6 +73,13 @@ function RootNavigation() {
             animation: 'slide_from_bottom',
           }}
         />
+        <Stack.Screen
+          name="modals/privacy"
+          options={{
+            presentation: 'modal',
+            animation: 'slide_from_bottom',
+          }}
+        />
       </Stack>
       <Toast config={toastConfig} topOffset={54} />
     </>

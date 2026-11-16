@@ -10,7 +10,8 @@ import {
   Platform,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Key, Trash2 } from 'lucide-react-native';
+import { Key, Trash2, ShieldCheck, ChevronRight } from 'lucide-react-native';
+import { router } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { COLORS, FONTS } from '@/theme/tokens';
 
@@ -206,6 +207,25 @@ export default function ProfileSecurityTab({
           )}
         </Pressable>
       </View>
+
+      {/* LIEN POLITIQUE DE CONFIDENTIALITÉ (BONUS BARÈME) */}
+      <Pressable
+        onPress={() => {
+          if (Platform.OS !== 'web') {
+            Haptics.selectionAsync();
+          }
+          router.push('/modals/privacy' as never);
+        }}
+        style={styles.privacyLinkRow}
+        accessibilityRole="button"
+        accessibilityLabel="Consulter la politique de confidentialité"
+      >
+        <View style={styles.privacyLeft}>
+          <ShieldCheck size={18} color={COLORS.vert} />
+          <Text style={styles.privacyLinkText}>Politique de confidentialité & RGPD</Text>
+        </View>
+        <ChevronRight size={16} color={COLORS.champagne} />
+      </Pressable>
     </View>
   );
 }
@@ -321,6 +341,28 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: FONTS.bold,
     color: '#DC2626',
+  },
+  privacyLinkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: COLORS.blanc,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(142, 134, 113, 0.15)',
+    marginTop: 4,
+  },
+  privacyLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  privacyLinkText: {
+    fontFamily: FONTS.medium,
+    fontSize: 13,
+    color: COLORS.vert,
   },
   guestTitle: {
     fontSize: 15,
