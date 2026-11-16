@@ -29,6 +29,19 @@ interface AuthContextType {
   login: (email: string, pass: string) => Promise<boolean>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  updateProfile: (data: {
+    firstname?: string;
+    lastname?: string;
+    tel?: string;
+    bio?: string;
+    avatar_ref?: string;
+  }) => Promise<boolean>;
+  updateSecurity: (data: {
+    currentPassword: string;
+    newPassword?: string;
+    newEmail?: string;
+  }) => Promise<boolean>;
+  deleteAccount: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -116,6 +129,100 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateProfile = async (data: {
+    firstname?: string;
+    lastname?: string;
+    tel?: string;
+    bio?: string;
+    avatar_ref?: string;
+  }): Promise<boolean> => {
+    try {
+      await apiClient('/profile/me', {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+      await fetchProfile();
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      Toast.show({
+        type: 'success',
+        text1: 'Profil mis à jour',
+        text2: 'Vos modifications ont été enregistrées.',
+      });
+      return true;
+    } catch (err: unknown) {
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+      const message = err instanceof Error ? err.message : 'Erreur lors de la mise à jour';
+      Toast.show({
+        type: 'error',
+        text1: 'Échec de la mise à jour',
+        text2: message,
+      });
+      return false;
+    }
+  };
+
+  const updateSecurity = async (data: {
+    currentPassword: string;
+    newPassword?: string;
+    newEmail?: string;
+  }): Promise<boolean> => {
+    try {
+      await apiClient('/auth/security', {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      });
+      await fetchProfile();
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      Toast.show({
+        type: 'success',
+        text1: 'Sécurité mise à jour',
+        text2: 'Vos identifiants ont été modifiés.',
+      });
+      return true;
+    } catch (err: unknown) {
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+      const message = err instanceof Error ? err.message : 'Erreur lors de la mise à jour';
+      Toast.show({
+        type: 'error',
+        text1: 'Échec de la mise à jour',
+        text2: message,
+      });
+      return false;
+    }
+  };
+
+  const deleteAccount = async (): Promise<boolean> => {
+    try {
+      await apiClient('/auth/me', { method: 'DELETE' });
+      await logout();
+      Toast.show({
+        type: 'success',
+        text1: 'Compte supprimé',
+        text2: 'Vos données ont été supprimées définitivement.',
+      });
+      return true;
+    } catch (err: unknown) {
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+      const message = err instanceof Error ? err.message : 'Impossible de supprimer le compte';
+      Toast.show({
+        type: 'error',
+        text1: 'Action impossible',
+        text2: message,
+      });
+      return false;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -127,6 +234,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         refreshProfile: async () => {
           await fetchProfile();
         },
+        updateProfile,
+        updateSecurity,
+        deleteAccount,
       }}
     >
       {children}

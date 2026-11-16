@@ -481,4 +481,24 @@ export class AuthService {
 
     return { message: 'Paramètres de sécurité mis à jour avec succès.' };
   }
+
+  /**
+   * Supprime définitivement le compte de l'utilisateur courant (RGPD / App Store).
+   */
+  async deleteAccount(userId: number) {
+    const user = await this.usersRepository.findOne({
+      where: { id: userId },
+      relations: ['role'],
+    });
+    if (!user) throw new NotFoundException('Utilisateur introuvable.');
+
+    if (user.role?.libelle === 'super_admin' || user.is_platform_admin) {
+      throw new ForbiddenException(
+        'Le compte super administrateur ne peut pas être supprimé directement.',
+      );
+    }
+
+    await this.usersRepository.delete(userId);
+    return { message: 'Compte supprimé avec succès.' };
+  }
 }

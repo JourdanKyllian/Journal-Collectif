@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Patch,
   Post,
@@ -205,5 +206,14 @@ export class AuthController {
       updateSecurityDto,
       req.user.sessionId,
     );
+  }
+
+  /**
+   * Suppression de compte autonome (Conformité RGPD et App Store).
+   */
+  @UseGuards(JwtAuthGuard)
+  @Delete('me')
+  deleteAccount(@Req() req: RequestWithUser) {
+    return this.authService.deleteAccount(req.user.userId);
   }
 }
