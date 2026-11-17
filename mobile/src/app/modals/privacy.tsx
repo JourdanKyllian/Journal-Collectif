@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native';
 import { router } from 'expo-router';
-import { X, ShieldCheck, Lock, Trash2, EyeOff, FileText, Cookie } from 'lucide-react-native';
+import { X, ShieldCheck, Lock, Trash2, EyeOff, FileText } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { COLORS, FONTS } from '@/theme/tokens';
 import { useTheme } from '@/context/ThemeContext';
@@ -73,28 +73,11 @@ export default function PrivacyPolicyModal() {
           </Text>
         </View>
 
-        {/* Section 3 : Traceurs & Cookies */}
-        <View style={styles.section}>
-          <View style={styles.sectionTitleRow}>
-            <Cookie size={18} color={COLORS.vert} />
-            <Text style={styles.sectionTitle}>3. Traceurs & Données Locales (Cookies)</Text>
-          </View>
-          <Text style={styles.paragraph}>
-            • <Text style={styles.bold}>Traceurs Essentiels (Indispensables)</Text> : Utilisés pour
-            maintenir votre session connectée, sécuriser vos requêtes et retenir l&apos;édition communale
-            active. Ils ne requièrent pas de consentement et ne peuvent pas être désactivés sans
-            rendre l&apos;authentification inopérante.{'\n'}
-            • <Text style={styles.bold}>Traceurs Optionnels (Mesure citoyenne)</Text> : Mesures
-            anonymisées de lecture d&apos;articles permettant au collectif d&apos;adapter les rubriques.
-            Le refus des traceurs optionnels ne bloque aucune fonctionnalité de l&apos;application.
-          </Text>
-        </View>
-
-        {/* Section 4 : Sécurité du stockage */}
+        {/* Section 3 : Sécurité du stockage */}
         <View style={styles.section}>
           <View style={styles.sectionTitleRow}>
             <Lock size={18} color={COLORS.vert} />
-            <Text style={styles.sectionTitle}>4. Sécurité & Chiffrement</Text>
+            <Text style={styles.sectionTitle}>3. Sécurité & Chiffrement</Text>
           </View>
           <Text style={styles.paragraph}>
             Les échanges réseau sont protégés par un protocole TLS chiffré de bout en bout. Les
@@ -103,12 +86,12 @@ export default function PrivacyPolicyModal() {
           </Text>
         </View>
 
-        {/* Section 5 : Droit à l'effacement */}
+        {/* Section 4 : Droit à l'effacement */}
         <View style={styles.section}>
           <View style={styles.sectionTitleRow}>
             <Trash2 size={18} color="#DC2626" />
             <Text style={[styles.sectionTitle, { color: '#DC2626' }]}>
-              5. Droit à l&apos;Effacement (Droit à l&apos;Oubli)
+              4. Droit à l&apos;Effacement (Droit à l&apos;Oubli)
             </Text>
           </View>
           <Text style={styles.paragraph}>
