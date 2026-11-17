@@ -92,7 +92,6 @@ async function main() {
 
   const maestroProcess = spawn('maestro', args, {
     stdio: 'inherit',
-    shell: true,
   });
 
   maestroProcess.on('close', (code) => {

@@ -73,6 +73,8 @@ Quand vous commencez une tâche sur ce projet :
      - Audit de sécurité : 0 clé privée, 0 secret, 0 build folder dans le git history.
      - Ajout de `accessibilityLabel` et `testID` sur `CustomTabBar.tsx` et `ProfileHeader.tsx` pour permettre l'interaction déterministe des robots de tests E2E (Maestro).
      - Flow E2E (`mobile/.maestro/citizen-flow.yaml`) stabilisé avec des `extendedWaitUntil` tolérants aux démarrages à froid.
+     - Création du script de pré-vol intelligent ([`mobile/scripts/run-maestro.js`](file:///Users/kyllianjourdan/projet/Collectif/Journal-Collectif/mobile/scripts/run-maestro.js)) vérifiant en 0.1s l'état du simulateur/Metro avant de lancer Maestro.
+     - Alignement du scénario E2E ([`mobile/.maestro/citizen-flow.yaml`](file:///Users/kyllianjourdan/projet/Collectif/Journal-Collectif/mobile/.maestro/citizen-flow.yaml)) avec les libellés réels des écrans (« Objets Perdus », « Connexion »).
 * **Fichiers modifiés / créés :**
   - `frontend/src/app/(visitor)/cgu/page.tsx`
   - `frontend/src/app/(visitor)/politique-de-confidentialite/page.tsx`
