@@ -1,3 +1,5 @@
+<ai_handoff_registry version="1.0">
+
 # 🤝 Registre de Passation Inter-IA & Journal de Bord (AI_HANDOFF.md)
 
 > **Document de Référence pour la Collaboration Multi-IA**  
@@ -6,6 +8,7 @@
 
 ---
 
+<project_health status="operational" last_checked="2026-11-17">
 ## 1. État de Santé Actuel du Projet (Statut de Référence)
 
 | Composant | Technologie | État des Tests & Linters | Statut |
@@ -13,13 +16,15 @@
 | **Backend API** | NestJS 10, TypeORM, PostgreSQL, Redis | `npm run test` ➔ **26 suites, 219 tests passés** (0 échec) <br>`npm run lint` ➔ **0 erreur** | ✅ 100% Opérationnel |
 | **Mobile App** | Expo SDK 57, React Native 0.79, Expo Router | `npm test` ➔ **17 tests passés** (14 unitaires, 2 composants, 1 E2E) <br>`npm run typecheck` ➔ **0 erreur** <br>`npm run lint` ➔ **0 erreur, 0 warning** | ✅ 100% Opérationnel |
 | **Frontend Web** | Next.js 15+, Tailwind CSS, Shadcn | `npm run lint` ➔ **0 erreur** | ✅ 100% Opérationnel |
+</project_health>
 
 ---
 
+<protocol_directives priority="critical">
 ## 2. Protocole Obligatoire pour Toute IA Prenant le Relais
 
 Quand vous commencez une tâche sur ce projet :
-1. **Lisez ce fichier (`docs/AI_HANDOFF.md`)** pour savoir exactement où en est le projet sans explorer le code à l'aveugle.
+1. **Lisez ce fichier (`docs/AI_HANDOFF.md`)** pour connaître immédiatement l'état du code sans exploration superflue.
 2. **Consultez la configuration locale ciblée** :
    - Côté Mobile ➔ [`mobile/AGENTS.md`](file:///Users/kyllianjourdan/projet/Collectif/Journal-Collectif/mobile/AGENTS.md)
    - Côté Web ➔ [`frontend/AGENTS.md`](file:///Users/kyllianjourdan/projet/Collectif/Journal-Collectif/frontend/AGENTS.md)
@@ -29,10 +34,12 @@ Quand vous commencez une tâche sur ce projet :
    - Backend : `npm --prefix backend test`
    - Mobile : `npm --prefix mobile test && npm --prefix mobile run typecheck`
    - Frontend : `npm --prefix frontend run lint`
-5. **Inscrivez votre entrée** dans la section [3. Journal de Bord des Interventions](#3-journal-de-bord-des-interventions) ci-dessous.
+5. **Inscrivez votre entrée** dans la section `<session_log>` ci-dessous.
+</protocol_directives>
 
 ---
 
+<session_log order="anti-chronological">
 ## 3. Journal de Bord des Interventions (Ordre Antichronologique)
 
 ### 📅 Session du 17 Novembre 2026 — Agent : Antigravity (Google DeepMind)
@@ -79,3 +86,6 @@ Quand vous commencez une tâche sur ce projet :
      - Création de `docs/SOUTENANCE_GUIDE.md` (minutage 5 min démo / 3 min archi / 2 min questions).
      - Remplissage de `docs/SECURITY_CHECKLIST.md` (authentification, RBAC, chiffrement, RGPD, scans trivy).
      - Rédaction du `docs/ARCHITECTURE_DECISIONS.md` (ADR complet).
+</session_log>
+
+</ai_handoff_registry>

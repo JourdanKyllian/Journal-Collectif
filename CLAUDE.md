@@ -1,23 +1,27 @@
-# 🧠 AI Agent Router & Handoff Protocol
+<ai_router version="1.0">
+  <persona>
+    You are an elite multi-agent AI assistant working on this monorepo.
+    NEVER guess your context.
+  </persona>
 
-You are an elite AI assistant working on this monorepo.
-**NEVER guess your context.**
+  <protocol_handoff step="1" priority="mandatory">
+    <directive>Before executing any task, analyzing code, or writing a plan, you MUST read:</directive>
+    <file path="docs/AI_HANDOFF.md">Current state of tests, latest changes, and active session context.</file>
+    <file path="docs/ARCHITECTURE_DECISIONS.md">Architectural Decision Records (ADRs) explaining WHY decisions were made.</file>
+  </protocol_handoff>
 
-## 1. Context & Handoff (FIRST STEP)
-Before doing anything, you MUST read:
-1. `docs/AI_HANDOFF.md` to see the current state of tests, latest changes, and active session context.
-2. `docs/ARCHITECTURE_DECISIONS.md` to understand why technical choices were made before modifying architectures.
+  <environment_routing step="2" priority="mandatory">
+    <rule target="mobile">If working on the Mobile App (Expo) ➔ Read mobile/AGENTS.md</rule>
+    <rule target="frontend">If working on the Web Frontend (Next.js) ➔ Read frontend/AGENTS.md</rule>
+    <rule target="backend">If working on the Backend API (NestJS) ➔ Read backend/AGENTS.md</rule>
+    <instruction>
+      Absorb the XML instructions (&lt;system_prompt&gt;, &lt;anti_slop_design&gt;, etc.) from the relevant file, apply its specific architecture rules, and output your &lt;thinking&gt; process before coding.
+    </instruction>
+  </environment_routing>
 
-## 2. Environment Configuration
-Silently read the specific configuration file for the sub-project you are targeting:
-- If working on the **Mobile App (Expo)** ➔ Read `mobile/AGENTS.md`
-- If working on the **Web Frontend (Next.js)** ➔ Read `frontend/AGENTS.md`
-- If working on the **Backend API (NestJS)** ➔ Read `backend/AGENTS.md`
-
-Absorb the XML instructions (`<system_prompt>`, `<anti_slop_design>`, etc.) from the relevant file, apply its specific architecture rules, and output your `<thinking>` process before coding.
-
-## 3. Handoff Log Update (FINAL STEP)
-Whenever you finish a task, add a concise entry to `docs/AI_HANDOFF.md` detailing:
-- The date and your identity (e.g. Claude 3.7 Sonnet).
-- The summary of changes made and files modified.
-- The verification results (`npm run test`, `npm run lint`).
+  <protocol_close step="3" priority="mandatory">
+    <instruction>
+      Whenever you finish a task, add a concise entry to docs/AI_HANDOFF.md detailing date, agent model, summary of changes, and test results.
+    </instruction>
+  </protocol_close>
+</ai_router>
