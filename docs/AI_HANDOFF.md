@@ -58,6 +58,11 @@ Quand vous commencez une tâche sur ce projet :
   3. **Multi-IA & Documentation :**
      - Mise en place du protocole de passation inter-IA (`docs/AI_HANDOFF.md`).
      - Alignement de `CLAUDE.md`, `AGENTS.md` et `docs/ARCHITECTURE_DECISIONS.md`.
+  4. **Bonus Maestro & EAS Workflows :**
+     - Installation du CLI officiel Maestro v2.12.1 en local sur Mac (100% gratuit, 0 € d'hébergement).
+     - Création du flow de test E2E déclaratif ([`mobile/.maestro/citizen-flow.yaml`](file:///Users/kyllianjourdan/projet/Collectif/Journal-Collectif/mobile/.maestro/citizen-flow.yaml)) testant le parcours citoyen complet.
+     - Configuration du profil `e2e-test` dans [`mobile/eas.json`](file:///Users/kyllianjourdan/projet/Collectif/Journal-Collectif/mobile/eas.json) et du workflow Expo officiel ([`mobile/.eas/workflows/e2e-test-android.yml`](file:///Users/kyllianjourdan/projet/Collectif/Journal-Collectif/mobile/.eas/workflows/e2e-test-android.yml)).
+     - Ajout des scripts npm `npm run maestro:test` et `npm run maestro:studio` dans `mobile/package.json`.
 * **Fichiers modifiés / créés :**
   - `frontend/src/app/(visitor)/cgu/page.tsx`
   - `frontend/src/app/(visitor)/politique-de-confidentialite/page.tsx`

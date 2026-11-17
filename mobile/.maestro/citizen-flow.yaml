@@ -1,0 +1,30 @@
+appId: com.kylliandev.journalmobile
+---
+- launchApp:
+    clearState: true
+
+# 1. Écran d'accueil et consultation du fil d'actualités
+- assertVisible: "Actualités"
+
+# 2. Navigation vers la rubrique Bons Plans & Concours
+- tapOn: "Bons Plans"
+- assertVisible: "Bons Plans"
+
+# 3. Navigation vers les Outils Municipaux (Parkings IoT & Objets trouvés)
+- tapOn: "Outils"
+- assertVisible: "Outils Municipaux"
+
+# 4. Navigation vers l'Espace Citoyen (Profil)
+- tapOn: "Profil"
+- assertVisible: "Espace Citoyen"
+
+# 5. Découverte de la modale de Connexion
+- tapOn: "Se connecter"
+- assertVisible: "COMPTES DE DÉMONSTRATION"
+
+# 6. Connexion en 1 clic (Compte Citoyen Engagé)
+- tapOn: "Citoyen Engagé"
+- tapOn: "Se connecter"
+
+# 7. Validation de la connexion sécurisée & accès aux réglages RGPD
+- assertVisible: "Sécurité & Confidentialité"
