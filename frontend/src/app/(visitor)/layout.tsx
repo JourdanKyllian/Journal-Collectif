@@ -1,6 +1,7 @@
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import AlertBanner from "@/components/layout/AlertBanner";
+import CookieConsentBanner from "@/components/layout/CookieConsentBanner";
 
 /**
  * Interface représentant les propriétés du layout visiteur.
@@ -28,6 +29,8 @@ export default function VisitorLayout({ children }: VisitorLayoutProps) {
         {children}
       </main>
       <Footer />
+      {/* Bannière discrète et non bloquante de cookies (CNIL) */}
+      <CookieConsentBanner />
     </div>
   );
 }

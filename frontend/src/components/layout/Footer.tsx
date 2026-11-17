@@ -108,9 +108,9 @@ export default function Footer() {
 
       </div>
       
-      {/* === BARRE DE DROITS === */}
+      {/* === BARRE DE DROITS & LIENS JURIDIQUES (CONFORMITÉ RGPD / CNIL) === */}
       <div className="max-w-7xl mx-auto border-t border-blanc/10 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 font-montserrat text-xs text-blanc/40 text-center">
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-6 items-center">
+        <div className="flex flex-wrap justify-center sm:justify-start gap-3 sm:gap-6 items-center">
           <span>
             © {new Date().getFullYear()} {settings ? settings.nom_journal : <Skeleton className="h-3 w-24 inline-block bg-blanc/10 align-middle ml-1" />} — Tous droits réservés
           </span>
@@ -120,6 +120,30 @@ export default function Footer() {
           >
             Mentions légales
           </Link>
+          <Link 
+            href="/politique-de-confidentialite"
+            className="hover:text-blanc transition-colors underline decoration-blanc/20 underline-offset-4"
+          >
+            Confidentialité &amp; RGPD
+          </Link>
+          <Link 
+            href="/cgu"
+            className="hover:text-blanc transition-colors underline decoration-blanc/20 underline-offset-4"
+          >
+            Conditions d&apos;utilisation (CGU)
+          </Link>
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window !== "undefined") {
+                localStorage.removeItem("jc_web_cookie_consent");
+                window.location.reload();
+              }
+            }}
+            className="hover:text-blanc transition-colors underline decoration-blanc/20 underline-offset-4 cursor-pointer"
+          >
+            Gestion des cookies
+          </button>
         </div>
         <span>Fait avec le ❤️ pour la commune</span>
       </div>
