@@ -23,11 +23,11 @@ appId: com.kylliandev.journalmobile
 # 4. Navigation vers l'Espace Citoyen (Profil)
 - tapOn: "Profil"
 - extendedWaitUntil:
-    visible: "Connexion"
+    visible: "Visiteur"
     timeout: 10000
 
 # 5. Découverte de la modale de Connexion
-- tapOn: "Connexion"
+- tapOn: "Se connecter"
 - extendedWaitUntil:
     visible: "COMPTES DE DÉMONSTRATION"
     timeout: 10000
