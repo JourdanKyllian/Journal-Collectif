@@ -20,7 +20,7 @@
 
 ---
 
-<protocol_directives priority="critical">
+<protocol_directives priority="critical" max_active_sessions="5">
 ## 2. Protocole Obligatoire pour Toute IA Prenant le Relais
 
 Quand vous commencez une tâche sur ce projet :
@@ -34,7 +34,9 @@ Quand vous commencez une tâche sur ce projet :
    - Backend : `npm --prefix backend test`
    - Mobile : `npm --prefix mobile test && npm --prefix mobile run typecheck`
    - Frontend : `npm --prefix frontend run lint`
-5. **Inscrivez votre entrée** dans la section `<session_log>` ci-dessous.
+5. **Inscrivez votre entrée** dans la section `<session_log>` ci-dessous en respectant la **Règle de la Fenêtre Glissante** :
+   - Format concis (10 à 15 lignes max par session).
+   - Ne conservez que les **5 dernières sessions détaillées**. Dès qu'une 6ᵉ arrive, condensez la plus ancienne en une seule ligne dans l'archive.
 </protocol_directives>
 
 ---
