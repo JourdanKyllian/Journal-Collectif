@@ -10,10 +10,11 @@ import {
   Platform,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
-import { Key, Trash2, ShieldCheck, ChevronRight } from 'lucide-react-native';
+import { Key, Trash2, ShieldCheck, ChevronRight, Cookie } from 'lucide-react-native';
 import { router } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { COLORS, FONTS } from '@/theme/tokens';
+import { ConsentService } from '@/lib/services/consent.service';
 
 interface ProfileSecurityTabProps {
   isLoggedIn: boolean;
@@ -105,13 +106,83 @@ export default function ProfileSecurityTab({
     );
   };
 
+  const handleManageCookies = () => {
+    if (Platform.OS !== 'web') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    Alert.alert(
+      'Gestion des Traceurs & Confidentialité',
+      'Choisissez le niveau de traceurs et données locales que vous autorisez sur votre appareil.',
+      [
+        {
+          text: 'Essentiels uniquement',
+          onPress: async () => {
+            await ConsentService.saveConsentChoice('essential');
+            Toast.show({
+              type: 'info',
+              text1: 'Préférence enregistrée',
+              text2: 'Seuls les traceurs indispensables au fonctionnement sont actifs.',
+            });
+          },
+        },
+        {
+          text: 'Tout accepter',
+          onPress: async () => {
+            await ConsentService.saveConsentChoice('all');
+            Toast.show({
+              type: 'success',
+              text1: 'Préférence enregistrée',
+              text2: 'L’ensemble des fonctionnalités et mesures citoyennes sont actives.',
+            });
+          },
+        },
+        { text: 'Annuler', style: 'cancel' },
+      ],
+    );
+  };
+
   if (!isLoggedIn) {
     return (
-      <View style={styles.card}>
-        <Text style={styles.guestTitle}>Sécurité & Confidentialité</Text>
-        <Text style={styles.guestSubtitle}>
-          Connectez-vous pour modifier votre mot de passe ou gérer la suppression de votre compte.
-        </Text>
+      <View style={styles.container}>
+        <View style={styles.card}>
+          <Text style={styles.guestTitle}>Sécurité & Confidentialité</Text>
+          <Text style={styles.guestSubtitle}>
+            Connectez-vous pour modifier votre mot de passe ou gérer la suppression de votre compte.
+          </Text>
+        </View>
+
+        {/* LIEN POLITIQUE DE CONFIDENTIALITÉ */}
+        <Pressable
+          onPress={() => {
+            if (Platform.OS !== 'web') {
+              Haptics.selectionAsync();
+            }
+            router.push('/modals/privacy' as never);
+          }}
+          style={styles.privacyLinkRow}
+          accessibilityRole="button"
+          accessibilityLabel="Consulter la politique de confidentialité"
+        >
+          <View style={styles.privacyLeft}>
+            <ShieldCheck size={18} color={COLORS.vert} />
+            <Text style={styles.privacyLinkText}>Politique de confidentialité & RGPD</Text>
+          </View>
+          <ChevronRight size={16} color={COLORS.champagne} />
+        </Pressable>
+
+        {/* GESTION TRACEURS & COOKIES */}
+        <Pressable
+          onPress={handleManageCookies}
+          style={styles.privacyLinkRow}
+          accessibilityRole="button"
+          accessibilityLabel="Gérer les préférences de traceurs et données locales"
+        >
+          <View style={styles.privacyLeft}>
+            <Cookie size={18} color={COLORS.vert} />
+            <Text style={styles.privacyLinkText}>Préférences des traceurs & cookies</Text>
+          </View>
+          <ChevronRight size={16} color={COLORS.champagne} />
+        </Pressable>
       </View>
     );
   }
@@ -223,6 +294,20 @@ export default function ProfileSecurityTab({
         <View style={styles.privacyLeft}>
           <ShieldCheck size={18} color={COLORS.vert} />
           <Text style={styles.privacyLinkText}>Politique de confidentialité & RGPD</Text>
+        </View>
+        <ChevronRight size={16} color={COLORS.champagne} />
+      </Pressable>
+
+      {/* GESTION DU CONSENTEMENT TRACEURS & COOKIES (CNIL) */}
+      <Pressable
+        onPress={handleManageCookies}
+        style={styles.privacyLinkRow}
+        accessibilityRole="button"
+        accessibilityLabel="Gérer les préférences de traceurs et données locales"
+      >
+        <View style={styles.privacyLeft}>
+          <Cookie size={18} color={COLORS.vert} />
+          <Text style={styles.privacyLinkText}>Préférences des traceurs & cookies</Text>
         </View>
         <ChevronRight size={16} color={COLORS.champagne} />
       </Pressable>

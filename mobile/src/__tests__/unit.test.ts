@@ -6,6 +6,7 @@ import { COLORS } from '@/theme/tokens';
 import { MOCK_ARTICLES } from '@/lib/mock-data';
 import { SyncQueueService } from '@/lib/services/sync-queue.service';
 import { AiAssistantService } from '@/lib/services/ai-assistant.service';
+import { ConsentService } from '@/lib/services/consent.service';
 
 // Mock pour expo-secure-store
 const storeMock = new Map<string, string>();
@@ -161,6 +162,20 @@ describe('Mobile Unit Tests (Suite d\'évaluation finale)', () => {
       expect(refined.improvedTitle).toBe('Fête de quartier');
       expect(refined.highlights.length).toBeGreaterThan(0);
       expect(refined.correctionsCount).toBeGreaterThan(0);
+    });
+
+    test('15. ConsentService : mémorise et réinitialise les choix de traceurs et cookies conformément au RGPD', async () => {
+      await ConsentService.saveConsentChoice('essential');
+      let choice = await ConsentService.getConsentChoice();
+      expect(choice).toBe('essential');
+
+      await ConsentService.saveConsentChoice('all');
+      choice = await ConsentService.getConsentChoice();
+      expect(choice).toBe('all');
+
+      await ConsentService.resetConsent();
+      choice = await ConsentService.getConsentChoice();
+      expect(choice).toBeNull();
     });
   });
 });
