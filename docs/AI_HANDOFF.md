@@ -63,6 +63,10 @@ Quand vous commencez une tâche sur ce projet :
      - Création du flow de test E2E déclaratif ([`mobile/.maestro/citizen-flow.yaml`](file:///Users/kyllianjourdan/projet/Collectif/Journal-Collectif/mobile/.maestro/citizen-flow.yaml)) testant le parcours citoyen complet.
      - Configuration du profil `e2e-test` dans [`mobile/eas.json`](file:///Users/kyllianjourdan/projet/Collectif/Journal-Collectif/mobile/eas.json) et du workflow Expo officiel ([`mobile/.eas/workflows/e2e-test-android.yml`](file:///Users/kyllianjourdan/projet/Collectif/Journal-Collectif/mobile/.eas/workflows/e2e-test-android.yml)).
      - Ajout des scripts npm `npm run maestro:test` et `npm run maestro:studio` dans `mobile/package.json`.
+  5. **Résolution des Échecs CI GitHub Actions :**
+     - Suppression du fichier en doublon `frontend/next.config.mjs` (qui entrait en conflit avec `next.config.ts` et faisait crasher le build Next.js après 50s).
+     - Correction du paramètre `cache-dependency-path` dans `.github/workflows/ci.yml` (suppression du préfixe erroné `./` qui provoquait l'échec immédiat des jobs en 2s).
+     - Intégration de l'étape de tests `npm test` dans le job mobile du workflow CI.
 * **Fichiers modifiés / créés :**
   - `frontend/src/app/(visitor)/cgu/page.tsx`
   - `frontend/src/app/(visitor)/politique-de-confidentialite/page.tsx`
