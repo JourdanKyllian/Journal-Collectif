@@ -108,30 +108,31 @@ export default function Footer() {
 
       </div>
       
-      {/* === BARRE DE DROITS & LIENS JURIDIQUES (CONFORMITÉ RGPD / CNIL) === */}
-      <div className="max-w-7xl mx-auto border-t border-blanc/10 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4 font-montserrat text-xs text-blanc/40 text-center">
-        <div className="flex flex-wrap justify-center sm:justify-start gap-3 sm:gap-6 items-center">
-          <span>
-            © {new Date().getFullYear()} {settings ? settings.nom_journal : <Skeleton className="h-3 w-24 inline-block bg-blanc/10 align-middle ml-1" />} — Tous droits réservés
-          </span>
+      {/* === ZONE JURIDIQUE & BAS DE PAGE (SOBRE, CENTRÉE ET DISCRÈTE) === */}
+      <div className="max-w-7xl mx-auto border-t border-blanc/10 pt-8 flex flex-col items-center justify-center gap-3 font-montserrat text-[11px] text-blanc/40 text-center">
+        {/* Liens légaux & conformité RGPD / CNIL */}
+        <nav aria-label="Liens légaux et réglementaires" className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
           <Link 
             href="/mentions-legales"
             className="hover:text-blanc transition-colors underline decoration-blanc/20 underline-offset-4"
           >
             Mentions légales
           </Link>
-          <Link 
-            href="/politique-de-confidentialite"
-            className="hover:text-blanc transition-colors underline decoration-blanc/20 underline-offset-4"
-          >
-            Confidentialité &amp; RGPD
-          </Link>
+          <span className="text-blanc/20 select-none hidden sm:inline">·</span>
           <Link 
             href="/cgu"
             className="hover:text-blanc transition-colors underline decoration-blanc/20 underline-offset-4"
           >
             Conditions d&apos;utilisation (CGU)
           </Link>
+          <span className="text-blanc/20 select-none hidden sm:inline">·</span>
+          <Link 
+            href="/politique-de-confidentialite"
+            className="hover:text-blanc transition-colors underline decoration-blanc/20 underline-offset-4"
+          >
+            Confidentialité &amp; RGPD
+          </Link>
+          <span className="text-blanc/20 select-none hidden sm:inline">·</span>
           <button
             type="button"
             onClick={() => {
@@ -144,8 +145,16 @@ export default function Footer() {
           >
             Gestion des cookies
           </button>
+        </nav>
+
+        {/* Droits d'auteur & engagement citoyen */}
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-blanc/30 text-[10px]">
+          <span>
+            © {new Date().getFullYear()} {settings ? settings.nom_journal : <Skeleton className="h-3 w-20 inline-block bg-blanc/10 align-middle ml-1" />} — Tous droits réservés
+          </span>
+          <span className="text-blanc/20 select-none hidden sm:inline">·</span>
+          <span>Fait avec le ❤️ pour la commune</span>
         </div>
-        <span>Fait avec le ❤️ pour la commune</span>
       </div>
     </footer>
   );
