@@ -67,6 +67,12 @@ Quand vous commencez une tâche sur ce projet :
      - Suppression du fichier en doublon `frontend/next.config.mjs` (qui entrait en conflit avec `next.config.ts` et faisait crasher le build Next.js après 50s).
      - Correction du paramètre `cache-dependency-path` dans `.github/workflows/ci.yml` (suppression du préfixe erroné `./` qui provoquait l'échec immédiat des jobs en 2s).
      - Intégration de l'étape de tests `npm test` dans le job mobile du workflow CI.
+  6. **Hygiène Git & Accessibilité Mobile pour Tests E2E :**
+     - Ajout de `*.tsbuildinfo`, `*test-report.xml` et `test-report.xml` dans `.gitignore` (racine et mobile).
+     - Suppression du tracking git de `frontend/tsconfig.tsbuildinfo` et suppression du rapport temporaire `test-report.xml`.
+     - Audit de sécurité : 0 clé privée, 0 secret, 0 build folder dans le git history.
+     - Ajout de `accessibilityLabel` et `testID` sur `CustomTabBar.tsx` et `ProfileHeader.tsx` pour permettre l'interaction déterministe des robots de tests E2E (Maestro).
+     - Flow E2E (`mobile/.maestro/citizen-flow.yaml`) stabilisé avec des `extendedWaitUntil` tolérants aux démarrages à froid.
 * **Fichiers modifiés / créés :**
   - `frontend/src/app/(visitor)/cgu/page.tsx`
   - `frontend/src/app/(visitor)/politique-de-confidentialite/page.tsx`

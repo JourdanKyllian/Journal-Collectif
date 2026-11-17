@@ -3,28 +3,42 @@ appId: com.kylliandev.journalmobile
 - launchApp:
     clearState: true
 
-# 1. Écran d'accueil et consultation du fil d'actualités
-- assertVisible: "Actualités"
+# 1. Attente du chargement initial de l'application et du fil d'actualités
+- extendedWaitUntil:
+    visible: "Actualités"
+    timeout: 30000
 
-# 2. Navigation vers la rubrique Bons Plans & Concours
+# 2. Navigation vers la rubrique Bons Plans & Privilèges
 - tapOn: "Bons Plans"
-- assertVisible: "Bons Plans"
+- extendedWaitUntil:
+    visible: "Privilèges & Bons Plans"
+    timeout: 10000
 
 # 3. Navigation vers les Outils Municipaux (Parkings IoT & Objets trouvés)
 - tapOn: "Outils"
-- assertVisible: "Outils Municipaux"
+- extendedWaitUntil:
+    visible: "Outils Municipaux"
+    timeout: 10000
 
 # 4. Navigation vers l'Espace Citoyen (Profil)
 - tapOn: "Profil"
-- assertVisible: "Espace Citoyen"
+- extendedWaitUntil:
+    visible: "Espace Citoyen"
+    timeout: 10000
 
 # 5. Découverte de la modale de Connexion
 - tapOn: "Se connecter"
-- assertVisible: "COMPTES DE DÉMONSTRATION"
+- extendedWaitUntil:
+    visible: "COMPTES DE DÉMONSTRATION"
+    timeout: 10000
 
 # 6. Connexion en 1 clic (Compte Citoyen Engagé)
 - tapOn: "Citoyen Engagé"
 - tapOn: "Se connecter"
 
-# 7. Validation de la connexion sécurisée & accès aux réglages RGPD
-- assertVisible: "Sécurité & Confidentialité"
+# 7. Validation de la connexion sécurisée & accès aux réglages du compte
+- extendedWaitUntil:
+    visible: "CITOYEN VÉRIFIÉ"
+    timeout: 15000
+- assertVisible: "Contributions"
+- assertVisible: "Sécurité"

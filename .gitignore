@@ -20,6 +20,10 @@ pids/
 *.pid.lock
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 repomix-output.xml
+*.tsbuildinfo
+*test-report.xml
+*.junit.xml
+test-report.xml
 
 # =========================================
 # BACKEND (NestJS)

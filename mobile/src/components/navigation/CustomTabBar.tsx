@@ -145,12 +145,26 @@ export default function CustomTabBar({ state, navigation }: any) {
                   }
                 }
               };
+              const getTabLabel = (name: string) => {
+                switch (name) {
+                  case 'index': return 'Actualités';
+                  case 'deals': return 'Bons Plans';
+                  case 'action': return 'Publier';
+                  case 'tools': return 'Outils';
+                  case 'profile': return 'Profil';
+                  default: return name;
+                }
+              };
+              const label = getTabLabel(route.name);
+
               return (
                 <Pressable
                   key={route.key}
                   onPress={onPress}
                   style={styles.tabItem}
                   accessibilityRole="tab"
+                  accessibilityLabel={label}
+                  testID={`tab-${route.name}`}
                   accessibilityState={{ selected: isFocused }}
                   hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
                 >
@@ -200,12 +214,26 @@ export default function CustomTabBar({ state, navigation }: any) {
                 }
               }
             };
+            const getTabLabel = (name: string) => {
+              switch (name) {
+                case 'index': return 'Actualités';
+                case 'deals': return 'Bons Plans';
+                case 'action': return 'Publier';
+                case 'tools': return 'Outils';
+                case 'profile': return 'Profil';
+                default: return name;
+              }
+            };
+            const label = getTabLabel(route.name);
+
             return (
               <Pressable
                 key={route.key}
                 onPress={onPress}
                 style={styles.tabItem}
                 accessibilityRole="tab"
+                accessibilityLabel={label}
+                testID={`tab-${route.name}`}
                 accessibilityState={{ selected: isFocused }}
                 hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
               >

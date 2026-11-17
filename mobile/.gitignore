@@ -38,6 +38,11 @@ yarn-error.*
 
 example
 
+# test reports
+*test-report.xml
+test-report.xml
+*.junit.xml
+
 # generated native folders
 /ios
 /android

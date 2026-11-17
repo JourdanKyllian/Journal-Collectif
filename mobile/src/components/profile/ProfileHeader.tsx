@@ -73,7 +73,7 @@ export default function ProfileHeader({
         </View>
 
         {isLoggedIn ? (
-          <Pressable onPress={onLogout} style={styles.logoutBtn} hitSlop={8}>
+          <Pressable onPress={onLogout} style={styles.logoutBtn} hitSlop={8} accessibilityLabel="Déconnexion" testID="btn-logout">
             <LogOut size={16} color="#EF4444" />
           </Pressable>
         ) : (
@@ -81,6 +81,8 @@ export default function ProfileHeader({
             onPress={() => router.push('/modals/login')}
             style={styles.loginBtn}
             hitSlop={8}
+            accessibilityLabel="Se connecter"
+            testID="btn-login"
           >
             <LogIn size={15} color={COLORS.noir} />
             <Text style={styles.loginBtnText}>Connexion</Text>
