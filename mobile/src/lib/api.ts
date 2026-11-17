@@ -193,10 +193,21 @@ export async function apiClient<T>(
     headers.set('Content-Type', 'application/json');
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers,
+      signal: options.signal || controller.signal,
+    });
+  } catch (fetchError) {
+    clearTimeout(timeoutId);
+    throw fetchError;
+  }
+  clearTimeout(timeoutId);
 
   // Interception 401 : tentative de rotation transparente du token
   if (response.status === 401 && !isRetry && !endpoint.includes('/auth/login')) {

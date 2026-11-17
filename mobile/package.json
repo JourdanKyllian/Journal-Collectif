@@ -62,7 +62,7 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "maestro:test": "maestro test .maestro/citizen-flow.yaml",
+    "maestro:test": "node ./scripts/run-maestro.js",
     "maestro:studio": "maestro studio"
   },
   "private": true
