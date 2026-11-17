@@ -25,6 +25,9 @@
    - 5.2 Justification Approfondie du Dockerfile Distroless (Stage 3)
    - 5.3 Déploiement Blue / Green & Zero-Downtime
 6. [Matrice des Données & Jeu de Fixtures de Test](#6-matrice-des-données--jeu-de-fixtures-de-test)
+7. [Synthèse des Commandes Essentielles](#7-synthèse-des-commandes-essentielles)
+8. [Fonctionnalité IA Citoyenne & Zéro Coût de Fonctionnement (ADR-008)](#8-fonctionnalité-ia-citoyenne--zéro-coût-de-fonctionnement-adr-008)
+9. [Ségrégation de la Conformité Juridique : Web vs Mobile (ADR-009)](#9-ségrégation-de-la-conformité-juridique--web-vs-mobile-adr-009)
 
 ---
 
@@ -296,4 +299,37 @@ graph TD
 | **Injection Fixtures Dev** | `npm --prefix backend run fixtures:dev` |
 | **Validation Expo Bundle** | `cd mobile && npx expo export --output-dir dist` |
 | **Audit Vulnérabilités** | `trivy fs ./backend ./frontend` |
+
+---
+
+## 8. Fonctionnalité IA Citoyenne & Zéro Coût de Fonctionnement (ADR-008)
+
+### Contexte & Problématique
+Le barème propose un bonus pour une *« Fonction IA dans l'app »*. Cependant, brancher une API LLM cloud commerciale (type OpenAI ou Anthropic) à chaque modification de texte pose deux risques majeurs pour une association citoyenne :
+1. **Risque financier (Coût des tokens)** : En cas d'affluence de requêtes, le coût récurrent devient incontrôlable.
+2. **Risque éditorial (Déformation & Hallucination)** : L'IA ne doit pas inventer d'informations ou remplacer l'expression authentique des habitants.
+
+### Décision Retenue : Moteur d'Assistance Syntaxique Local Déterministe (`AiAssistantService`)
+Nous avons développé un service d'assistance syntaxique et stylistique natif (`mobile/src/lib/services/ai-assistant.service.ts`) opérant directement sur l'appareil :
+* **0 € de coût token** : Fonctionne localement sans appel API facturé.
+* **Fonctionne hors-ligne** : Utilisable même en zone rurale ou blanche.
+* **Respect de la voix citoyenne** : Corrige les fautes, reformule les tournures familières en bon français, élimine les redondances sans jamais inventer de faits non saisis par l'utilisateur.
+
+---
+
+## 9. Ségrégation de la Conformité Juridique : Web vs Mobile (ADR-009)
+
+### Contexte & Exigences CNIL / RGPD
+Le projet dispose à la fois d'une application Web (Next.js) et d'une application Mobile native (Expo). Les technologies de traçage et de stockage diffèrent fondamentalement entre les deux environnements.
+
+### Décision Retenue : Ségrégation Stricte des Mécanismes Juridiques
+1. **Côté Web (`frontend/`) : Traceurs HTTP & Consentement CNIL**
+   * Présence d'un bandeau discret et non bloquant en bas à droite (`CookieConsentBanner.tsx`).
+   * Deux choix de niveau égal : « Essentiels uniquement » (session sécurisée) et « Tout accepter » (mesure citoyenne).
+   * Pied de page centré avec pages dédiées (`/cgu`, `/politique-de-confidentialite`) et bouton de réinitialisation (« Gestion des cookies »).
+2. **Côté Mobile (`mobile/`) : Stockage Matériel & Zéro Cookie Web**
+   * Aucun bandeau ni cookie HTTP sur mobile (non pertinent en architecture native).
+   * Stockage chiffré des jetons et du cache via l'enclave matérielle (**iOS Keychain** / **Android Keystore**).
+   * Modale juridique native complète (`modals/privacy.tsx`) intégrant Mentions légales, RGPD, CGU et Droit à l'effacement immédiat (Article 17 RGPD), accessible depuis l'écran de Login, l'onglet Profil et les Préférences.
+
 
