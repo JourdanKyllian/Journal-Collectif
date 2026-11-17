@@ -107,11 +107,32 @@ export default function ProfileSecurityTab({
 
   if (!isLoggedIn) {
     return (
-      <View style={styles.card}>
-        <Text style={styles.guestTitle}>Sécurité & Confidentialité</Text>
-        <Text style={styles.guestSubtitle}>
-          Connectez-vous pour modifier votre mot de passe ou gérer la suppression de votre compte.
-        </Text>
+      <View style={styles.container}>
+        <View style={styles.card}>
+          <Text style={styles.guestTitle}>Sécurité & Confidentialité</Text>
+          <Text style={styles.guestSubtitle}>
+            Connectez-vous pour modifier votre mot de passe ou gérer la suppression de votre compte.
+          </Text>
+        </View>
+
+        {/* LIEN DE CONSULTATION JURIDIQUE & RGPD (DISPONIBLE POUR TOUS) */}
+        <Pressable
+          onPress={() => {
+            if (Platform.OS !== 'web') {
+              Haptics.selectionAsync();
+            }
+            router.push('/modals/privacy' as never);
+          }}
+          style={styles.privacyLinkRow}
+          accessibilityRole="button"
+          accessibilityLabel="Consulter la confidentialité, les CGU et mentions légales"
+        >
+          <View style={styles.privacyLeft}>
+            <ShieldCheck size={18} color={COLORS.vert} />
+            <Text style={styles.privacyLinkText}>Confidentialité, CGU &amp; Mentions Légales</Text>
+          </View>
+          <ChevronRight size={16} color={COLORS.champagne} />
+        </Pressable>
       </View>
     );
   }
@@ -218,11 +239,11 @@ export default function ProfileSecurityTab({
         }}
         style={styles.privacyLinkRow}
         accessibilityRole="button"
-        accessibilityLabel="Consulter la politique de confidentialité"
+        accessibilityLabel="Consulter la confidentialité, les CGU et mentions légales"
       >
         <View style={styles.privacyLeft}>
           <ShieldCheck size={18} color={COLORS.vert} />
-          <Text style={styles.privacyLinkText}>Politique de confidentialité & RGPD</Text>
+          <Text style={styles.privacyLinkText}>Confidentialité, CGU &amp; Mentions Légales</Text>
         </View>
         <ChevronRight size={16} color={COLORS.champagne} />
       </Pressable>

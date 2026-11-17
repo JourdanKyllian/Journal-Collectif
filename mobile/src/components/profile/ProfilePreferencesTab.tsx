@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, Pressable, Switch, Platform } from 'react-native';
+import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { Bell, Moon, MapPin, ChevronRight } from 'lucide-react-native';
+import { Bell, Moon, MapPin, ChevronRight, ShieldCheck } from 'lucide-react-native';
 import { COLORS, FONTS } from '@/theme/tokens';
 
 interface ProfilePreferencesTabProps {
@@ -141,6 +142,31 @@ export default function ProfilePreferencesTab({
         <View style={styles.switchLabelBox}>
           <Text style={styles.switchTitle}>Édition Territoriale Suivie</Text>
           <Text style={styles.currentCityName}>{currentCityName}</Text>
+        </View>
+        <ChevronRight size={18} color={COLORS.champagne} />
+      </Pressable>
+
+      <View style={styles.divider} />
+
+      {/* LIEN JURIDIQUE & CONFIDENTIALITÉ (RGPD / CGU) */}
+      <Pressable
+        onPress={() => {
+          if (Platform.OS !== 'web') {
+            Haptics.selectionAsync();
+          }
+          router.push('/modals/privacy' as never);
+        }}
+        style={styles.citySelectorRow}
+        hitSlop={6}
+        accessibilityRole="button"
+        accessibilityLabel="Consulter la confidentialité, les CGU et mentions légales"
+      >
+        <View style={styles.switchIconBox}>
+          <ShieldCheck size={18} color={COLORS.vert} />
+        </View>
+        <View style={styles.switchLabelBox}>
+          <Text style={styles.switchTitle}>Confidentialité &amp; Mentions</Text>
+          <Text style={styles.currentCityName}>RGPD, CGU et protection des données</Text>
         </View>
         <ChevronRight size={18} color={COLORS.champagne} />
       </Pressable>

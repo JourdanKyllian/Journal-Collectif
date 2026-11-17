@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native';
 import { router } from 'expo-router';
-import { X, ShieldCheck, Lock, Trash2, EyeOff, FileText } from 'lucide-react-native';
+import { X, ShieldCheck, Lock, Trash2, EyeOff, Scale, HeartHandshake } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { COLORS, FONTS } from '@/theme/tokens';
 import { useTheme } from '@/context/ThemeContext';
@@ -23,7 +23,7 @@ export default function PrivacyPolicyModal() {
         <View style={styles.headerTitleRow}>
           <ShieldCheck size={22} color={COLORS.or} />
           <Text style={[styles.headerTitle, { color: theme.text }]}>
-            Politique de Confidentialité
+            Confidentialité &amp; Mentions Légales
           </Text>
         </View>
         <Pressable
@@ -37,74 +37,88 @@ export default function PrivacyPolicyModal() {
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.lead}>
-          Le Journal Collectif s&apos;engage à garantir un traitement loyal, transparent et sécurisé de
-          vos données personnelles, conformément au Règlement Général sur la Protection des Données
-          (RGPD n° 2016/679).
+          Le Journal Collectif s&apos;engage à garantir un service transparent, citoyen et hautement sécurisé,
+          dans le strict respect du Règlement Général sur la Protection des Données (RGPD n° 2016/679) et
+          des directives de la CNIL.
         </Text>
 
-        {/* Section 1 : Responsable de traitement */}
+        {/* Section 1 : Éditeur & Mentions Légales */}
         <View style={styles.section}>
           <View style={styles.sectionTitleRow}>
-            <FileText size={18} color={COLORS.vert} />
-            <Text style={styles.sectionTitle}>1. Responsable du Traitement</Text>
+            <Scale size={18} color={COLORS.vert} />
+            <Text style={styles.sectionTitle}>1. Éditeur & Mentions Légales</Text>
           </View>
           <Text style={styles.paragraph}>
-            Les données sont traitées par le Collectif Territorial sous l&apos;égide de la commune éditrice
-            sélectionnée. Aucune donnée n&apos;est vendue, louée ou cédée à des fins commerciales ou
-            publicitaires tierces.
+            • <Text style={styles.bold}>Éditeur du service</Text> : Association Collectif Territorial (Loi 1901),
+            œuvrant pour l&apos;information et l&apos;entraide locale.{'\n'}
+            • <Text style={styles.bold}>Directeur de la publication</Text> : Équipe de rédaction du Collectif.{'\n'}
+            • <Text style={styles.bold}>Hébergement souverain</Text> : Infrastructure conteneurisée sécurisée (Distroless),
+            bases PostgreSQL chiffrées au repos, située sur le territoire européen.
           </Text>
         </View>
 
-        {/* Section 2 : Données collectées */}
+        {/* Section 2 : Données collectées & Finalités (RGPD) */}
         <View style={styles.section}>
           <View style={styles.sectionTitleRow}>
             <EyeOff size={18} color={COLORS.vert} />
-            <Text style={styles.sectionTitle}>2. Données Collectées & Finalités</Text>
+            <Text style={styles.sectionTitle}>2. Données Personnelles & Finalités (RGPD)</Text>
           </View>
           <Text style={styles.paragraph}>
-            • <Text style={styles.bold}>Compte & Authentification</Text> : Adresse email, nom, prénom,
-            mot de passe haché (bcrypt). Utilisés pour l&apos;accès aux services citoyens et la publication
-            d&apos;articles ou signalements.{'\n'}
-            • <Text style={styles.bold}>Position Géographique</Text> : Vos coordonnées GPS ne sont
-            utilisées que localement pour vous proposer l&apos;édition communale la plus proche. Elles ne
-            sont jamais enregistrées sur nos serveurs.{'\n'}
-            • <Text style={styles.bold}>Données locales hors-ligne</Text> : Vos articles favoris et
-            votre cache sont chiffrés sur le matériel via le trousseau sécurisé (Keychain / Keystore).
+            • <Text style={styles.bold}>Compte Citoyen</Text> : Nom, prénom, email et mot de passe chiffré (bcrypt).
+            Utilisés uniquement pour l&apos;accès à votre espace et la signature de vos contributions.{'\n'}
+            • <Text style={styles.bold}>Position Géographique</Text> : Vos coordonnées GPS ne sont utilisées
+            que localement sur l&apos;appareil pour vous suggérer l&apos;édition communale la plus proche. Elles ne
+            sont ni tracées ni conservées sur nos serveurs.{'\n'}
+            • <Text style={styles.bold}>Zéro Vente</Text> : Aucune donnée personnelle n&apos;est vendue, louée ou transmise
+            à des tiers ou régies publicitaires.
           </Text>
         </View>
 
-        {/* Section 3 : Sécurité du stockage */}
+        {/* Section 3 : Sécurité & Chiffrement matériel */}
         <View style={styles.section}>
           <View style={styles.sectionTitleRow}>
             <Lock size={18} color={COLORS.vert} />
-            <Text style={styles.sectionTitle}>3. Sécurité & Chiffrement</Text>
+            <Text style={styles.sectionTitle}>3. Sécurité Mobile & Chiffrement</Text>
           </View>
           <Text style={styles.paragraph}>
-            Les échanges réseau sont protégés par un protocole TLS chiffré de bout en bout. Les
-            sessions mobiles utilisent des jetons d&apos;accès JWT temporaires stockés dans l&apos;enclave
-            sécurisée de votre système d&apos;exploitation.
+            • <Text style={styles.bold}>Chiffrement des flux</Text> : Toutes les communications avec l&apos;API s&apos;effectuent
+            exclusivement via TLS/HTTPS chiffré.{'\n'}
+            • <Text style={styles.bold}>Trousseau sécurisé</Text> : Vos jetons d&apos;authentification et vos données
+            hors-ligne sont stockés dans l&apos;enclave sécurisée de votre téléphone (iOS Keychain / Android Keystore).
           </Text>
         </View>
 
-        {/* Section 4 : Droit à l'effacement */}
+        {/* Section 4 : CGU & Charte de Modération Citoyenne */}
+        <View style={styles.section}>
+          <View style={styles.sectionTitleRow}>
+            <HeartHandshake size={18} color={COLORS.vert} />
+            <Text style={styles.sectionTitle}>4. Conditions d&apos;Utilisation & Charte Citoyenne</Text>
+          </View>
+          <Text style={styles.paragraph}>
+            • <Text style={styles.bold}>Gratuité</Text> : L&apos;application est entièrement libre et gratuite pour les citoyens.{'\n'}
+            • <Text style={styles.bold}>Bienveillance & Modération</Text> : Tout propos haineux, diffamatoire ou illicite entraîne la suspension immédiate du compte.{'\n'}
+            • <Text style={styles.bold}>Objets Trouvés</Text> : Le service sert de passerelle bénévole d&apos;entraide. Le Collectif ne saurait être tenu responsable des pertes, vols ou dégradations lors des restitutions entre particuliers.
+          </Text>
+        </View>
+
+        {/* Section 5 : Droit à l'effacement */}
         <View style={styles.section}>
           <View style={styles.sectionTitleRow}>
             <Trash2 size={18} color="#DC2626" />
             <Text style={[styles.sectionTitle, { color: '#DC2626' }]}>
-              4. Droit à l&apos;Effacement (Droit à l&apos;Oubli)
+              5. Droit à l&apos;Effacement (Article 17 RGPD)
             </Text>
           </View>
           <Text style={styles.paragraph}>
-            Conformément à l&apos;article 17 du RGPD, vous disposez d&apos;un droit inconditionnel à
-            l&apos;effacement de l&apos;ensemble de vos données personnelles. Vous pouvez procéder à tout moment
-            à la suppression définitive et instantanée de votre compte depuis l&apos;onglet Sécurité de
-            votre profil dans l&apos;application.
+            Vous disposez d&apos;un droit inconditionnel à l&apos;effacement définitif de toutes vos données.
+            Vous pouvez à tout instant supprimer immédiatement votre compte depuis l&apos;onglet « Sécurité »
+            de votre profil dans l&apos;application.
           </Text>
         </View>
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            Dernière mise à jour : Novembre 2026 • Version 1.0 (Conforme RGPD)
+            Dernière mise à jour : Novembre 2026 • Version 1.0 (Conforme RGPD & CNIL)
           </Text>
         </View>
       </ScrollView>

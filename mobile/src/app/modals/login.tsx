@@ -134,6 +134,26 @@ export default function LoginModalScreen() {
             )}
           </Pressable>
 
+          {/* MENTION JURIDIQUE & RGPD */}
+          <Pressable
+            onPress={() => {
+              if (Platform.OS !== 'web') {
+                Haptics.selectionAsync();
+              }
+              router.push('/modals/privacy' as never);
+            }}
+            style={styles.legalNoticeRow}
+            accessibilityRole="button"
+            accessibilityLabel="Consulter les mentions légales, CGU et politique de confidentialité"
+          >
+            <Shield size={13} color={COLORS.vert} />
+            <Text style={styles.legalNoticeText}>
+              En continuant, vous acceptez les{' '}
+              <Text style={styles.legalNoticeLink}>CGU</Text> et la{' '}
+              <Text style={styles.legalNoticeLink}>Confidentialité (RGPD)</Text>.
+            </Text>
+          </Pressable>
+
           {/* Comptes de test en un clic */}
           <View style={styles.demoSection}>
             <Text style={styles.demoSectionTitle}>COMPTES DE DÉMONSTRATION</Text>
@@ -277,6 +297,26 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: COLORS.blanc,
     letterSpacing: -0.2,
+  },
+  legalNoticeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 14,
+    marginBottom: 6,
+    paddingHorizontal: 8,
+  },
+  legalNoticeText: {
+    fontFamily: FONTS.body,
+    fontSize: 11,
+    color: COLORS.champagne,
+    textAlign: 'center',
+  },
+  legalNoticeLink: {
+    fontFamily: FONTS.bodyBold,
+    color: COLORS.vert,
+    textDecorationLine: 'underline',
   },
   demoSection: {
     marginTop: 32,
