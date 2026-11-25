@@ -4,21 +4,13 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
-  withSequence,
-  Easing,
-} from 'react-native-reanimated';
-import { ChevronDown, Calendar, BookOpen, Bookmark } from 'lucide-react-native';
+import { Calendar, BookOpen, Bookmark } from 'lucide-react-native';
 
 import { COLORS, FONTS } from '@/theme/tokens';
 import { MobileArticle } from '@/lib/mock-data';
 import { resolveImageUrl } from '@/lib/api';
 
-const HERO_HEIGHT = 300;
+const HERO_HEIGHT = 280;
 
 interface HeroCardProps {
   article: MobileArticle;
@@ -31,23 +23,6 @@ export default function HeroCard({
   isFavorite = false,
   onToggleFavorite,
 }: HeroCardProps) {
-  const bounceY = useSharedValue(0);
-
-  React.useEffect(() => {
-    bounceY.value = withRepeat(
-      withSequence(
-        withTiming(6, { duration: 800, easing: Easing.inOut(Easing.sin) }),
-        withTiming(0, { duration: 800, easing: Easing.inOut(Easing.sin) }),
-      ),
-      -1,
-      false,
-    );
-  }, [bounceY]);
-
-  const chevronAnimStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: bounceY.value }],
-  }));
-
   const handlePress = () => {
     if (Platform.OS !== 'web') {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -128,18 +103,13 @@ export default function HeroCard({
           </View>
         </View>
       </View>
-
-      {/* Chevron animé – invitation à scroller */}
-      <Animated.View style={[styles.heroScrollHint, chevronAnimStyle]}>
-        <ChevronDown size={20} color="rgba(254,249,241,0.6)" strokeWidth={2} />
-      </Animated.View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   heroCard: {
-    height: HERO_HEIGHT,
+    minHeight: HERO_HEIGHT,
     marginHorizontal: 16,
     marginTop: 16,
     borderRadius: 24,
@@ -171,7 +141,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     padding: 20,
-    paddingBottom: 36,
+    paddingBottom: 22,
   },
   heroBadge: {
     alignSelf: 'flex-start',
@@ -217,12 +187,6 @@ const styles = StyleSheet.create({
     height: 3,
     borderRadius: 1.5,
     backgroundColor: 'rgba(254, 249, 241, 0.4)',
-  },
-  heroScrollHint: {
-    position: 'absolute',
-    bottom: 12,
-    right: 16,
-    opacity: 0.7,
   },
 });
 

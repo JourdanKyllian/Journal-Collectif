@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
   countText: {
     fontSize: 11,
     fontFamily: FONTS.bold,
-    color: COLORS.or,
+    color: COLORS.orAccessible,
     letterSpacing: 0.2,
   },
   offlineBadge: {

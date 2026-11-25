@@ -49,9 +49,13 @@ export default function CategoryPillsBar({
                 pressed && { transform: [{ scale: 0.94 }], opacity: 0.85 },
               ]}
               accessibilityRole="button"
+              accessibilityState={{ selected: isActive }}
               accessibilityLabel={`Filtrer par ${cat.libelle}`}
             >
-              <Text style={[styles.pillText, isActive && styles.pillTextActive]}>
+              <Text
+                style={[styles.pillText, isActive && styles.pillTextActive]}
+                maxFontSizeMultiplier={1.35}
+              >
                 {cat.icon} {cat.libelle}
               </Text>
             </Pressable>
@@ -97,7 +101,7 @@ const styles = StyleSheet.create({
   pillText: {
     fontFamily: FONTS.bodySemiBold,
     fontSize: 13,
-    color: COLORS.champagne,
+    color: COLORS.noir,
   },
   pillTextActive: {
     color: COLORS.blanc,

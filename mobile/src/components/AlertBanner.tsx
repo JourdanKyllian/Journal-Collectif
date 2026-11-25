@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Platform, AccessibilityInfo } from 'react-native';
 import Animated, {
   FadeIn,
   FadeInDown,
@@ -37,6 +37,13 @@ export default function AlertBanner({ alerts }: AlertBannerProps) {
   const [dismissed, setDismissed] = useState(false);
   const [containerWidth, setContainerWidth] = useState(0);
   const [measuredWidths, setMeasuredWidths] = useState<Record<number, number>>({});
+  const [reduceMotion, setReduceMotion] = useState(false);
+
+  useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
+    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
+    return () => sub.remove();
+  }, []);
 
   const translateX = useSharedValue(0);
 
@@ -111,7 +118,7 @@ export default function AlertBanner({ alerts }: AlertBannerProps) {
     cancelAnimation(translateX);
     translateX.value = 0;
 
-    if (scrollDistance > 0) {
+    if (scrollDistance > 0 && !reduceMotion) {
       translateX.value = withDelay(
         INITIAL_PAUSE_MS,
         withTiming(-scrollDistance, {
@@ -124,7 +131,7 @@ export default function AlertBanner({ alerts }: AlertBannerProps) {
     return () => {
       cancelAnimation(translateX);
     };
-  }, [currentIdx, scrollDistance, scrollDuration, translateX]);
+  }, [currentIdx, scrollDistance, scrollDuration, translateX, reduceMotion]);
 
   // Rotation automatique ajustée en fonction de la longueur du texte
   useEffect(() => {
@@ -135,7 +142,7 @@ export default function AlertBanner({ alerts }: AlertBannerProps) {
         setCurrentIdx((prev) => (prev + 1) % alerts.length);
       }, totalDisplayDuration);
       return () => clearTimeout(timer);
-    } else if (scrollDistance > 0) {
+    } else if (scrollDistance > 0 && !reduceMotion) {
       // Pour une alerte longue unique, on rejoue le défilement en boucle fluide
       const loopTimer = setTimeout(() => {
         cancelAnimation(translateX);
@@ -158,6 +165,7 @@ export default function AlertBanner({ alerts }: AlertBannerProps) {
     scrollDistance,
     scrollDuration,
     translateX,
+    reduceMotion,
   ]);
 
   const animatedTextStyle = useAnimatedStyle(() => ({

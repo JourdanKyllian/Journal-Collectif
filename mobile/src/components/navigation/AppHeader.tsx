@@ -10,7 +10,7 @@ import {
   Landmark,
   ChevronDown,
   LayoutDashboard,
-  ShieldCheck,
+  MapPin,
   Star,
   Plus,
 } from 'lucide-react-native';
@@ -103,7 +103,7 @@ export default function AppHeader({
 
           <View style={styles.brandTitleContainer}>
             <View style={styles.preTitleRow}>
-              <Text style={styles.brandPreTitle}>
+              <Text style={styles.brandPreTitle} maxFontSizeMultiplier={1.3}>
                 {pageContextTitle
                   ? `ÉDITION • ${pageContextTitle.toUpperCase()}`
                   : `ÉDITION LOCALE • ${currentCity.shortName.toUpperCase()}`}
@@ -152,9 +152,13 @@ export default function AppHeader({
               onPress={handleCityPress}
               style={styles.postalCapsule}
               hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={`Code postal ${currentCity.postalCode}. Appuyez pour changer de commune.`}
             >
-              <ShieldCheck size={13} color={COLORS.vert} />
-              <Text style={styles.postalText}>{currentCity.postalCode}</Text>
+              <MapPin size={12} color={COLORS.vert} />
+              <Text style={styles.postalText} maxFontSizeMultiplier={1.3}>
+                {currentCity.postalCode}
+              </Text>
             </Pressable>
           )}
         </View>
@@ -271,7 +275,7 @@ const styles = StyleSheet.create({
   brandPreTitle: {
     fontFamily: FONTS.bodyBold,
     fontSize: 9.5,
-    color: COLORS.or,
+    color: COLORS.orAccessible,
     letterSpacing: 0.8,
   },
   primaryIndicator: {
@@ -362,7 +366,7 @@ const styles = StyleSheet.create({
   quickPillText: {
     fontFamily: FONTS.bodySemiBold,
     fontSize: 11.5,
-    color: COLORS.champagne,
+    color: COLORS.noir,
   },
   quickPillTextSelected: {
     fontFamily: FONTS.bodyBold,

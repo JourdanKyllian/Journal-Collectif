@@ -1,6 +1,7 @@
 export const COLORS = {
   vert: '#0B1C10',
   or: '#D4AF37',
+  orAccessible: '#8A6D14', // Contraste >= 4.5:1 sur fond clair (#FEF9F1 / #F5EFE6)
   noir: '#1A1A1A',
   champagne: '#8E8671',
   blanc: '#FEF9F1',

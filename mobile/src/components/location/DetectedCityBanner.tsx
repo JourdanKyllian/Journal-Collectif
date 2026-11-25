@@ -56,13 +56,25 @@ export default function DetectedCityBanner() {
         </View>
 
         <View style={styles.actionsRow}>
-          <Pressable onPress={handleSwitch} style={styles.switchBtn} hitSlop={4}>
+          <Pressable
+            onPress={handleSwitch}
+            style={styles.switchBtn}
+            hitSlop={4}
+            accessibilityRole="button"
+            accessibilityLabel={`Basculer vers l'édition de ${detectedCity.name}`}
+          >
             <Text style={styles.switchBtnText}>Basculer</Text>
             <ArrowRight size={13} color="#FFFFFF" />
           </Pressable>
 
-          <Pressable onPress={handleDismiss} style={styles.dismissBtn} hitSlop={8}>
-            <X size={15} color="#94A3B8" />
+          <Pressable
+            onPress={handleDismiss}
+            style={styles.dismissBtn}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Ignorer la suggestion de commune"
+          >
+            <X size={15} color="#475569" />
           </Pressable>
         </View>
       </View>
@@ -77,11 +89,11 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   bannerCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.blanc,
     borderRadius: 16,
     padding: 12,
     borderWidth: 1.5,
-    borderColor: 'rgba(209, 160, 84, 0.4)',
+    borderColor: 'rgba(212, 175, 55, 0.4)',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -112,7 +124,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 9,
     fontFamily: FONTS.bold,
-    color: COLORS.or,
+    color: COLORS.orAccessible,
     letterSpacing: 0.5,
   },
   title: {
@@ -123,7 +135,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 11,
     fontFamily: FONTS.regular,
-    color: '#64748B',
+    color: '#475569',
   },
   actionsRow: {
     flexDirection: 'row',

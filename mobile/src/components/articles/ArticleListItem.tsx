@@ -102,7 +102,8 @@ export default function ArticleListItem({
 const styles = StyleSheet.create({
   listItem: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'stretch',
+    minHeight: 100,
     backgroundColor: COLORS.blanc,
     borderRadius: 18,
     marginHorizontal: 16,
@@ -117,8 +118,8 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   listThumb: {
-    width: 100,
-    height: 100,
+    width: 102,
+    minHeight: 100,
     flexShrink: 0,
     backgroundColor: COLORS.surface,
     position: 'relative',
@@ -154,7 +155,7 @@ const styles = StyleSheet.create({
   listCategory: {
     fontFamily: FONTS.bodySemiBold,
     fontSize: 10,
-    color: COLORS.or,
+    color: COLORS.orAccessible,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
@@ -174,7 +175,7 @@ const styles = StyleSheet.create({
   listMetaText: {
     fontFamily: FONTS.body,
     fontSize: 11,
-    color: COLORS.champagne,
+    color: '#5E584A',
   },
   listMetaDot: {
     width: 2,
